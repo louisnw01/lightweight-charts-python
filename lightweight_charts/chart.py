@@ -15,12 +15,16 @@ class Line:
         self.id = line_id
 
     def set(self, data: pd.DataFrame):
+        """
+        Sets the line data.\n
+        :param data: columns: date/time, price
+        """
         self._chart._go('_set_line_data', self.id, data)
 
     def update(self, series: pd.Series):
         """
         Updates the line data.\n
-        :param series: columns: date/time, price
+        :param series: labels: date/time, price
         """
         self._chart._go('_update_line_data', self.id, series)
 
@@ -41,7 +45,8 @@ class Chart:
         self._exit = mp.Event()
 
         try:
-            mp.Process(target=_loop, args=(self,), daemon=True).start()
+            self._process = mp.Process(target=_loop, args=(self,), daemon=True)
+            self._process.start()
         except:
             pass
 
@@ -57,13 +62,27 @@ class Chart:
         :param block: blocks execution until the chart is closed.
         """
         self._go('show')
-        self._exit.wait() if block else None
+        if block:
+            try:
+                self._exit.wait()
+            except KeyboardInterrupt:
+                return
+            self._exit.clear()
 
     def hide(self):
+        """
+        Hides the chart window.\n
+        """
         self._go('hide')
 
     def exit(self):
+        """
+        Exits and destroys the chart window.\n
+        """
         self._go('exit')
+        self._exit.wait()
+        self._process.terminate()
+        del self
 
     def run_script(self, script: str):
         """

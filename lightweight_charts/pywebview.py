@@ -1,5 +1,4 @@
 import datetime
-
 import webview
 from multiprocessing import Queue
 
@@ -62,7 +61,9 @@ class Webview(LWC):
 
     def hide(self): self.webview.hide()
 
-    def exit(self): self.webview.destroy()
+    def exit(self):
+        self.webview.destroy()
+        del self
 
 
 def _loop(chart, controller=None):
@@ -74,6 +75,8 @@ def _loop(chart, controller=None):
         except KeyError as e:
             return
         if func == 'show':
+            chart._exit.set()
+        elif func == 'exit':
             chart._exit.set()
         chart._result_q.put(result) if result is not None else None
 
