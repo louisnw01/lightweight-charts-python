@@ -13,7 +13,7 @@ ___
 1. Simple and easy to use.
 2. Blocking or non-blocking GUI.
 3. Streamlined for live data, with methods for updating directly from tick data.
-4. Support for wxPython.
+4. Support for PyQt and wxPython.
 ___
 
 ### 1. Display data from a csv:
