@@ -1,7 +1,3 @@
-# Welcome to the lightweight-charts-python's documentation!
-___
-
-
 ```{toctree}
 :hidden:
 :caption: Contents
