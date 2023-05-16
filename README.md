@@ -1,5 +1,12 @@
 # lightweight_charts_python
 
+[![PyPi Release](https://img.shields.io/pypi/v/lightweight-charts?color=32a852&label=PyPi)](https://pypi.org/project/lightweight-charts/)
+[![Made with Python](https://img.shields.io/badge/Python-3.9+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
+[![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
+
+
+
 
 lightweight-charts-python aims to provide a simple and pythonic way to access and implement [TradingView's Lightweight Charts](https://www.tradingview.com/lightweight-charts/).
 
@@ -197,9 +204,8 @@ if __name__ == '__main__':
 ```
 ![callbacks gif](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/6_callbacks/callbacks.gif)
 ___
-## Wiki
 
-For a detailed guide of lightweight-charts-python, view the wiki [here](https://github.com/louisnw01/lightweight-charts-python/wiki).
+[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
 ___
 
