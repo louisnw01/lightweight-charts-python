@@ -200,7 +200,7 @@ ___
 
 Sets the data for the line.
 
-This should be given as a DataFrame, with the columns: `time | price`
+This should be given as a DataFrame, with the columns: `time | value`
 ___
 
 ### `update`
