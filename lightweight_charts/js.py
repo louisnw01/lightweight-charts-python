@@ -5,7 +5,7 @@ from typing import Dict, Union
 
 from lightweight_charts.pkg import LWC_3_5_0
 from lightweight_charts.util import LINE_TYPE, POSITION, SHAPE, CROSSHAIR_MODE, _crosshair_mode, _line_type, \
-    MissingColumn, _js_bool, _price_scale_mode, PRICE_SCALE_MODE, _position, _shape
+    MissingColumn, _js_bool, _price_scale_mode, PRICE_SCALE_MODE, _position, _shape, IDGen
 
 
 class Line:
@@ -17,14 +17,30 @@ class Line:
         self.width = width
 
     def set(self, data: pd.DataFrame):
+        """
+        Sets the line data.\n
+        :param data: columns: date/time, price
+        """
         self._lwc._set_line_data(self.id, data)
 
     def update(self, series: pd.Series):
         """
         Updates the line data.\n
-        :param series: columns: date/time, price
+        :param series: labels: date/time, price
         """
         self._lwc._update_line_data(self.id, series)
+
+
+class API:
+    def __init__(self):
+        self.click_func = None
+
+    def onClick(self, data):
+        if isinstance(data['time'], int):
+            data['time'] = datetime.fromtimestamp(data['time'])
+        else:
+            data['time'] = datetime(data['time']['year'], data['time']['month'], data['time']['day'])
+        self.click_func(data) if self.click_func else None
 
 
 class LWC:
@@ -32,6 +48,9 @@ class LWC:
         self.js_queue = []
         self.loaded = False
         self._html = HTML
+        self._rand = IDGen()
+
+        self._js_api = API()
 
         self.volume_enabled = volume_enabled
         self.last_bar = None
@@ -42,8 +61,7 @@ class LWC:
         self.volume_up_color = 'rgba(83,141,131,0.8)'
         self.volume_down_color = 'rgba(200,127,130,0.8)'
 
-    def _on_js_load(self):
-        pass
+    def _on_js_load(self): pass
 
     def _stored(self, func, *args, **kwargs):
         if self.loaded:
@@ -51,8 +69,9 @@ class LWC:
         self.js_queue.append((func, args, kwargs))
         return True
 
-    def _set_last_bar(self, bar: pd.Series):
-        self.last_bar = bar
+    def _click_func_code(self, string): self._html = self._html.replace('// __onClick__', string)
+
+    def _set_last_bar(self, bar: pd.Series): self.last_bar = bar
 
     def _set_interval(self, df: pd.DataFrame):
         df['time'] = pd.to_datetime(df['time'])
@@ -82,8 +101,7 @@ class LWC:
             string = string.strftime('%Y-%m-%d')
         return string
 
-    def run_script(self, script):
-        pass
+    def run_script(self, script): pass
 
     def set(self, df: pd.DataFrame):
         """
@@ -132,7 +150,6 @@ class LWC:
             self.run_script(f'chart.volumeSeries.update({volume.to_dict()})')
             series = series.drop(['volume'])
 
-
         dictionary = series.to_dict()
         self.run_script(f'chart.series.update({dictionary})')
 
@@ -176,17 +193,19 @@ class LWC:
             return None
 
         line = self._lines[line_id]
+
         if not line.loaded:
+            var = self._rand.generate()
             self.run_script(f'''
-            let lineSeries = {{
+            let lineSeries{var} = {{
                     color: '{line.color}',
                     lineWidth: {line.width},
                     }};
-            let line = {{
-                series: chart.chart.addLineSeries(lineSeries),
+            let line{var} = {{
+                series: chart.chart.addLineSeries(lineSeries{var}),
                 id: '{line_id}',
             }};
-            lines.push(line)
+            lines.push(line{var})
                 ''')
             line.loaded = True
         df = self._df_datetime_format(df)
@@ -261,8 +280,9 @@ class LWC:
         if self._stored('horizontal_line', price, color, width, style, text, axis_label_visible):
             return None
 
+        var = self._rand.generate()
         self.run_script(f"""
-               let priceLine = {{
+               let priceLine{var} = {{
                    price: {price},
                    color: '{color}',
                    lineWidth: {width},
@@ -270,11 +290,11 @@ class LWC:
                    axisLabelVisible: {'true' if axis_label_visible else 'false'},
                    title: '{text}',
                }};
-               let line = {{
-                   line: chart.series.createPriceLine(priceLine),
+               let line{var} = {{
+                   line: chart.series.createPriceLine(priceLine{var}),
                    price: {price},
                }};
-               horizontal_lines.push(line)""")
+               horizontal_lines.push(line{var})""")
 
     def remove_horizontal_line(self, price: Union[float, int]):
         """
@@ -458,6 +478,13 @@ class LWC:
                 continue
             self.run_script(script)
 
+    def subscribe_click(self, function: object):
+        if self._stored('subscribe_click', function):
+            return None
+
+        self._js_api.click_func = function
+        self.run_script('isSubscribed = true')
+
 
 SCRIPT = """
 
@@ -606,7 +633,7 @@ function clickHandler(param) {
         low: prices.low,
         close: prices.close,
     }
-    pywebview.api.onClick(data)
+    // __onClick__
 
 }
 chart.chart.subscribeClick(clickHandler)

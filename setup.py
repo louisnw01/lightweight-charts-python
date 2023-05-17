@@ -10,7 +10,7 @@ setup(
     python_requires='>=3.9',
     install_requires=[
         'pandas',
-        'pywebview==4.0.2',
+        'pywebview',
     ],
     author='louisnw',
     license='MIT',

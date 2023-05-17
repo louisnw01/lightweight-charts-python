@@ -1,3 +1,5 @@
+from random import choices
+from string import ascii_lowercase
 from typing import Literal
 
 
@@ -59,3 +61,16 @@ def _js_bool(b: bool): return 'true' if b is True else 'false' if b is False els
 
 def _price_scale_mode(mode: PRICE_SCALE_MODE):
     return 'IndexedTo100' if mode == 'index100' else mode.title() if mode else None
+
+
+class IDGen:
+    def __init__(self):
+        self.list = []
+
+    def generate(self):
+        var = ''.join(choices(ascii_lowercase, k=8))
+        if var in self.list:
+            self.generate()
+        else:
+            self.list.append(var)
+            return var
