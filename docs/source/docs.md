@@ -9,7 +9,7 @@
 
 
 ## Common Methods
-These methods can be used within the `Chart`, `QtChart`, and `WxChart` objects.
+These methods can be used within the `Chart`, `SubChart`, `QtChart`, and `WxChart` objects.
 
 ___
 ### `set`
@@ -231,7 +231,7 @@ ___
 
 ## `SubChart`
 
-The `SubChart` object allows for the use of multiple chart panels within the same `Chart` window. All of the [Common Methods](#common-methods) can be used within a `SubChart`.
+The `SubChart` object allows for the use of multiple chart panels within the same `Chart` window. All of the [Common Methods](#common-methods) can be used within a `SubChart`. Its instance should be accessed using the [create_subchart](#create-subchart) method.
 
 `SubCharts` are arranged horizontally from left to right. When the available space is no longer sufficient, the subsequent `SubChart` will be positioned on a new row, starting from the left side.
 ___
