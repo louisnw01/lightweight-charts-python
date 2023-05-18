@@ -22,7 +22,7 @@ class WxChart(LWC):
         super().__init__(volume_enabled)
 
         self.webview.AddScriptMessageHandler('wx_msg')
-        self._click_func_code('window.wx_msg.postMessage(data)')
+        self._js_api_code = 'window.wx_msg.postMessage'
         self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: self._js_api.onClick(eval(e.GetString())))
 
         self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, self._on_js_load)

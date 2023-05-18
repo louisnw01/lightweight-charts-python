@@ -4,7 +4,7 @@ from lightweight_charts import Chart
 
 if __name__ == '__main__':
 
-    chart = Chart(debug=True)
+    chart = Chart()
 
     df = pd.read_csv('ohlcv.csv')
 

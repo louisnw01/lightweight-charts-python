@@ -51,7 +51,7 @@ The provided ticks do not need to be rounded to an interval (1 min, 5 min etc.),
 ___
 
 ### `create_line`
-`color: str` | `width: int`
+`color: str` | `width: int` | `-> Line`
 
 Creates and returns a [Line](#line) object.
 ___
@@ -159,6 +159,24 @@ Subscribes the given function to a chart 'click' event.
 The event emits a dictionary containing the bar at the time clicked, with the keys:
 
 `time | open | high | low | close`
+___
+
+### `create_subchart`
+`volume_enabled: bool` | `position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/UUID` | `-> SubChart`
+
+Creates and returns a [SubChart](#subchart) object, placing it adjacent to the declaring `Chart` or `SubChart`.
+
+`position`: specifies how the `SubChart` will float within the `Chart` window.
+
+`height` | `width`: Specifies the size of the `SubChart`, where `1` is the width/height of the window (100%)
+
+`sync`: If given as `True`, the `SubChart`'s time scale will follow that of the declaring `Chart` or `SubChart`. If a `UUID` object is passed, the `SubChart` will follow the panel with the given `UUID`.
+
+Chart `UUID`'s  can be accessed from the`chart.id` and `subchart.id` attributes. 
+
+```{important}
+`width` and `height` must be given as a number between 0 and 1.
+```
 
 ___
 
@@ -209,8 +227,71 @@ ___
 Updates the data for the line.
 
 This should be given as a Series object, with labels akin to the `line.set()` function.
-
 ___
+
+## `SubChart`
+
+The `SubChart` object allows for the use of multiple chart panels within the same `Chart` window. All of the [Common Methods](#common-methods) can be used within a `SubChart`.
+
+`SubCharts` are arranged horizontally from left to right. When the available space is no longer sufficient, the subsequent `SubChart` will be positioned on a new row, starting from the left side.
+___
+
+### Grid of 4 Example:
+```python
+import pandas as pd
+from lightweight_charts import Chart
+
+if __name__ == '__main__':
+    
+    chart = Chart(inner_width=0.5, inner_height=0.5)
+
+    chart2 = chart.create_subchart(position='right', width=0.5, height=0.5)
+
+    chart3 = chart2.create_subchart(position='left', width=0.5, height=0.5)
+
+    chart4 = chart3.create_subchart(position='right', width=0.5, height=0.5)
+
+    chart.watermark('1')
+    chart2.watermark('2')
+    chart3.watermark('3')
+    chart4.watermark('4')
+
+    df = pd.read_csv('ohlcv.csv')
+    chart.set(df)
+    chart2.set(df)
+    chart3.set(df)
+    chart4.set(df)
+
+    chart.show(block=True)
+
+```
+___
+
+### Synced Line Chart Example:
+
+```python
+import pandas as pd
+from lightweight_charts import Chart
+
+if __name__ == '__main__':
+ 
+    chart = Chart(inner_width=1, inner_height=0.8)
+    
+    chart2 = chart.create_subchart(width=1, height=0.2, sync=True, volume_enabled=False)
+    chart2.time_scale(visible=False)
+    
+    df = pd.read_csv('ohlcv.csv')
+    df2 = pd.read_csv('rsi.csv')
+    
+    chart.set(df)
+    line = chart2.create_line()
+    line.set(df2)
+    
+    chart.show(block=True)
+
+```
+___
+
 
 ## `QtChart`
 `widget: QWidget` | `volume_enabled: bool`
@@ -222,7 +303,10 @@ ___
 
 `-> QWebEngineView`
 
-Returns the `QWebEngineView` object. For example:
+Returns the `QWebEngineView` object.
+
+___
+### Example:
 
 ```python
 import pandas as pd
@@ -263,7 +347,10 @@ ___
 ### `get_webview`
 `-> wx.html2.WebView`
 
-Returns a `wx.html2.WebView` object which can be used to for positioning and styling within wxPython. For example:
+Returns a `wx.html2.WebView` object which can be used to for positioning and styling within wxPython.
+___
+
+### Example:
 
 ```python
 import wx

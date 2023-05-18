@@ -3,7 +3,7 @@ import pandas as pd
 import multiprocessing as mp
 from uuid import UUID
 from datetime import datetime
-from typing import Union
+from typing import Union, Literal
 
 from lightweight_charts.pywebview import _loop
 from lightweight_charts.util import LINE_TYPE, POSITION, SHAPE, CROSSHAIR_MODE, PRICE_SCALE_MODE
@@ -31,7 +31,7 @@ class Line:
 
 class Chart:
     def __init__(self, volume_enabled: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
-                 on_top: bool = False, debug: bool = False):
+                 on_top: bool = False, debug: bool = False, sub: bool = False, inner_width=1, inner_height=1):
         self.debug = debug
         self.volume_enabled = volume_enabled
         self.width = width
@@ -39,16 +39,17 @@ class Chart:
         self.x = x
         self.y = y
         self.on_top = on_top
+        self.inner_width = inner_width
+        self.inner_height = inner_height
 
+        if sub:
+            return
         self._q = mp.Queue()
         self._result_q = mp.Queue()
         self._exit = mp.Event()
-
-        try:
-            self._process = mp.Process(target=_loop, args=(self,), daemon=True)
-            self._process.start()
-        except:
-            pass
+        self._process = mp.Process(target=_loop, args=(self,), daemon=True)
+        self._process.start()
+        self.id = self._result_q.get()
 
     def _go(self, func, *args): self._q.put((func, args))
 
@@ -161,14 +162,15 @@ class Chart:
         """
         self._go('config', mode, title, right_padding)
 
-    def time_scale(self, time_visible: bool = True, seconds_visible: bool = False):
+    def time_scale(self, visible: bool = True, time_visible: bool = True, seconds_visible: bool = False):
         """
         Options for the time scale of the chart.
+        :param visible: Time scale visibility control.
         :param time_visible: Time visibility control.
         :param seconds_visible: Seconds visibility control
         :return:
         """
-        self._go('time_scale', time_visible, seconds_visible)
+        self._go('time_scale', visible, time_visible, seconds_visible)
 
     def layout(self, background_color: str = None, text_color: str = None, font_size: int = None,
                font_family: str = None):
@@ -227,3 +229,29 @@ class Chart:
         The event returns a dictionary containing the bar object at the time clicked.
         """
         self._go('subscribe_click', function)
+
+    def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
+                         width: float = 0.5, height: float = 0.5, sync: bool | UUID = False):
+        c_id = self._go_return('create_sub_chart', volume_enabled, position, width, height, sync)
+        return SubChart(self, c_id)
+
+
+class SubChart(Chart):
+    def __init__(self, parent, c_id):
+        self._parent = parent._parent if isinstance(parent, SubChart) else parent
+
+        super().__init__(sub=True)
+
+        self.id = c_id
+        self._q = self._parent._q
+        self._result_q = self._parent._result_q
+
+    def _go(self, func, *args):
+        func = 'SUB'+func
+        args = (self.id,) + args
+        super()._go(func, *args)
+
+    def _go_return(self, func, *args):
+        func = 'SUB' + func
+        args = (self.id,) + args
+        return super()._go_return(func, *args)

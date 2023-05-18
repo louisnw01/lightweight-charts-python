@@ -12,6 +12,21 @@ class MissingColumn(KeyError):
         return f'{self.msg}'
 
 
+class ColorError(ValueError):
+    def __init__(self, message):
+        super().__init__(message)
+        self.msg = message
+
+    def __str__(self):
+        return f'{self.msg}'
+
+
+def _valid_color(string):
+    if string[:3] == 'rgb' or string[:4] == 'rgba' or string[0] == '#':
+        return True
+    raise ColorError('Colors must be in the format of either rgb, rgba or hex.')
+
+
 LINE_TYPE = Literal['solid', 'dotted', 'dashed', 'large_dashed', 'sparse_dotted']
 
 POSITION = Literal['above', 'below', 'inside']
