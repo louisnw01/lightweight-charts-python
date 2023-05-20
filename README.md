@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
 
-![cover](cover.png)
+![cover](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/cover.png)
 
 lightweight-charts-python aims to provide a simple and pythonic way to access and implement [TradingView's Lightweight Charts](https://www.tradingview.com/lightweight-charts/).
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     chart.show(block=True)
 
 ```
-![setting_data image](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/1_setting_data/setting_data.png)
+![setting_data image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/1_setting_data/setting_data.png)
 ___
 
 ### 2. Updating bars in real-time:
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
 ```
 
-![live data gif](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/2_live_data/live_data.gif)
+![live data gif](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/2_live_data/live_data.gif?raw=true)
 ___
 
 ### 3. Updating bars from tick data in real-time:
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         sleep(0.3)
 
 ```
-![tick data gif](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/3_tick_data/tick_data.gif)
+![tick data gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/3_tick_data/tick_data.gif)
 ___
 
 ### 4. Line Indicators:
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     chart.show(block=True)
 
 ```
-![line indicators image](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/4_line_indicators/line_indicators.png)
+![line indicators image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/4_line_indicators/line_indicators.png)
 ___
 
 ### 5. Styling:
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     chart.show(block=True)
 
 ```
-![styling image](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/5_styling/styling.png)
+![styling image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/5_styling/styling.png)
 ___
 
 ### 6. Callbacks:
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     chart.show(block=True)
 
 ```
-![callbacks gif](https://github.com/louisnw01/lightweight-charts-python/blob/main/examples/6_callbacks/callbacks.gif)
+![callbacks gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_callbacks/callbacks.gif)
 ___
 
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
