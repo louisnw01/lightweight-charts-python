@@ -297,7 +297,7 @@ class LWC:
                    price: {price},
                    color: '{color}',
                    lineWidth: {width},
-                   lineStyle: LightweightCharts.LineStyle.{style},
+                   lineStyle: LightweightCharts.LineStyle.{_line_type(style)},
                    axisLabelVisible: {'true' if axis_label_visible else 'false'},
                    title: '{text}',
                }};
