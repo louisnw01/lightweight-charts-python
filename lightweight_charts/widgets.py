@@ -13,13 +13,13 @@ from lightweight_charts.js import LWC
 
 
 class WxChart(LWC):
-    def __init__(self, parent, volume_enabled=True):
+    def __init__(self, parent, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0):
         try:
             self.webview: wx.html2.WebView = wx.html2.WebView.New(parent)
         except NameError:
             raise ModuleNotFoundError('wx.html2 was not found, and must be installed to use WxChart.')
 
-        super().__init__(volume_enabled)
+        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height)
 
         self.webview.AddScriptMessageHandler('wx_msg')
         self._js_api_code = 'window.wx_msg.postMessage'
@@ -33,19 +33,24 @@ class WxChart(LWC):
     def _on_js_load(self, e):
         self.loaded = True
         for func, args, kwargs in self.js_queue:
-            getattr(super(), func)(*args, **kwargs)
+            if 'SUB' in func:
+                c_id = args[0]
+                args = args[1:]
+                getattr(self._subcharts[c_id], func.replace('SUB', ''))(*args)
+            else:
+                getattr(self, func)(*args)
 
     def get_webview(self): return self.webview
 
 
 class QtChart(LWC):
-    def __init__(self, widget=None, volume_enabled=True):
+    def __init__(self, widget=None, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0):
         try:
             self.webview = QWebEngineView(widget)
         except NameError:
             raise ModuleNotFoundError('QWebEngineView was not found, and must be installed to use QtChart.')
 
-        super().__init__(volume_enabled)
+        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height)
 
         self.webview.loadFinished.connect(self._on_js_load)
         self.webview.page().setHtml(self._html)

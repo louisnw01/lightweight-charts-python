@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Union
 from uuid import UUID
 import webview
 from multiprocessing import Queue
@@ -52,9 +52,9 @@ class Webview(LWC):
     def create_line(self, color: str = 'rgba(214, 237, 255, 0.6)', width: int = 2):
         return super().create_line(color, width).id
 
-    def create_sub_chart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
-                         width: float = 0.5, height: float = 0.5, sync: bool | UUID = False):
-        return super()._pywebview_sub_chart(volume_enabled, position, width, height, sync)
+    def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
+                         width: float = 0.5, height: float = 0.5, sync: Union[bool, UUID] = False):
+        return super()._pywebview_subchart(volume_enabled, position, width, height, sync)
 
 
 def _loop(chart, controller=None):

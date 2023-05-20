@@ -95,15 +95,21 @@ Config options for the chart.
 ___
 
 ### `time_scale`
-`time_visible: bool` | `seconds_visible: bool`
+`visible: bool` | `time_visible: bool` | `seconds_visible: bool`
 
-Options for the time scale of the chart.
+Time scale options for the chart.
 ___
 
 ### `layout`
 `background_color: str` | `text_color: str` | `font_size: int` | `font_family: str`
 
 Global layout options for the chart.
+___
+
+### `grid`
+`vert_enabled: bool` | `horz_enabled: bool` | `color: str` | `style: 'solid'/'dotted'/'dashed'/'large_dashed'/'sparse_dotted'`
+
+Grid options for the chart.
 ___
 
 ### `candle_style`

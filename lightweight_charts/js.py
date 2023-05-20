@@ -45,7 +45,7 @@ class API:
 
 
 class LWC:
-    def __init__(self, volume_enabled, inner_width=1, inner_height=1):
+    def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0):
         self.id = uuid4()
         self.js_queue = []
         self.loaded = False
@@ -331,7 +331,7 @@ class LWC:
         if self._stored('config', mode, title, right_padding):
             return None
 
-        self.run_script(f'{self._chart_var}.chart.timeScale().scrollToPosition({right_padding}, false)') if right_padding else None
+        self.run_script(f'{self._chart_var}.chart.timeScale().scrollToPosition({right_padding}, false)') if right_padding is not None else None
         self.run_script(f'{self._chart_var}.series.applyOptions({{title: "{title}"}})') if title else None
         self.run_script(
             f"{self._chart_var}.chart.priceScale().applyOptions({{mode: LightweightCharts.PriceScaleMode.{_price_scale_mode(mode)}}})") if mode else None
@@ -378,6 +378,31 @@ class LWC:
                 {f'fontFamily: "{font_family}",' if font_family else ''}
             }}}})""")
 
+    def grid(self, vert_enabled: bool = True, horz_enabled: bool = True, color: str = 'rgba(29, 30, 38, 5)', style: LINE_TYPE = 'solid'):
+        """
+        Grid styling for the chart.
+        """
+        if self._stored('grid', vert_enabled, horz_enabled, color, style):
+            return None
+
+        self.run_script(f"""
+        {self._chart_var}.chart.applyOptions({{
+        grid: {{
+            {f'''vertLines: {{
+                {f'visible: {_js_bool(vert_enabled)},' if vert_enabled is not None else ''}
+                {f'color: "{color}",' if color else ''}
+                {f'style: LightweightCharts.LineStyle.{_line_type(style)},' if style else ''}
+            }},''' if vert_enabled is not None or color or style else ''}
+            
+            {f'''horzLines: {{
+                {f'visible: {_js_bool(horz_enabled)},' if horz_enabled is not None else ''}
+                {f'color: "{color}",' if color else ''}
+                {f'style: LightweightCharts.LineStyle.{_line_type(style)},' if style else ''}
+            }},''' if horz_enabled is not None or color or style else ''}
+        }}
+        }})
+        """)
+
     def candle_style(self, up_color: str = 'rgba(39, 157, 130, 100)', down_color: str = 'rgba(200, 97, 100, 100)',
                      wick_enabled: bool = True, border_enabled: bool = True, border_up_color: str = '',
                      border_down_color: str = '', wick_up_color: str = '', wick_down_color: str = ''):
@@ -392,8 +417,8 @@ class LWC:
             {self._chart_var}.series.applyOptions({{
                 {f'upColor: "{up_color}",' if up_color else ''}
                 {f'downColor: "{down_color}",' if down_color else ''}
-                {f'wickVisible: {_js_bool(wick_enabled)},' if wick_enabled else ''}
-                {f'borderVisible: {_js_bool(border_enabled)},' if border_enabled else ''}
+                {f'wickVisible: {_js_bool(wick_enabled)},' if wick_enabled is not None else ''}
+                {f'borderVisible: {_js_bool(border_enabled)},' if border_enabled is not None else ''}
                 {f'borderUpColor: "{border_up_color}",' if border_up_color else ''}
                 {f'borderDownColor: "{border_down_color}",' if border_down_color else ''}
                 {f'wickUpColor: "{wick_up_color}",' if wick_up_color else ''}
@@ -524,13 +549,13 @@ class LWC:
                 {self._js_api_code}(data{var})
                 }})''')
 
-    def create_sub_chart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
-                         width: float = 0.5, height: float = 0.5, sync: bool | UUID = False):
+    def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
+                         width: float = 0.5, height: float = 0.5, sync: Union[bool, UUID] = False):
         subchart = SubChart(self, volume_enabled, position, width, height, sync)
         self._subcharts[subchart.id] = subchart
         return subchart
 
-    def _pywebview_sub_chart(self, volume_enabled, position, width, height, sync, parent=None):
+    def _pywebview_subchart(self, volume_enabled, position, width, height, sync, parent=None):
         subchart = PyWebViewSubChart(self if not parent else parent, volume_enabled, position, width, height, sync)
         self._subcharts[subchart.id] = subchart
         return subchart.id
@@ -543,7 +568,7 @@ class SubChart(LWC):
         self._parent = parent
 
         self._rand = self._chart._rand
-        self._chart_var = self._rand.generate()
+        self._chart_var = f'window.{self._rand.generate()}'
         self._js_api = self._chart._js_api
         self._js_api_code = self._chart._js_api_code
 
@@ -574,15 +599,15 @@ class SubChart(LWC):
                 }});
             '''
         self.run_script(f'''
-            var {self._chart_var}div = document.createElement('div')
+            {self._chart_var}div = document.createElement('div')
             //{self._chart_var}div.style.position = 'relative'
             {self._chart_var}div.style.float = "{self.position}"
             
             //chartsDiv.style.display = 'inline-block'
             chartsDiv.style.float = 'left'
             
-            var {self._chart_var} = {{}}
-            {self._chart_var}.scale= {{
+            {self._chart_var} = {{}}
+            {self._chart_var}.scale = {{
                 width: {self.inner_width},
                 height: {self.inner_height}
             }}
@@ -616,9 +641,9 @@ class SubChart(LWC):
 
 
 class PyWebViewSubChart(SubChart):
-    def create_sub_chart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
-                         width: float = 0.5, height: float = 0.5, sync: bool | UUID = False):
-        return self._chart._pywebview_sub_chart(volume_enabled, position, width, height, sync, parent=self)
+    def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
+                         width: float = 0.5, height: float = 0.5, sync: Union[bool, UUID] = False):
+        return self._chart._pywebview_subchart(volume_enabled, position, width, height, sync, parent=self)
 
     def create_line(self, color: str = 'rgba(214, 237, 255, 0.6)', width: int = 2):
         return super().create_line(color, width).id
@@ -698,14 +723,14 @@ function makeVolumeSeries(chart) {
 const chartsDiv = document.createElement('div')
 
 var chart = {}
-
-chart.chart = makeChart(window.innerWidth, window.innerHeight, chartsDiv)
-chart.series = makeCandlestickSeries(chart.chart)
-chart.volumeSeries = makeVolumeSeries(chart.chart)
 chart.scale = {
     width: __INNER_WIDTH__,
     height: __INNER_HEIGHT__
 }
+chart.chart = makeChart(window.innerWidth*chart.scale.width, window.innerHeight*chart.scale.height, chartsDiv)
+chart.series = makeCandlestickSeries(chart.chart)
+chart.volumeSeries = makeVolumeSeries(chart.chart)
+
             
 document.body.appendChild(chartsDiv)
 

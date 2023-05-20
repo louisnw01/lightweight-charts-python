@@ -31,7 +31,8 @@ class Line:
 
 class Chart:
     def __init__(self, volume_enabled: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
-                 on_top: bool = False, debug: bool = False, sub: bool = False, inner_width=1, inner_height=1):
+                 on_top: bool = False, debug: bool = False, sub: bool = False,
+                 inner_width: float = 1.0, inner_height: float = 1.0):
         self.debug = debug
         self.volume_enabled = volume_enabled
         self.width = width
@@ -179,6 +180,12 @@ class Chart:
         """
         self._go('layout', background_color, text_color, font_size, font_family)
 
+    def grid(self, vert_enabled: bool = True, horz_enabled: bool = True, color: str = 'rgba(29, 30, 38, 5)', style: LINE_TYPE = 'solid'):
+        """
+        Grid styling for the chart.
+        """
+        self._go('grid', vert_enabled, horz_enabled, color, style)
+
     def candle_style(self, up_color: str = 'rgba(39, 157, 130, 100)', down_color: str = 'rgba(200, 97, 100, 100)',
                      wick_enabled: bool = True, border_enabled: bool = True, border_up_color: str = '',
                      border_down_color: str = '', wick_up_color: str = '', wick_down_color: str = ''):
@@ -231,8 +238,8 @@ class Chart:
         self._go('subscribe_click', function)
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
-                         width: float = 0.5, height: float = 0.5, sync: bool | UUID = False):
-        c_id = self._go_return('create_sub_chart', volume_enabled, position, width, height, sync)
+                         width: float = 0.5, height: float = 0.5, sync: Union[bool, UUID] = False):
+        c_id = self._go_return('create_subchart', volume_enabled, position, width, height, sync)
         return SubChart(self, c_id)
 
 

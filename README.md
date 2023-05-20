@@ -21,7 +21,7 @@ ___
 2. Blocking or non-blocking GUI.
 3. Streamlined for live data, with methods for updating directly from tick data.
 4. Support for PyQt and wxPython.
-5. Multi-Pane Charts using `SubCharts`.
+5. Multi-Pane Charts using the `SubChart` ([examples](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart)).
 ___
 
 ### 1. Display data from a csv:
