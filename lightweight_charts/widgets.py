@@ -21,24 +21,16 @@ class WxChart(LWC):
 
         super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height)
 
-        self.webview.AddScriptMessageHandler('wx_msg')
+        self._script_func = self.webview.RunScript
         self._js_api_code = 'window.wx_msg.postMessage'
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: self._js_api.onClick(eval(e.GetString())))
 
+        self.webview.AddScriptMessageHandler('wx_msg')
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: self._js_api.onClick(eval(e.GetString())))
         self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, self._on_js_load)
         self.webview.SetPage(self._html, '')
+        self._create_chart()
 
-    def run_script(self, script): self.webview.RunScript(script)
-
-    def _on_js_load(self, e):
-        self.loaded = True
-        for func, args, kwargs in self.js_queue:
-            if 'SUB' in func:
-                c_id = args[0]
-                args = args[1:]
-                getattr(self._subcharts[c_id], func.replace('SUB', ''))(*args)
-            else:
-                getattr(self, func)(*args)
+    def _on_js_load(self, e): super()._on_js_load()
 
     def get_webview(self): return self.webview
 
@@ -49,18 +41,13 @@ class QtChart(LWC):
             self.webview = QWebEngineView(widget)
         except NameError:
             raise ModuleNotFoundError('QWebEngineView was not found, and must be installed to use QtChart.')
-
         super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height)
+
+        self._script_func = self.webview.page().runJavaScript
 
         self.webview.loadFinished.connect(self._on_js_load)
         self.webview.page().setHtml(self._html)
-
-    def run_script(self, script): self.webview.page().runJavaScript(script)
-
-    def _on_js_load(self):
-        self.loaded = True
-        for func, args, kwargs in self.js_queue:
-            getattr(super(), func)(*args, **kwargs)
+        self._create_chart()
 
     def get_webview(self): return self.webview
 

@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
 [![Stars - lightweight-charts-python](https://img.shields.io/github/stars/louisnw01/lightweight-charts-python?style=social)](https://github.com/louisnw01/lightweight-charts-python)
 [![Forks - lightweight-charts-python](https://img.shields.io/github/forks/louisnw01/lightweight-charts-python?style=social)](https://github.com/louisnw01/lightweight-charts-python)
-
+___
 
 ## Common Methods
 These methods can be used within the `Chart`, `SubChart`, `QtChart`, and `WxChart` objects.
@@ -57,17 +57,17 @@ Creates and returns a [Line](#line) object.
 ___
 
 ### `marker`
-`time: datetime` | `position: 'above'/'below'/'inside'` | `shape: 'arrow_up'/'arrow_down'/'circle'/'square'` | `color: str` | `text: str` | `-> UUID`
+`time: datetime` | `position: 'above'/'below'/'inside'` | `shape: 'arrow_up'/'arrow_down'/'circle'/'square'` | `color: str` | `text: str` | `-> str`
 
-Adds a marker to the chart, and returns its UUID.
+Adds a marker to the chart, and returns its id.
 
 If the `time` parameter is not given, the marker will be placed at the latest bar.
 ___
 
 ### `remove_marker`
-`m_id: UUID`
+`marker_id: str`
 
-Removes the marker with the given UUID.
+Removes the marker with the given id.
 
 Usage:
 ```python
@@ -162,13 +162,13 @@ ___
 
 Subscribes the given function to a chart 'click' event.
 
-The event emits a dictionary containing the bar at the time clicked, with the keys:
+The event emits a dictionary containing the bar at the time clicked, the id of the `Chart` or `SubChart`, and the hover price:
 
-`time | open | high | low | close`
+`time | open | high | low | close | id | hover`
 ___
 
 ### `create_subchart`
-`volume_enabled: bool` | `position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/UUID` | `-> SubChart`
+`volume_enabled: bool` | `position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/str` | `-> SubChart`
 
 Creates and returns a [SubChart](#subchart) object, placing it adjacent to the declaring `Chart` or `SubChart`.
 
@@ -176,9 +176,7 @@ Creates and returns a [SubChart](#subchart) object, placing it adjacent to the d
 
 `height` | `width`: Specifies the size of the `SubChart`, where `1` is the width/height of the window (100%)
 
-`sync`: If given as `True`, the `SubChart`'s time scale will follow that of the declaring `Chart` or `SubChart`. If a `UUID` object is passed, the `SubChart` will follow the panel with the given `UUID`.
-
-Chart `UUID`'s  can be accessed from the`chart.id` and `subchart.id` attributes. 
+`sync`: If given as `True`, the `SubChart`'s time scale will follow that of the declaring `Chart` or `SubChart`. If a `str` is passed, the `SubChart` will follow the panel with the given id.  Chart ids  can be accessed from the`chart.id` and `subchart.id` attributes. 
 
 ```{important}
 `width` and `height` must be given as a number between 0 and 1.
