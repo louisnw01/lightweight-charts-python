@@ -88,14 +88,14 @@ ___
 Removes a horizontal line at the given price.
 ___
 
-### `config`
-`mode: 'normal'/'logarithmic'/'percentage'/'index100'` | `title: str` | `right_padding: int`
+### `price_scale`
+`mode: 'normal'/'logarithmic'/'percentage'/'index100'` | `align_labels: bool` | `border_visible: bool` | `border_color: str` | `text_color: str` | `entire_text_only: bool` | `ticks_visible: bool`
 
-Config options for the chart.
+Price scale options for the chart.
 ___
 
 ### `time_scale`
-`visible: bool` | `time_visible: bool` | `seconds_visible: bool`
+`right_offset: int` | `min_bar_spacing: float` | `visible: bool` | `time_visible: bool` | `seconds_visible: bool` | `border_visible: bool` | `border_color: str`
 
 Time scale options for the chart.
 ___
@@ -149,6 +149,12 @@ ___
 `text: str` | `font_size: int` | `color: str`
 
 Overlays a watermark on top of the chart.
+___
+
+### `title`
+`title: str`
+
+Sets the title label for the chart.
 ___
 
 ### `legend`
@@ -210,10 +216,10 @@ ___
 
 ## `Line`
 
-The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators.
+The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to the [`title`](#title), [`marker`](#marker) and [`horizontal_line`](#horizontal-line) methods.
 
 ```{important}
-The `line` object should only be accessed from the [create_line](#create-line) method of `Chart`.
+The `line` object should only be accessed from the [`create_line`](#create-line) method of `Chart`.
 ```
 ___
 
