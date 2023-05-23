@@ -12,7 +12,7 @@ class PyWV:
         self.debug = debug
         self.js_api = js_api
         self.webview = webview.create_window('', html=html, on_top=on_top, js_api=js_api,
-                                             width=width, height=height, x=x, y=y)
+                                             width=width, height=height, x=x, y=y, background_color='#000000')
         self.webview.events.loaded += self.on_js_load
         self.loop()
 
@@ -38,8 +38,8 @@ class PyWV:
 class Chart(LWC):
     def __init__(self, volume_enabled: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
                  on_top: bool = False, debug: bool = False,
-                 inner_width: float = 1.0, inner_height: float = 1.0):
-        super().__init__(volume_enabled, inner_width, inner_height)
+                 inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False):
+        super().__init__(volume_enabled, inner_width, inner_height, dynamic_loading)
         self._js_api_code = 'pywebview.api.onClick'
         self._q = mp.Queue()
         self._script_func = self._q.put
