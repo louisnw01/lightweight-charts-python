@@ -1,4 +1,4 @@
-<div style="text-align: center">
+<div align="center">
 
 # lightweight_charts_python
 
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 ![callbacks gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_callbacks/callbacks.gif)
 ___
 
-<div style="text-align: center">
+<div align="center">
 
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 ___
