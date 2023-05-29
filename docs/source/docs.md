@@ -9,7 +9,7 @@
 ___
 
 ## Common Methods
-These methods can be used within the `Chart`, `SubChart`, `QtChart`, and `WxChart` objects.
+These methods can be used within the [`Chart`](#chart), [`SubChart`](#subchart), [`ChartAsync`](#chartasync), [`QtChart`](#qtchart), [`WxChart`](#wxchart) and [`StreamlitChart`](#streamlitchart) objects.
 
 ___
 ### `set`
@@ -22,6 +22,10 @@ The data must be given as a DataFrame, with the columns:
 `time | open | high | low | close | volume`
 
 The `time` column can also be named `date`, and the `volume` column can be omitted if volume is not enabled.
+
+```{important}
+the `time` column must have rows all of the same timezone and locale. This is particularly noticeable for data which crosses over daylight saving hours on data with intervals of less than 1 day. Errors are likely to be raised if they are not converted beforehand.
+```
 ___
 
 ### `update`
@@ -46,7 +50,6 @@ As before, the `time` can also be named `date`, and the `volume` can be omitted 
 ```{information}
 The provided ticks do not need to be rounded to an interval (1 min, 5 min etc.), as the library handles this automatically.```````
 ```
-
 
 ___
 
@@ -163,15 +166,6 @@ ___
 Configures the legend of the chart.
 ___
 
-### `subscribe_click`
-`function: object`
-
-Subscribes the given function to a chart 'click' event.
-
-The event emits a dictionary containing the bar at the time clicked, the id of the `Chart` or `SubChart`, and the hover price:
-
-`time | open | high | low | close | id | hover`
-___
 
 ### `create_subchart`
 `volume_enabled: bool` | `position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/str` | `-> SubChart`
@@ -191,7 +185,7 @@ Creates and returns a [SubChart](#subchart) object, placing it adjacent to the d
 ___
 
 
-## `Chart`
+## Chart
 `volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `debug: bool` 
 
 The main object used for the normal functionality of lightweight-charts-python, built on the pywebview library.
@@ -214,7 +208,7 @@ Exits and destroys the chart and window.
 
 ___
 
-## `Line`
+## Line
 
 The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to the [`title`](#title), [`marker`](#marker) and [`horizontal_line`](#horizontal-line) methods.
 
@@ -239,7 +233,7 @@ Updates the data for the line.
 This should be given as a Series object, with labels akin to the `line.set()` function.
 ___
 
-## `SubChart`
+## SubChart
 
 The `SubChart` object allows for the use of multiple chart panels within the same `Chart` window. All of the [Common Methods](#common-methods) can be used within a `SubChart`. Its instance should be accessed using the [create_subchart](#create-subchart) method.
 
@@ -302,11 +296,112 @@ if __name__ == '__main__':
 ```
 ___
 
+## ChartAsync
+`api: object` | `top_bar: bool` | `search_box: bool`
 
-## `QtChart`
+The `ChartAsync` object allows for asyncronous callbacks to be passed back to python, allowing for more sophisticated chart layouts including search boxes and timeframe selectors.
+
+[`QtChart`](#qtchart) and [`WxChart`](#wxchart) also have access to the methods specific to `ChartAsync`, however they use their respective event loops to emit callbacks rather than asyncio.
+
+* `api`: The class object that the callbacks will be emitted to (see [How to use Callbacks](#how-to-use-callbacks)).
+* `top_bar`: Adds a Top Bar to the `Chart` or `SubChart` and allows use of the `create_switcher` method.
+* `search_box`: Adds a search box onto the `Chart` or `SubChart` that is activated by typing.
+
+___
+### How to use Callbacks
+
+Callbacks are emitted to the class given as the `api` parameter shown above.
+
+Take a look at this minimal example:
+
+```python
+class API:
+    def __init__(self):
+        self.chart = None
+
+    async def on_search(self, string):
+        print(f'You searched for {string}, within the chart holding the id: "{self.chart.id}"')
+```
+Upon searching in a `Chart` or `SubChart` window, the expected output would be akin to:
+```
+You searched for AAPL, within the chart holding the id: "window.blyjagcr"
+```
+When using `SubChart`'s, the id will change depending upon which pane was used to search, due to the instance of `self.chart` dynamically updating to the latest pane which triggered the callback.
+This allows access to the specific [Common Methods](#common-methods) for the pane in question.
+
+Certain callback methods must be specifically named:
+* Search callbacks will always be emitted to a method named `on_search`
+___
+
+### `create_switcher`
+`method: function` | `*options: str` | `default: str`
+
+* `method`: The function from the `api` class given to the constructor that will receive the callback.
+* `options`: The strings to be displayed within the switcher. This may be a variety of timeframes, security types, or whatever needs to be updated directly from the chart.
+* `default`: The initial switcher option set.
+___
+
+### Example:
+
+```python
+import asyncio
+import pandas as pd
+from my_favorite_broker import get_bar_data
+
+from lightweight_charts import ChartAsync
+
+
+class API:
+    def __init__(self):
+        self.chart = None
+        self.symbol = 'TSLA'
+        self.timeframe = '5min'
+
+    async def on_search(self, searched_string): # Called when the user searches.
+        self.symbol = searched_string
+        new_data = await self.get_data()
+        if not new_data:
+            return
+        self.chart.set(new_data) # sets data for the Chart or SubChart in question.
+        self.chart.corner_text(searched_string)
+
+    async def on_timeframe(self, timeframe):  # Called when the user changes the timeframe.
+        self.timeframe = timeframe
+        new_data = await self.get_data()
+        if not new_data:
+            return
+        self.chart.set(new_data)
+
+    async def get_data(self):
+        data = await get_bar_data(self.symbol, self.timeframe)
+        return data
+
+
+async def main():
+    api = API()
+
+    chart = ChartAsync(api=api, debug=True)
+
+    chart.corner_text('TSLA')
+    chart.create_switcher(api.on_timeframe, '1min', '5min', '30min', 'H', 'D', 'W', default='5min')
+
+    df = pd.read_csv('ohlcv.csv')
+    chart.set(df)
+
+    await chart.show(block=True)
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+___
+
+## QtChart
 `widget: QWidget` | `volume_enabled: bool`
 
-The `QtChart` object allows the use of charts within a `QMainWindow` object, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
+The `QtChart` object allows the use of charts within a `QMainWindow` object, and has similar functionality to the `Chart` and `ChartAsync` objects for manipulating data, configuring and styling.
+
+Callbacks can be recieved through the Qt event loop, using an [API](#how-to-use-callbacks) class that uses **syncronous** methods instead of **asyncronous** methods.
 ___
 
 ### `get_webview`
@@ -347,11 +442,12 @@ app.exec_()
 ```
 ___
 
-## `WxChart`
+## WxChart
 `parent: wx.Panel` | `volume_enabled: bool`
 
-The WxChart object allows the use of charts within a `wx.Frame` object, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
+The WxChart object allows the use of charts within a `wx.Frame` object, and has similar functionality to the `Chart` and `ChartAsync` objects for manipulating data, configuring and styling.
 
+Callbacks can be recieved through the Wx event loop, using an [API](#how-to-use-callbacks) class that uses **syncronous** methods instead of **asyncronous** methods.
 ___
 
 ### `get_webview`
@@ -394,6 +490,30 @@ if __name__ == '__main__':
     app.MainLoop()
 
 ```
+___
 
+## StreamlitChart
+`parent: wx.Panel` | `volume_enabled: bool`
 
+The `StreamlitChart` object allows the use of charts within a Streamlit app, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
 
+This object only supports the displaying of **static** data, and should not be used with the `update_from_tick` or `update` methods. Every call to the chart object must occur **before** calling `load`.
+___
+
+### `load`
+
+Loads the chart into the Streamlit app. This should be called after setting, styling, and configuring the chart, as no further calls to the `StreamlitChart` will be acknowledged. 
+___
+
+### Example:
+```python
+import pandas as pd
+from lightweight_charts.widgets import StreamlitChart
+
+chart = StreamlitChart(width=900, height=600)
+
+df = pd.read_csv('ohlcv.csv')
+chart.set(df)
+
+chart.load()
+```

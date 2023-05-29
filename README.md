@@ -1,13 +1,13 @@
 <div align="center">
 
-# lightweight_charts_python
+# lightweight-charts-python
 
 [![PyPi Release](https://img.shields.io/pypi/v/lightweight-charts?color=32a852&label=PyPi)](https://pypi.org/project/lightweight-charts/)
 [![Made with Python](https://img.shields.io/badge/Python-3.9+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
 [![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
-
+![async](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_async/async.png)
 ![cover](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/cover.png)
 
 lightweight-charts-python aims to provide a simple and pythonic way to access and implement [TradingView's Lightweight Charts](https://www.tradingview.com/lightweight-charts/).
@@ -15,7 +15,7 @@ lightweight-charts-python aims to provide a simple and pythonic way to access an
 
 ## Installation
 ```
-pip install lightweight_charts
+pip install lightweight-charts
 ```
 ___
 
@@ -23,8 +23,13 @@ ___
 1. Simple and easy to use.
 2. Blocking or non-blocking GUI.
 3. Streamlined for live data, with methods for updating directly from tick data.
-4. Support for PyQt and wxPython.
-5. Multi-Pane Charts using the `SubChart` ([examples](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart)).
+4. Supports:
+   * PyQt
+   * wxPython
+   * Streamlit
+   * asyncio
+5. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#chartasync) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
+6. Multi-Pane Charts using the `SubChart` ([examples](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart)).
 ___
 
 ### 1. Display data from a csv:
@@ -183,30 +188,68 @@ if __name__ == '__main__':
 ![styling image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/5_styling/styling.png)
 ___
 
-### 6. Callbacks:
+### 6. ChartAsync:
 
 ```python
+import asyncio
 import pandas as pd
-from lightweight_charts import Chart
+
+from lightweight_charts import ChartAsync
 
 
-def on_click(bar: dict):
-    print(f"Time: {bar['time']} | Close: {bar['close']}")
+def get_bar_data(symbol, timeframe):
+    return pd.read_csv(f'bar_data/{symbol}_{timeframe}.csv')
+
+
+class API:
+    def __init__(self):
+        self.chart = None  # Changes after each callback.
+        self.symbol = 'TSLA'
+        self.timeframe = '5min'
+
+    async def on_search(self, searched_string):  # Called when the user searches.
+        self.symbol = searched_string
+        new_data = await self.get_data()
+        if new_data.empty:
+            return
+        self.chart.set(new_data)
+        self.chart.corner_text(searched_string)
+
+    async def on_timeframe_selection(self, timeframe):  # Called when the user changes the timeframe.
+        self.timeframe = timeframe
+        new_data = await self.get_data()
+        if new_data.empty:
+            return
+        self.chart.set(new_data)
+
+    async def get_data(self):
+        if self.symbol not in ('AAPL', 'GOOGL', 'TSLA'):
+            print(f'No data for "{self.symbol}"')
+            return pd.DataFrame()
+        data = get_bar_data(self.symbol, self.timeframe)
+        return data
+
+
+async def main():
+    api = API()
+
+    chart = ChartAsync(api=api, debug=True)
+    chart.legend(True)
+
+    chart.create_switcher(api.on_timeframe_selection, '1min', '5min', '30min', default='5min')
+    chart.corner_text(api.symbol)
+
+    df = get_bar_data(api.symbol, api.timeframe)
+    chart.set(df)
+
+    await chart.show(block=True)
 
 
 if __name__ == '__main__':
-    
-    chart = Chart()
-
-    df = pd.read_csv('ohlcv.csv')
-    chart.set(df)
-
-    chart.subscribe_click(on_click)
-
-    chart.show(block=True)
+    asyncio.run(main())
 
 ```
-![callbacks gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_callbacks/callbacks.gif)
+![async gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_async/async.gif)
 ___
 
 <div align="center">

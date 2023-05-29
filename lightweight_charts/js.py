@@ -26,7 +26,7 @@ class SeriesCommon:
         series['time'] = self._datetime_format(series['time'])
         return series
 
-    def _datetime_format(self, arg):
+    def _datetime_format(self, arg: Union[pd.Series, str]):
         arg = pd.to_datetime(arg)
         if self._interval != timedelta(days=1):
             arg = arg.astype('int64') // 10 ** 9 if isinstance(arg, pd.Series) else arg.timestamp()
@@ -80,21 +80,9 @@ class SeriesCommon:
         """
         Creates a horizontal line at the given price.\n
         """
-        var = self._rand.generate()
         self.run_script(f"""
-           let priceLine{var} = {{
-               price: {price},
-               color: '{color}',
-               lineWidth: {width},
-               lineStyle: {_line_style(style)},
-               axisLabelVisible: {_js_bool(axis_label_visible)},
-               title: '{text}',
-           }};
-           let line{var} = {{
-               line: {self.id}.series.createPriceLine(priceLine{var}),
-               price: {price},
-           }};
-           {self.id}.horizontal_lines.push(line{var})""")
+        makeHorizontalLine({self.id}, {price}, '{color}', {width}, {_line_style(style)}, {_js_bool(axis_label_visible)}, '{text}')
+        """)
 
     def remove_horizontal_line(self, price: Union[float, int]):
         """
@@ -116,11 +104,11 @@ class Line(SeriesCommon):
     def __init__(self, parent, color, width):
         self._parent = parent
         self._rand = self._parent._rand
-        self.id = self._rand.generate()
+        self.id = f'window.{self._rand.generate()}'
         self.run_script = self._parent.run_script
 
         self._parent.run_script(f'''
-            var {self.id} = {{
+            {self.id} = {{
                 series: {self._parent.id}.chart.addLineSeries({{
                     color: '{color}',
                     lineWidth: {width},
@@ -149,19 +137,6 @@ class Line(SeriesCommon):
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
 
-class API:
-    def __init__(self):
-        self.click_funcs = {}
-
-    def onClick(self, data):
-        click_func = self.click_funcs[data['id']]
-        if isinstance(data['time'], int):
-            data['time'] = datetime.fromtimestamp(data['time'])
-        else:
-            data['time'] = datetime.strptime(data['time'], '%Y-%m-%d')
-        click_func(data) if click_func else None
-
-
 class LWC(SeriesCommon):
     def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False):
         self._volume_enabled = volume_enabled
@@ -170,35 +145,30 @@ class LWC(SeriesCommon):
         self._dynamic_loading = dynamic_loading
 
         self._rand = IDGen()
-        self.id = self._rand.generate()
+        self.id = f'window.{self._rand.generate()}'
         self._position = 'left'
         self.loaded = False
         self._html = HTML
-        self._append_js = f'document.body.append({self.id}.div)'
         self._scripts = []
         self._script_func = None
         self._last_bar = None
         self._interval = None
-        self._js_api = API()
-        self._js_api_code = None
 
         self._background_color = '#000000'
         self._volume_up_color = 'rgba(83,141,131,0.8)'
         self._volume_down_color = 'rgba(200,127,130,0.8)'
 
     def _on_js_load(self):
+        if self.loaded:
+            return
         self.loaded = True
-        for script in self._scripts:
-            self.run_script(script)
+        [self.run_script(script) for script in self._scripts]
 
-    def _create_chart(self):
+    def _create_chart(self, top_bar=False):
         self.run_script(f'''
-            {self.id} = makeChart({self._inner_width}, {self._inner_height})
-            {self.id}.div.style.float = "{self._position}"
-            {self._append_js}
-            window.addEventListener('resize', function() {{
-                {self.id}.chart.resize(window.innerWidth*{self.id}.scale.width, window.innerHeight*{self.id}.scale.height)
-                }});
+            {self.id} = makeChart({self._inner_width}, {self._inner_height}, topBar={_js_bool(top_bar)})
+            {self.id}.id = '{self.id}'
+            {self.id}.wrapper.style.float = "{self._position}"
             ''')
 
     def run_script(self, script):
@@ -498,11 +468,11 @@ class LWC(SeriesCommon):
                     const data = param.seriesData.get({self.id}.series);
                     if (!data) {{return}}
                     let percentMove = ((data.close-data.open)/data.open)*100
-                    let ohlc = `open: ${{legendItemFormat(data.open)}} 
-                                | high: ${{legendItemFormat(data.high)}} 
-                                | low: ${{legendItemFormat(data.low)}}
-                                | close: ${{legendItemFormat(data.close)}} `
-                    let percent = `| daily: ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
+                    let ohlc = `O ${{legendItemFormat(data.open)}} 
+                                | H ${{legendItemFormat(data.high)}} 
+                                | L ${{legendItemFormat(data.low)}}
+                                | C ${{legendItemFormat(data.close)}} `
+                    let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
                     let finalString = ''
                     {'finalString += ohlc' if ohlc else ''}
                     {'finalString += percent' if percent else ''}
@@ -512,28 +482,6 @@ class LWC(SeriesCommon):
                     {self.id}.legend.innerHTML = ''
                 }}
             }});''')
-
-    def subscribe_click(self, function: object):
-        """
-        Subscribes the given function to a chart click event.
-        The event returns a dictionary containing the bar object at the time clicked, and the price at the crosshair.
-        """
-        self._js_api.click_funcs[self.id] = function
-        self.run_script(f'''
-            {self.id}.chart.subscribeClick((param) => {{
-                if (!param.point) {{return}}
-                let prices = param.seriesData.get({self.id}.series);
-                let data = {{
-                    time: param.time,
-                    open: prices.open,
-                    high: prices.high,
-                    low: prices.low,
-                    close: prices.close,
-                    hover: {self.id}.series.coordinateToPrice(param.point.y),
-                    id: '{self.id}'
-                    }}
-                {self._js_api_code}(data)
-                }})''')
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
                          width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False):
@@ -548,9 +496,6 @@ class SubChart(LWC):
         self._position = position
         self._rand = self._chart._rand
         self.id = f'window.{self._rand.generate()}'
-        self._append_js = f'{self._parent.id}.div.parentNode.insertBefore({self.id}.div, {self._parent.id}.div.nextSibling)'
-        self._js_api = self._chart._js_api
-        self._js_api_code = self._chart._js_api_code
         self.run_script = self._chart.run_script
         self._create_chart()
         if not sync:
@@ -569,22 +514,30 @@ const up = 'rgba(39, 157, 130, 100)'
 const down = 'rgba(200, 97, 100, 100)'
 
 const wrapper = document.createElement('div')
+wrapper.className = 'wrapper'
 document.body.appendChild(wrapper)
 
-function makeChart(innerWidth, innerHeight) {
+function makeChart(innerWidth, innerHeight, topBar=false) {
     let chart = {
         markers: [],
         horizontal_lines: [],
         div: document.createElement('div'),
+        wrapper: document.createElement('div'),
         legend: document.createElement('div'),
         scale: {
             width: innerWidth,
             height: innerHeight
         },
     }
+    let topBarOffset = 0
+    if (topBar) {
+    makeTopBar(chart)
+    topBarOffset = chart.topBar.offsetHeight
+    }
+    
     chart.chart = LightweightCharts.createChart(chart.div, {
         width: window.innerWidth*innerWidth,
-        height: window.innerHeight*innerHeight,
+        height: (window.innerHeight*innerHeight)-topBarOffset,
         layout: {
             textColor: '#d1d4dc',
             background: {
@@ -612,6 +565,12 @@ function makeChart(innerWidth, innerHeight) {
         },
         handleScroll: {vertTouchDrag: true},
     })
+    window.addEventListener('resize', function() {
+        if (topBar) {
+        topBarOffset = chart.topBar.offsetHeight
+        }
+        chart.chart.resize(window.innerWidth*innerWidth, (window.innerHeight*innerHeight)-topBarOffset)
+        });
     chart.series = chart.chart.addCandlestickSeries({color: 'rgb(0, 120, 255)', upColor: up, borderUpColor: up, wickUpColor: up,
                                         downColor: down, borderDownColor: down, wickDownColor: down, lineWidth: 2,
                                         })
@@ -631,8 +590,33 @@ function makeChart(innerWidth, innerHeight) {
     chart.legend.style.fontFamily = 'Monaco'
     chart.legend.style.fontSize = '11px'
     chart.legend.style.color = 'rgb(191, 195, 203)'
+    
+    chart.wrapper.style.width = `${100*innerWidth}%`
+    chart.wrapper.style.height = `${100*innerHeight}%`
+    chart.div.style.position = 'relative'
+    chart.wrapper.style.display = 'flex'
+    chart.wrapper.style.flexDirection = 'column'
+    
     chart.div.appendChild(chart.legend)
+    chart.wrapper.appendChild(chart.div)
+    wrapper.append(chart.wrapper)
+    
     return chart
+}
+function makeHorizontalLine(chart, price, color, width, style, axisLabelVisible, text) {
+    let priceLine = {
+       price: price,
+       color: color,
+       lineWidth: width,
+       lineStyle: style,
+       axisLabelVisible: axisLabelVisible,
+       title: text,
+    };
+    let line = {
+       line: chart.series.createPriceLine(priceLine),
+       price: price,
+    };
+    chart.horizontal_lines.push(line)
 }
 function legendItemFormat(num) {
 return num.toFixed(2).toString().padStart(8, ' ')

@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='lightweight_charts',
-    version='1.0.8',
+    version='1.0.9',
     packages=find_packages(),
     python_requires='>=3.9',
     install_requires=[
