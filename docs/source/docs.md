@@ -9,7 +9,7 @@
 ___
 
 ## Common Methods
-These methods can be used within the [`Chart`](#chart), [`SubChart`](#subchart), [`ChartAsync`](#chartasync), [`QtChart`](#qtchart), [`WxChart`](#wxchart) and [`StreamlitChart`](#streamlitchart) objects.
+These methods can be used within the [`Chart`](#chart), [`SubChart`](#subchart), [`QtChart`](#qtchart), [`WxChart`](#wxchart) and [`StreamlitChart`](#streamlitchart) objects.
 
 ___
 ### `set`
@@ -186,7 +186,8 @@ ___
 
 
 ## Chart
-`volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `debug: bool` 
+`volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `debug: bool` |
+`api: object` | `topbar: bool` | `searchbox: bool`
 
 The main object used for the normal functionality of lightweight-charts-python, built on the pywebview library.
 ___
@@ -205,6 +206,13 @@ ___
 ### `exit`
 
 Exits and destroys the chart and window.
+
+___
+
+### `show_async`
+`block: bool`
+
+Show the chart asynchronously. This should be utilised when using [Callbacks](#callbacks).
 
 ___
 
@@ -241,12 +249,12 @@ The `SubChart` object allows for the use of multiple chart panels within the sam
 ___
 
 ### Grid of 4 Example:
+
 ```python
 import pandas as pd
 from lightweight_charts import Chart
 
 if __name__ == '__main__':
-    
     chart = Chart(inner_width=0.5, inner_height=0.5)
 
     chart2 = chart.create_subchart(position='right', width=0.5, height=0.5)
@@ -262,9 +270,9 @@ if __name__ == '__main__':
 
     df = pd.read_csv('ohlcv.csv')
     chart.set(df)
-    chart2.set(df)
-    chart3.set(df)
-    chart4.set(df)
+    chart2._set(df)
+    chart3._set(df)
+    chart4._set(df)
 
     chart.show(block=True)
 
@@ -278,34 +286,33 @@ import pandas as pd
 from lightweight_charts import Chart
 
 if __name__ == '__main__':
- 
     chart = Chart(inner_width=1, inner_height=0.8)
-    
+
     chart2 = chart.create_subchart(width=1, height=0.2, sync=True, volume_enabled=False)
     chart2.time_scale(visible=False)
-    
+
     df = pd.read_csv('ohlcv.csv')
     df2 = pd.read_csv('rsi.csv')
-    
+
     chart.set(df)
     line = chart2.create_line()
-    line.set(df2)
-    
+    line._set(df2)
+
     chart.show(block=True)
 
 ```
 ___
 
-## ChartAsync
-`api: object` | `top_bar: bool` | `search_box: bool`
+## Callbacks
 
-The `ChartAsync` object allows for asyncronous callbacks to be passed back to python, allowing for more sophisticated chart layouts including search boxes and timeframe selectors.
+The `Chart` object allows for asyncronous callbacks to be passed back to python when using the `show_async` method, allowing for more sophisticated chart layouts including searching, timeframe selectors, and text boxes.
 
-[`QtChart`](#qtchart) and [`WxChart`](#wxchart) also have access to the methods specific to `ChartAsync`, however they use their respective event loops to emit callbacks rather than asyncio.
+[`QtChart`](#qtchart) and [`WxChart`](#wxchart) can also use callbacks, however they use their respective event loops to emit callbacks rather than asyncio.
 
+A variety of the parameters below should be passed to the Chart upon decaration.
 * `api`: The class object that the callbacks will be emitted to (see [How to use Callbacks](#how-to-use-callbacks)).
-* `top_bar`: Adds a Top Bar to the `Chart` or `SubChart` and allows use of the `create_switcher` method.
-* `search_box`: Adds a search box onto the `Chart` or `SubChart` that is activated by typing.
+* `topbar`: Adds a [TopBar](#topbar) to the `Chart` or `SubChart` and allows use of the `create_switcher` method.
+* `searchbox`: Adds a search box onto the `Chart` or `SubChart` that is activated by typing.
 
 ___
 ### How to use Callbacks
@@ -320,75 +327,99 @@ class API:
         self.chart = None
 
     async def on_search(self, string):
-        print(f'You searched for {string}, within the chart holding the id: "{self.chart.id}"')
+        print(f'Search Text: "{string}" | Chart/SubChart ID: "{self.chart.id}"')
 ```
-Upon searching in a `Chart` or `SubChart` window, the expected output would be akin to:
+Upon searching in a pane, the expected output would be akin to:
 ```
-You searched for AAPL, within the chart holding the id: "window.blyjagcr"
+Search Text: "AAPL" | Chart/SubChart ID: "window.blyjagcr"
 ```
-When using `SubChart`'s, the id will change depending upon which pane was used to search, due to the instance of `self.chart` dynamically updating to the latest pane which triggered the callback.
-This allows access to the specific [Common Methods](#common-methods) for the pane in question.
+The ID shown above will change depending upon which pane was used to search, due to the instance of `self.chart` dynamically updating to the latest pane which triggered the callback.
+`self.chart` will update upon each callback, allowing for access to the specific [Common Methods](#common-methods) for the pane in question.
 
-Certain callback methods must be specifically named:
+```{important}
 * Search callbacks will always be emitted to a method named `on_search`
+```
 ___
 
-### `create_switcher`
-`method: function` | `*options: str` | `default: str`
+### `TopBar`
+The `TopBar` class represents the top bar shown on the chart when using callbacks:
 
+![topbar](https://i.imgur.com/Qu2FW9Y.png)
+
+This class is accessed from the `topbar` attribute of the chart object (`chart.topbar.<method>`), after setting the topbar parameter to `True` upon declaration of the chart.
+
+Switchers and text boxes can be created within the top bar, and their instances can be accessed through the `topbar` dictionary. For example:
+
+```python
+chart = Chart(api=api, topbar=True)
+
+chart.topbar.textbox('symbol', 'AAPL') # Declares a textbox displaying 'AAPL'.
+print(chart.topbar['symbol'].value) # Prints the value within ('AAPL')
+
+chart.topbar['symbol'].set('MSFT') # Sets the 'symbol' textbox to 'MSFT'
+print(chart.topbar['symbol'].value) # Prints the value again ('MSFT')
+```
+___
+
+### `switcher`
+`name: str` | `method: function` | `*options: str` | `default: str`
+
+* `name`: the name of the switcher which can be used to access it from the `topbar` dictionary.
 * `method`: The function from the `api` class given to the constructor that will receive the callback.
 * `options`: The strings to be displayed within the switcher. This may be a variety of timeframes, security types, or whatever needs to be updated directly from the chart.
 * `default`: The initial switcher option set.
 ___
 
-### Example:
+### `textbox`
+`name: str` | `initial_text: str`
+
+* `name`: the name of the text box which can be used to access it from the `topbar` dictionary.
+* `initial_text`: The text to show within the text box.
+___
+
+### Callbacks Example:
 
 ```python
 import asyncio
 import pandas as pd
 from my_favorite_broker import get_bar_data
 
-from lightweight_charts import ChartAsync
+from lightweight_charts import Chart
 
 
 class API:
     def __init__(self):
         self.chart = None
-        self.symbol = 'TSLA'
-        self.timeframe = '5min'
 
-    async def on_search(self, searched_string): # Called when the user searches.
-        self.symbol = searched_string
-        new_data = await self.get_data()
+    async def on_search(self, searched_string):  # Called when the user searches.
+        timeframe = self.chart.topbar['timeframe'].value
+        new_data = await get_bar_data(searched_string, timeframe)
         if not new_data:
             return
-        self.chart.set(new_data) # sets data for the Chart or SubChart in question.
-        self.chart.corner_text(searched_string)
+        self.chart.set(new_data)  # sets data for the Chart or SubChart in question.
+        self.chart.topbar['symbol'].set(searched_string)
 
-    async def on_timeframe(self, timeframe):  # Called when the user changes the timeframe.
-        self.timeframe = timeframe
-        new_data = await self.get_data()
+    async def on_timeframe(self):  # Called when the user changes the timeframe.
+        timeframe = self.chart.topbar['timeframe'].value
+        symbol = self.chart.topbar['symbol'].value
+        new_data = await get_bar_data(symbol, timeframe)
         if not new_data:
             return
         self.chart.set(new_data)
-
-    async def get_data(self):
-        data = await get_bar_data(self.symbol, self.timeframe)
-        return data
 
 
 async def main():
     api = API()
 
-    chart = ChartAsync(api=api, debug=True)
+    chart = Chart(api=api, topbar=True, searchbox=True)
 
-    chart.corner_text('TSLA')
-    chart.create_switcher(api.on_timeframe, '1min', '5min', '30min', 'H', 'D', 'W', default='5min')
+    chart.topbar.textbox('symbol', 'TSLA')
+    chart.topbar.switcher('timeframe', api.on_timeframe, '1min', '5min', '30min', 'H', 'D', 'W', default='5min')
 
     df = pd.read_csv('ohlcv.csv')
     chart.set(df)
 
-    await chart.show(block=True)
+    await chart.show_async(block=True)
 
 
 if __name__ == '__main__':
@@ -511,6 +542,32 @@ import pandas as pd
 from lightweight_charts.widgets import StreamlitChart
 
 chart = StreamlitChart(width=900, height=600)
+
+df = pd.read_csv('ohlcv.csv')
+chart.set(df)
+
+chart.load()
+```
+___
+
+## JupyterChart
+
+The `JupyterChart` object allows the use of charts within a notebook, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
+
+This object only supports the displaying of **static** data, and should not be used with the `update_from_tick` or `update` methods. Every call to the chart object must occur **before** calling `load`.
+___
+
+### `load`
+
+Renders the chart. This should be called after setting, styling, and configuring the chart, as no further calls to the `JupyterChart` will be acknowledged. 
+___
+
+### Example:
+```python
+import pandas as pd
+from lightweight_charts import JupyterChart
+
+chart = JupyterChart()
 
 df = pd.read_csv('ohlcv.csv')
 chart.set(df)

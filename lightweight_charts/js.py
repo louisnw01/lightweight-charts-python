@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import timedelta, datetime
-from typing import Union, Literal
+from typing import Union, Literal, Dict
 
 from lightweight_charts.pkg import LWC_4_0_1
 from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, _crosshair_mode, _line_style, \
@@ -13,14 +13,15 @@ class SeriesCommon:
         self._interval = common_interval.index[0]
 
     def _df_datetime_format(self, df: pd.DataFrame):
+        df = df.copy()
         if 'date' in df.columns:
             df = df.rename(columns={'date': 'time'})
         self._set_interval(df)
-        # df['time'] = df['time'].apply(self._datetime_format)
         df['time'] = self._datetime_format(df['time'])
         return df
 
     def _series_datetime_format(self, series):
+        series = series.copy()
         if 'date' in series.keys():
             series = series.rename({'date': 'time'})
         series['time'] = self._datetime_format(series['time'])
@@ -137,6 +138,57 @@ class Line(SeriesCommon):
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
 
+class Widget:
+    def __init__(self, chart):
+        self._chart = chart
+        self.method = None
+
+
+class TextWidget(Widget):
+    def __init__(self, chart, initial_text):
+        super().__init__(chart)
+        self.value = initial_text
+        self.id = f"window.{self._chart._rand.generate()}"
+        self._chart.run_script(f'''{self.id} = makeTextBoxWidget({self._chart.id}, "{initial_text}")''')
+
+    def set(self, string):
+        self.value = string
+        self._chart.run_script(f'{self.id}.innerText = "{string}"')
+
+
+class SwitcherWidget(Widget):
+    def __init__(self, chart, method, *options, default):
+        super().__init__(chart)
+        self.value = default
+        self.method = method.__name__
+        self._chart.run_script(f'''
+            makeSwitcher({self._chart.id}, {list(options)}, '{default}', {self._chart._js_api_code}, '{method.__name__}')
+            {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width}, (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
+        ''')
+
+
+class TopBar:
+    def __init__(self, chart):
+        self._chart = chart
+        self._widgets: Dict[str, Widget] = {}
+        self._chart.run_script(f'''
+            makeTopBar({self._chart.id})
+            {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width}, (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
+        ''')
+
+    def __getitem__(self, item): return self._widgets.get(item)
+
+    def switcher(self, name, method, *options, default=None):
+        self._widgets[name] = SwitcherWidget(self._chart, method, *options, default=default if default else options[0])
+
+    def textbox(self, name, initial_text=''): self._widgets[name] = TextWidget(self._chart, initial_text)
+
+    def _widget_with_method(self, method_name):
+        for widget in self._widgets.values():
+            if widget.method == method_name:
+                return widget
+
+
 class LWC(SeriesCommon):
     def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False):
         self._volume_enabled = volume_enabled
@@ -153,10 +205,14 @@ class LWC(SeriesCommon):
         self._script_func = None
         self._last_bar = None
         self._interval = None
+        self._charts = {self.id: self}
+        self._js_api_code = None
 
         self._background_color = '#000000'
         self._volume_up_color = 'rgba(83,141,131,0.8)'
         self._volume_down_color = 'rgba(200,127,130,0.8)'
+
+        # self.polygon: PolygonAPI = PolygonAPI(self)
 
     def _on_js_load(self):
         if self.loaded:
@@ -164,12 +220,15 @@ class LWC(SeriesCommon):
         self.loaded = True
         [self.run_script(script) for script in self._scripts]
 
-    def _create_chart(self, top_bar=False):
+    def _create_chart(self, autosize=True):
         self.run_script(f'''
-            {self.id} = makeChart({self._inner_width}, {self._inner_height}, topBar={_js_bool(top_bar)})
+            {self.id} = makeChart({self._inner_width}, {self._inner_height}, autoSize={_js_bool(autosize)})
             {self.id}.id = '{self.id}'
             {self.id}.wrapper.style.float = "{self._position}"
             ''')
+
+    def _make_search_box(self):
+        self.run_script(f'makeSearchBox({self.id}, {self._js_api_code})')
 
     def run_script(self, script):
         """
@@ -342,7 +401,7 @@ class LWC(SeriesCommon):
         """
         self._background_color = background_color if background_color else self._background_color
         self.run_script(f"""
-            document.body.style.backgroundColor = '{self._background_color}'
+            document.getElementById('wrapper').style.backgroundColor = '{self._background_color}'
             {self.id}.chart.applyOptions({{
             layout: {{
                 background: {{
@@ -484,20 +543,28 @@ class LWC(SeriesCommon):
             }});''')
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
-                         width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False):
-        return SubChart(self, volume_enabled, position, width, height, sync)
+                        width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False,
+                        topbar: bool = False, searchbox: bool = False):
+        subchart = SubChart(self, volume_enabled, position, width, height, sync, topbar, searchbox)
+        self._charts[subchart.id] = subchart
+        return subchart
 
 
 class SubChart(LWC):
-    def __init__(self, parent, volume_enabled, position, width, height, sync):
+    def __init__(self, parent, volume_enabled, position, width, height, sync, topbar, searchbox):
         super().__init__(volume_enabled, width, height)
         self._chart = parent._chart if isinstance(parent, SubChart) else parent
         self._parent = parent
         self._position = position
         self._rand = self._chart._rand
-        self.id = f'window.{self._rand.generate()}'
+        self._js_api_code = self._chart._js_api_code
         self.run_script = self._chart.run_script
+        self._charts = self._chart._charts
+        self.id = f'window.{self._rand.generate()}'
+
         self._create_chart()
+        self.topbar = TopBar(self) if topbar else None
+        self._make_search_box() if searchbox else None
         if not sync:
             return
         sync_parent_var = self._parent.id if isinstance(sync, bool) else sync
@@ -509,15 +576,9 @@ class SubChart(LWC):
 
 
 SCRIPT = """
-document.body.style.backgroundColor = '#000000'
-const up = 'rgba(39, 157, 130, 100)'
-const down = 'rgba(200, 97, 100, 100)'
+document.getElementById('wrapper').style.backgroundColor = '#000000'
 
-const wrapper = document.createElement('div')
-wrapper.className = 'wrapper'
-document.body.appendChild(wrapper)
-
-function makeChart(innerWidth, innerHeight, topBar=false) {
+function makeChart(innerWidth, innerHeight, autoSize=true) {
     let chart = {
         markers: [],
         horizontal_lines: [],
@@ -528,16 +589,10 @@ function makeChart(innerWidth, innerHeight, topBar=false) {
             width: innerWidth,
             height: innerHeight
         },
-    }
-    let topBarOffset = 0
-    if (topBar) {
-    makeTopBar(chart)
-    topBarOffset = chart.topBar.offsetHeight
-    }
-    
+    }    
     chart.chart = LightweightCharts.createChart(chart.div, {
         width: window.innerWidth*innerWidth,
-        height: (window.innerHeight*innerHeight)-topBarOffset,
+        height: window.innerHeight*innerHeight,
         layout: {
             textColor: '#d1d4dc',
             background: {
@@ -565,12 +620,8 @@ function makeChart(innerWidth, innerHeight, topBar=false) {
         },
         handleScroll: {vertTouchDrag: true},
     })
-    window.addEventListener('resize', function() {
-        if (topBar) {
-        topBarOffset = chart.topBar.offsetHeight
-        }
-        chart.chart.resize(window.innerWidth*innerWidth, (window.innerHeight*innerHeight)-topBarOffset)
-        });
+    let up = 'rgba(39, 157, 130, 100)'
+    let down = 'rgba(200, 97, 100, 100)'
     chart.series = chart.chart.addCandlestickSeries({color: 'rgb(0, 120, 255)', upColor: up, borderUpColor: up, wickUpColor: up,
                                         downColor: down, borderDownColor: down, wickDownColor: down, lineWidth: 2,
                                         })
@@ -599,8 +650,18 @@ function makeChart(innerWidth, innerHeight, topBar=false) {
     
     chart.div.appendChild(chart.legend)
     chart.wrapper.appendChild(chart.div)
-    wrapper.append(chart.wrapper)
+    document.getElementById('wrapper').append(chart.wrapper)
     
+    if (!autoSize) {
+        return chart
+    }
+    let topBarOffset = 0
+    window.addEventListener('resize', function() {
+        if ('topBar' in chart) {
+        topBarOffset = chart.topBar.offsetHeight
+        }
+        chart.chart.resize(window.innerWidth*innerWidth, (window.innerHeight*innerHeight)-topBarOffset)
+        });
     return chart
 }
 function makeHorizontalLine(chart, price, color, width, style, axisLabelVisible, text) {
@@ -635,12 +696,186 @@ HTML = f"""
         margin: 0;
         padding: 0;
         overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }}
+    #wrapper {{
+        width: 100vw;
+        height: 100vh;
     }}
     </style>
 </head>
 <body>
+    <div id="wrapper"></div>
     <script>
     {SCRIPT}
     </script>
 </body>
 </html>"""
+
+CALLBACK_SCRIPT = '''
+function makeSearchBox(chart, callbackFunction) {
+    let searchWindow = document.createElement('div')
+    searchWindow.style.position = 'absolute'
+    searchWindow.style.top = '0'
+    searchWindow.style.bottom = '200px'
+    searchWindow.style.left = '0'
+    searchWindow.style.right = '0'
+    searchWindow.style.margin = 'auto'
+    searchWindow.style.width = '150px'
+    searchWindow.style.height = '30px'
+    searchWindow.style.padding = '10px'
+    searchWindow.style.backgroundColor = 'rgba(30, 30, 30, 0.9)'
+    searchWindow.style.border = '3px solid #3C434C'
+    searchWindow.style.zIndex = '1000'
+    searchWindow.style.display = 'none'
+    searchWindow.style.borderRadius = '5px'
+    
+    let magnifyingGlass = document.createElement('span');
+    magnifyingGlass.style.display = 'inline-block';
+    magnifyingGlass.style.width = '12px';
+    magnifyingGlass.style.height = '12px';
+    magnifyingGlass.style.border = '2px solid #FFF';
+    magnifyingGlass.style.borderRadius = '50%';
+    magnifyingGlass.style.position = 'relative';
+    let handle = document.createElement('span');
+    handle.style.display = 'block';
+    handle.style.width = '7px';
+    handle.style.height = '2px';
+    handle.style.backgroundColor = '#FFF';
+    handle.style.position = 'absolute';
+    handle.style.top = 'calc(50% + 7px)';
+    handle.style.right = 'calc(50% - 11px)';
+    handle.style.transform = 'rotate(45deg)';
+
+    let sBox = document.createElement('input');
+    sBox.type = 'text';
+    sBox.placeholder = 'search';
+    sBox.style.position = 'relative';
+    sBox.style.display = 'inline-block';
+    sBox.style.zIndex = '1000';
+    sBox.style.textAlign = 'center'
+    sBox.style.width = '100px'
+    sBox.style.marginLeft = '15px'
+    sBox.style.backgroundColor = 'rgba(0, 122, 255, 0.2)'
+    sBox.style.color = 'lightgrey'
+    sBox.style.fontSize = '20px'            
+    sBox.style.border = 'none'
+    sBox.style.outline = 'none'
+    sBox.style.borderRadius = '2px'
+    
+    searchWindow.appendChild(magnifyingGlass)
+    magnifyingGlass.appendChild(handle)
+    searchWindow.appendChild(sBox)
+    chart.div.appendChild(searchWindow);
+
+    let yPrice = null
+    chart.chart.subscribeCrosshairMove((param) => {
+        if (param.point){
+            yPrice = param.point.y;
+        }
+    });
+    let selectedChart = false
+    chart.wrapper.addEventListener('mouseover', (event) => {
+        selectedChart = true
+    })
+    chart.wrapper.addEventListener('mouseout', (event) => {
+        selectedChart = false
+    })
+    document.addEventListener('keydown', function(event) {
+        if (!selectedChart) {return}
+        if (event.altKey && event.code === 'KeyH') {
+            let price = chart.series.coordinateToPrice(yPrice)
+            makeHorizontalLine(chart, price, '#FFFFFF', 1, LightweightCharts.LineStyle.Solid, true, '')
+        }
+        if (searchWindow.style.display === 'none') {
+            if (/^[a-zA-Z0-9]$/.test(event.key)) {
+                searchWindow.style.display = 'block';
+                sBox.focus();
+            }
+        }
+        else if (event.key === 'Enter') {
+            callbackFunction(`on_search__${chart.id}__${sBox.value}`)
+            searchWindow.style.display = 'none'
+            sBox.value = ''
+        }
+        else if (event.key === 'Escape') {
+            searchWindow.style.display = 'none'
+            sBox.value = ''
+        }
+    });
+    sBox.addEventListener('input', function() {
+        sBox.value = sBox.value.toUpperCase();
+    });
+}
+
+function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName) {
+    let switcherElement = document.createElement('div');
+    switcherElement.style.margin = '4px 18px'
+    switcherElement.style.zIndex = '1000'
+
+    let intervalElements = items.map(function(item) {
+        let itemEl = document.createElement('button');
+        itemEl.style.cursor = 'pointer'
+        itemEl.style.padding = '3px 6px'
+        itemEl.style.margin = '0px 4px'
+        itemEl.style.fontSize = '14px'
+        itemEl.style.color = 'lightgrey'
+        itemEl.style.backgroundColor = item === activeItem ? 'rgba(0, 122, 255, 0.7)' : 'transparent'
+
+        itemEl.style.border = 'none'
+        itemEl.style.borderRadius = '4px'
+        itemEl.addEventListener('mouseenter', function() {
+            itemEl.style.backgroundColor = item === activeItem ? 'rgba(0, 122, 255, 0.7)' : 'rgb(19, 40, 84)'
+        })
+        itemEl.addEventListener('mouseleave', function() {
+            itemEl.style.backgroundColor = item === activeItem ? 'rgba(0, 122, 255, 0.7)' : 'transparent'
+        })
+        itemEl.innerText = item;
+        itemEl.addEventListener('click', function() {
+            onItemClicked(item);
+        });
+        switcherElement.appendChild(itemEl);
+        return itemEl;
+    });
+    function onItemClicked(item) {
+        if (item === activeItem) {
+            return;
+        }
+        intervalElements.forEach(function(element, index) {
+            element.style.backgroundColor = items[index] === item ? 'rgba(0, 122, 255, 0.7)' : 'transparent'
+        });
+        activeItem = item;
+        callbackFunction(`${callbackName}__${chart.id}__${item}`);
+    }
+    chart.topBar.appendChild(switcherElement)
+    makeSeperator(chart.topBar)
+    return switcherElement;
+}
+
+function makeTextBoxWidget(chart, text) {
+    let textBox = document.createElement('div')
+    textBox.style.margin = '0px 18px'
+    textBox.style.position = 'relative'
+    textBox.style.color = 'lightgrey'
+    textBox.innerText = text
+    chart.topBar.append(textBox)
+    makeSeperator(chart.topBar)
+    return textBox
+}
+function makeTopBar(chart) {
+    chart.topBar = document.createElement('div')
+    chart.topBar.style.backgroundColor = '#191B1E'
+    chart.topBar.style.borderBottom = '3px solid #3C434C'
+    chart.topBar.style.display = 'flex'
+    chart.topBar.style.alignItems = 'center'
+    chart.wrapper.prepend(chart.topBar)
+}
+function makeSeperator(topBar) {
+    let seperator = document.createElement('div')
+        seperator.style.width = '1px'
+        seperator.style.height = '20px'
+        seperator.style.backgroundColor = '#3C434C'
+        topBar.appendChild(seperator)
+    }
+'''
+

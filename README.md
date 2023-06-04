@@ -7,16 +7,17 @@
 [![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
-![async](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_async/async.png)
 ![cover](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/cover.png)
 
 lightweight-charts-python aims to provide a simple and pythonic way to access and implement [TradingView's Lightweight Charts](https://www.tradingview.com/lightweight-charts/).
 </div>
 
+
 ## Installation
 ```
 pip install lightweight-charts
 ```
+* White screen? Having issues with pywebview? Click [here](https://github.com/louisnw01/lightweight-charts-python/issues?q=label%3A%22pywebview+issue%22+).
 ___
 
 ## Features
@@ -28,7 +29,8 @@ ___
    * wxPython
    * Streamlit
    * asyncio
-5. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#chartasync) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
+   * Jupyter Notebooks using the [JupyterChart](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#jupyterchart)
+5. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#callbacks) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
 6. Multi-Pane Charts using the `SubChart` ([examples](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart)).
 ___
 
@@ -125,27 +127,27 @@ from lightweight_charts import Chart
 
 
 def calculate_sma(data: pd.DataFrame, period: int = 50):
-    def avg(d: pd.DataFrame): 
-        return d['close'].mean()
-    result = []
-    for i in range(period - 1, len(data)):
-        val = avg(data.iloc[i - period + 1:i])
-        result.append({'time': data.iloc[i]['date'], 'value': val})
-    return pd.DataFrame(result)
+   def avg(d: pd.DataFrame):
+      return d['close'].mean()
+
+   result = []
+   for i in range(period - 1, len(data)):
+      val = avg(data.iloc[i - period + 1:i])
+      result.append({'time': data.iloc[i]['date'], 'value': val})
+   return pd.DataFrame(result)
 
 
 if __name__ == '__main__':
-    
-    chart = Chart()
-    
-    df = pd.read_csv('ohlcv.csv')
-    chart.set(df)
-    
-    line = chart.create_line()
-    sma_data = calculate_sma(df)
-    line.set(sma_data)
-    
-    chart.show(block=True)
+   chart = Chart()
+
+   df = pd.read_csv('ohlcv.csv')
+   chart.set(df)
+
+   line = chart.create_line()
+   sma_data = calculate_sma(df)
+   line._set(sma_data)
+
+   chart.show(block=True)
 
 ```
 ![line indicators image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/4_line_indicators/line_indicators.png)
@@ -188,68 +190,60 @@ if __name__ == '__main__':
 ![styling image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/5_styling/styling.png)
 ___
 
-### 6. ChartAsync:
+### 6. Callbacks:
 
 ```python
 import asyncio
 import pandas as pd
 
-from lightweight_charts import ChartAsync
+from lightweight_charts import Chart
 
 
 def get_bar_data(symbol, timeframe):
+    if symbol not in ('AAPL', 'GOOGL', 'TSLA'):
+        print(f'No data for "{symbol}"')
+        return pd.DataFrame()
     return pd.read_csv(f'bar_data/{symbol}_{timeframe}.csv')
 
 
 class API:
     def __init__(self):
         self.chart = None  # Changes after each callback.
-        self.symbol = 'TSLA'
-        self.timeframe = '5min'
 
     async def on_search(self, searched_string):  # Called when the user searches.
-        self.symbol = searched_string
-        new_data = await self.get_data()
+        new_data = get_bar_data(searched_string, self.chart.topbar['timeframe'].value)
+        if new_data.empty:
+            return
+        self.chart.topbar['corner'].set(searched_string)
+        self.chart.set(new_data)
+
+    async def on_timeframe_selection(self):  # Called when the user changes the timeframe.
+        new_data = get_bar_data(self.chart.topbar['corner'].value, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
         self.chart.set(new_data)
-        self.chart.corner_text(searched_string)
-
-    async def on_timeframe_selection(self, timeframe):  # Called when the user changes the timeframe.
-        self.timeframe = timeframe
-        new_data = await self.get_data()
-        if new_data.empty:
-            return
-        self.chart.set(new_data)
-
-    async def get_data(self):
-        if self.symbol not in ('AAPL', 'GOOGL', 'TSLA'):
-            print(f'No data for "{self.symbol}"')
-            return pd.DataFrame()
-        data = get_bar_data(self.symbol, self.timeframe)
-        return data
 
 
 async def main():
     api = API()
 
-    chart = ChartAsync(api=api, debug=True)
+    chart = Chart(api=api, topbar=True, searchbox=True)
     chart.legend(True)
 
-    chart.create_switcher(api.on_timeframe_selection, '1min', '5min', '30min', default='5min')
-    chart.corner_text(api.symbol)
+    chart.topbar.textbox('corner', 'TSLA')
+    chart.topbar.switcher('timeframe', api.on_timeframe_selection, '1min', '5min', '30min', default='5min')
 
-    df = get_bar_data(api.symbol, api.timeframe)
+    df = get_bar_data('TSLA', '5min')
     chart.set(df)
 
-    await chart.show(block=True)
+    await chart.show_async(block=True)
 
 
 if __name__ == '__main__':
     asyncio.run(main())
 
 ```
-![async gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_async/async.gif)
+![callbacks gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_callbacks/callbacks.gif)
 ___
 
 <div align="center">
