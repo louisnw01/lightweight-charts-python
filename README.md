@@ -29,9 +29,9 @@ ___
    * wxPython
    * Streamlit
    * asyncio
-   * Jupyter Notebooks using the [JupyterChart](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#jupyterchart)
+   * Jupyter Notebooks using the [`JupyterChart`](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#jupyterchart)
 5. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#callbacks) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
-6. Multi-Pane Charts using the `SubChart` ([examples](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart)).
+6. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart).
 ___
 
 ### 1. Display data from a csv:
