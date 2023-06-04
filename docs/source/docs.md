@@ -270,9 +270,9 @@ if __name__ == '__main__':
 
     df = pd.read_csv('ohlcv.csv')
     chart.set(df)
-    chart2._set(df)
-    chart3._set(df)
-    chart4._set(df)
+    chart2.set(df)
+    chart3.set(df)
+    chart4.set(df)
 
     chart.show(block=True)
 
@@ -296,7 +296,7 @@ if __name__ == '__main__':
 
     chart.set(df)
     line = chart2.create_line()
-    line._set(df2)
+    line.set(df2)
 
     chart.show(block=True)
 
