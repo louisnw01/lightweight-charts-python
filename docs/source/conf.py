@@ -1,7 +1,7 @@
 project = 'lightweight-charts-python'
 copyright = '2023, louisnw'
 author = 'louisnw'
-release = '1.0.10'
+release = '1.0.11'
 
 extensions = ["myst_parser"]
 
