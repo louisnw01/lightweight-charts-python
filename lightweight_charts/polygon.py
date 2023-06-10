@@ -93,7 +93,7 @@ class PolygonAPI:
             self._log.error(f'No results for "{ticker}" ({sec_type})')
             return
 
-        for child in self._lasts:
+        for child in self._lasts.values():
             for subbed_chart in child['charts']:
                 if subbed_chart == chart:
                     self._send_q.put(('_unsubscribe', chart, sec_type, ticker))
