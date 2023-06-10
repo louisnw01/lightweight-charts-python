@@ -26,6 +26,8 @@ The `time` column can also be named `date`, and the `volume` column can be omitt
 ```{important}
 the `time` column must have rows all of the same timezone and locale. This is particularly noticeable for data which crosses over daylight saving hours on data with intervals of less than 1 day. Errors are likely to be raised if they are not converted beforehand.
 ```
+
+An empty `DataFrame` object can also be given to this method, which will erase all candle and volume data displayed on the chart.
 ___
 
 ### `update`
@@ -37,7 +39,7 @@ The bar should contain values with labels of the same name as the columns requir
 ___
 
 ### `update_from_tick`
-`series: pd.Series`
+`series: pd.Series` | `cumulative_volume: bool`
 
 Updates the chart from a tick.
 
@@ -51,6 +53,7 @@ As before, the `time` can also be named `date`, and the `volume` can be omitted 
 The provided ticks do not need to be rounded to an interval (1 min, 5 min etc.), as the library handles this automatically.```````
 ```
 
+If `cumulative_volume` is used, the volume data given to this method will be added onto the latest bar of volume data.
 ___
 
 ### `create_line`
@@ -59,6 +62,11 @@ ___
 Creates and returns a [Line](#line) object.
 ___
 
+### `lines`
+`-> List[Line]`
+
+Returns a list of all Line objects for the chart or subchart.
+___
 ### `marker`
 `time: datetime` | `position: 'above'/'below'/'inside'` | `shape: 'arrow_up'/'arrow_down'/'circle'/'square'` | `color: str` | `text: str` | `-> str`
 
@@ -141,7 +149,7 @@ The float values given to scale the margins must be greater than 0 and less than
 ___
 
 ### `crosshair`
-`mode` | `vert_width: int` | `vert_color: str` | `vert_style: str` | `vert_label_background_color: str` | `horz_width: int` | `horz_color: str` | `horz_style: str` | `horz_label_background_color: str`
+`mode` | `vert_visible: bool` | `vert_width: int` | `vert_color: str` | `vert_style: str` | `vert_label_background_color: str` | `horz_visible: bool` | `horz_width: int` | `horz_color: str` | `horz_style: str` | `horz_label_background_color: str`
 
 Crosshair formatting for its vertical and horizontal axes.
 
@@ -165,6 +173,34 @@ ___
 
 Configures the legend of the chart.
 ___
+
+### `spinner`
+`visible: bool`
+
+Shows a loading spinner on the chart, which can be used to visualise the loading of large datasets, API calls, etc.
+___
+
+### `price_line`
+`label_visible: bool` | `line_visible: bool`
+
+Configures the visibility of the last value price line and its label.
+___
+
+### `fit`
+
+Attempts to fit all data displayed on the chart within the viewport (`fitContent()`).
+___
+
+### `hide_data`
+
+Hides the candles on the chart.
+___
+
+### `show_data`
+
+Shows the hidden candles on the chart.
+___
+
 
 
 ### `create_subchart`
@@ -218,7 +254,9 @@ ___
 
 ## Line
 
-The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to the [`title`](#title), [`marker`](#marker) and [`horizontal_line`](#horizontal-line) methods.
+The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to:
+
+[`title`](#title), [`marker`](#marker), [`horizontal_line`](#horizontal-line) [`hide_data`](#hide-data), [`show_data`](#show-data) and[`price_line`](#price-line) methods.
 
 ```{important}
 The `line` object should only be accessed from the [`create_line`](#create-line) method of `Chart`.
@@ -239,6 +277,11 @@ ___
 Updates the data for the line.
 
 This should be given as a Series object, with labels akin to the `line.set()` function.
+___
+
+### `delete`
+
+Irreversibly deletes the line on the chart as well as the Line object.
 ___
 
 ## SubChart

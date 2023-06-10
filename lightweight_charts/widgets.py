@@ -35,10 +35,14 @@ from lightweight_charts.js import LWC, TopBar, CALLBACK_SCRIPT
 def _widget_message(chart, string):
     messages = string.split('__')
     name, chart_id = messages[:2]
-    args = messages[2:]
+    arg = messages[2]
     chart.api.chart = chart._charts[chart_id]
     method = getattr(chart.api, name)
-    asyncio.create_task(getattr(chart.api, name)(*args)) if iscoroutinefunction(method) else method(*args)
+    if widget := chart.api.chart.topbar._widget_with_method(name):
+        widget.value = arg
+        asyncio.create_task(getattr(chart.api, name)()) if iscoroutinefunction(method) else method()
+    else:
+        asyncio.create_task(getattr(chart.api, name)(arg)) if iscoroutinefunction(method) else method(arg)
 
 
 class WxChart(LWC):

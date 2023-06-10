@@ -1,3 +1,4 @@
+import re
 from random import choices
 from string import ascii_lowercase
 from typing import Literal
@@ -74,3 +75,19 @@ def _marker_position(p: MARKER_POSITION):
         'inside': 'inBar',
         None: None,
     }[p]
+
+
+def _convert_timeframe(timeframe):
+    spans = {
+        'min': 'minute',
+        'H': 'hour',
+        'D': 'day',
+        'W': 'week',
+        'M': 'month',
+    }
+    try:
+        multiplier = re.findall(r'\d+', timeframe)[0]
+    except IndexError:
+        return 1, spans[timeframe]
+    timespan = spans[timeframe.replace(multiplier, '')]
+    return multiplier, timespan

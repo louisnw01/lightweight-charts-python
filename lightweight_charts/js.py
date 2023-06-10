@@ -10,7 +10,10 @@ from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, C
 class SeriesCommon:
     def _set_interval(self, df: pd.DataFrame):
         common_interval = pd.to_datetime(df['time']).diff().value_counts()
-        self._interval = common_interval.index[0]
+        try:
+            self._interval = common_interval.index[0]
+        except IndexError:
+            raise IndexError('Not enough bars within the given data to calculate the interval/timeframe.')
 
     def _df_datetime_format(self, df: pd.DataFrame):
         df = df.copy()
@@ -81,9 +84,11 @@ class SeriesCommon:
         """
         Creates a horizontal line at the given price.\n
         """
+        line_id = self._rand.generate()
         self.run_script(f"""
-        makeHorizontalLine({self.id}, {price}, '{color}', {width}, {_line_style(style)}, {_js_bool(axis_label_visible)}, '{text}')
+        makeHorizontalLine({self.id}, '{line_id}', {price}, '{color}', {width}, {_line_style(style)}, {_js_bool(axis_label_visible)}, '{text}')
         """)
+        return line_id
 
     def remove_horizontal_line(self, price: Union[float, int]):
         """
@@ -97,8 +102,24 @@ class SeriesCommon:
                }}
            }});''')
 
-    def title(self, title: str):
-        self.run_script(f'{self.id}.series.applyOptions({{title: "{title}"}})')
+    def title(self, title: str): self.run_script(f'{self.id}.series.applyOptions({{title: "{title}"}})')
+
+    def price_line(self, label_visible: bool = True, line_visible: bool = True):
+        self.run_script(f'''
+        {self.id}.series.applyOptions({{
+            lastValueVisible: {_js_bool(label_visible)},
+            priceLineVisible: {_js_bool(line_visible)},
+        }})''')
+
+    def hide_data(self): self._toggle_data(False)
+
+    def show_data(self): self._toggle_data(True)
+
+    def _toggle_data(self, arg):
+        self.run_script(f'''
+        {self.id}.series.applyOptions({{visible: {_js_bool(arg)}}})
+        {f'{self.id}.volumeSeries.applyOptions({{visible: {_js_bool(arg)}}})' if hasattr(self, 'volume_enabled') and self.volume_enabled else ''}
+        ''')
 
 
 class Line(SeriesCommon):
@@ -137,16 +158,27 @@ class Line(SeriesCommon):
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
+    def delete(self):
+        """
+        Irreversibly deletes the line, as well as the object that contains the line.
+        """
+        self._parent._lines.remove(self)
+        self.run_script(f'''
+            {self._parent.id}.chart.removeSeries({self.id}.series)
+            delete {self.id}
+            ''')
+        del self
+
 
 class Widget:
-    def __init__(self, chart):
-        self._chart = chart
+    def __init__(self, topbar):
+        self._chart = topbar._chart
         self.method = None
 
 
 class TextWidget(Widget):
-    def __init__(self, chart, initial_text):
-        super().__init__(chart)
+    def __init__(self, topbar, initial_text):
+        super().__init__(topbar)
         self.value = initial_text
         self.id = f"window.{self._chart._rand.generate()}"
         self._chart.run_script(f'''{self.id} = makeTextBoxWidget({self._chart.id}, "{initial_text}")''')
@@ -157,12 +189,13 @@ class TextWidget(Widget):
 
 
 class SwitcherWidget(Widget):
-    def __init__(self, chart, method, *options, default):
-        super().__init__(chart)
+    def __init__(self, topbar, method, *options, default):
+        super().__init__(topbar)
         self.value = default
         self.method = method.__name__
         self._chart.run_script(f'''
-            makeSwitcher({self._chart.id}, {list(options)}, '{default}', {self._chart._js_api_code}, '{method.__name__}')
+            makeSwitcher({self._chart.id}, {list(options)}, '{default}', {self._chart._js_api_code}, '{method.__name__}',
+                        '{topbar.active_background_color}', '{topbar.active_text_color}', '{topbar.text_color}', '{topbar.hover_color}')
             {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width}, (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
         ''')
 
@@ -173,15 +206,20 @@ class TopBar:
         self._widgets: Dict[str, Widget] = {}
         self._chart.run_script(f'''
             makeTopBar({self._chart.id})
-            {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width}, (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
+            {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width},
+            (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
         ''')
+        self.active_background_color = 'rgba(0, 122, 255, 0.7)'
+        self.active_text_color = 'rgb(240, 240, 240)'
+        self.text_color = 'lightgrey'
+        self.hover_color = 'rgb(60, 60, 60)'
 
     def __getitem__(self, item): return self._widgets.get(item)
 
     def switcher(self, name, method, *options, default=None):
-        self._widgets[name] = SwitcherWidget(self._chart, method, *options, default=default if default else options[0])
+        self._widgets[name] = SwitcherWidget(self, method, *options, default=default if default else options[0])
 
-    def textbox(self, name, initial_text=''): self._widgets[name] = TextWidget(self._chart, initial_text)
+    def textbox(self, name, initial_text=''): self._widgets[name] = TextWidget(self, initial_text)
 
     def _widget_with_method(self, method_name):
         for widget in self._widgets.values():
@@ -191,7 +229,7 @@ class TopBar:
 
 class LWC(SeriesCommon):
     def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False):
-        self._volume_enabled = volume_enabled
+        self.volume_enabled = volume_enabled
         self._inner_width = inner_width
         self._inner_height = inner_height
         self._dynamic_loading = dynamic_loading
@@ -206,13 +244,15 @@ class LWC(SeriesCommon):
         self._last_bar = None
         self._interval = None
         self._charts = {self.id: self}
+        self._lines = []
         self._js_api_code = None
 
         self._background_color = '#000000'
         self._volume_up_color = 'rgba(83,141,131,0.8)'
         self._volume_down_color = 'rgba(200,127,130,0.8)'
 
-        # self.polygon: PolygonAPI = PolygonAPI(self)
+        from lightweight_charts.polygon import PolygonAPI
+        self.polygon: PolygonAPI = PolygonAPI(self)
 
     def _on_js_load(self):
         if self.loaded:
@@ -228,7 +268,7 @@ class LWC(SeriesCommon):
             ''')
 
     def _make_search_box(self):
-        self.run_script(f'makeSearchBox({self.id}, {self._js_api_code})')
+        self.run_script(f'{self.id}.search = makeSearchBox({self.id}, {self._js_api_code})')
 
     def run_script(self, script):
         """
@@ -241,9 +281,13 @@ class LWC(SeriesCommon):
         Sets the initial data for the chart.\n
         :param df: columns: date/time, open, high, low, close, volume (if volume enabled).
         """
+        if df.empty:
+            self.run_script(f'{self.id}.series.setData([])')
+            self.run_script(f'{self.id}.volumeSeries.setData([])')
+            return
         bars = self._df_datetime_format(df)
         self._last_bar = bars.iloc[-1]
-        if self._volume_enabled:
+        if self.volume_enabled:
             if 'volume' not in bars:
                 raise MissingColumn("Volume enabled, but 'volume' column was not found.")
 
@@ -292,6 +336,12 @@ class LWC(SeriesCommon):
             }});
         ''') if self._dynamic_loading else self.run_script(f'{self.id}.series.setData({bars})')
 
+    def fit(self):
+        """
+        Fits the maximum amount of the chart data within the viewport.
+        """
+        self.run_script(f'{self.id}.chart.timeScale().fitContent()')
+
     def update(self, series, from_tick=False):
         """
         Updates the data from a bar;
@@ -300,7 +350,7 @@ class LWC(SeriesCommon):
         """
         series = self._series_datetime_format(series) if not from_tick else series
         self._last_bar = series
-        if self._volume_enabled:
+        if self.volume_enabled:
             if 'volume' not in series:
                 raise MissingColumn("Volume enabled, but 'volume' column was not found.")
 
@@ -332,10 +382,11 @@ class LWC(SeriesCommon):
             {self.id}.series.update({self.id}.shownData[{self.id}.shownData.length-1])
             ''') if self._dynamic_loading else self.run_script(f'{self.id}.series.update({bar})')
 
-    def update_from_tick(self, series):
+    def update_from_tick(self, series, cumulative_volume=False):
         """
         Updates the data from a tick.\n
         :param series: labels: date/time, price, volume (if volume enabled).
+        :param cumulative_volume: Adds the given volume onto the latest bar.
         """
         series = self._series_datetime_format(series)
         bar = pd.Series()
@@ -344,10 +395,13 @@ class LWC(SeriesCommon):
             bar['high'] = max(self._last_bar['high'], series['price'])
             bar['low'] = min(self._last_bar['low'], series['price'])
             bar['close'] = series['price']
-            if self._volume_enabled:
+            if self.volume_enabled:
                 if 'volume' not in series:
                     raise MissingColumn("Volume enabled, but 'volume' column was not found.")
-                bar['volume'] = series['volume']
+                elif cumulative_volume:
+                    bar['volume'] += series['volume']
+                else:
+                    bar['volume'] = series['volume']
         else:
             for key in ('open', 'high', 'low', 'close'):
                 bar[key] = series['price']
@@ -355,11 +409,19 @@ class LWC(SeriesCommon):
             bar['volume'] = 0
         self.update(bar, from_tick=True)
 
-    def create_line(self, color: str = 'rgba(214, 237, 255, 0.6)', width: int = 2):
+    def create_line(self, color: str = 'rgba(214, 237, 255, 0.6)', width: int = 2) -> Line:
         """
         Creates and returns a Line object.)\n
         """
-        return Line(self, color, width)
+        self._lines.append(Line(self, color, width))
+        return self._lines[-1]
+
+    def lines(self):
+        """
+        Returns all lines for the chart.
+        :return:
+        """
+        return self._lines
 
     def price_scale(self, mode: PRICE_SCALE_MODE = 'normal', align_labels: bool = True, border_visible: bool = False,
                     border_color: str = None, text_color: str = None, entire_text_only: bool = False, ticks_visible: bool = False):
@@ -471,9 +533,9 @@ class LWC(SeriesCommon):
             }}
         }})''')
 
-    def crosshair(self, mode: CROSSHAIR_MODE = 'normal', vert_width: int = 1, vert_color: str = None,
-                  vert_style: LINE_STYLE = 'dashed', vert_label_background_color: str = 'rgb(46, 46, 46)', horz_width: int = 1,
-                  horz_color: str = None, horz_style: LINE_STYLE = 'dashed', horz_label_background_color: str = 'rgb(55, 55, 55)'):
+    def crosshair(self, mode: CROSSHAIR_MODE = 'normal', vert_visible: bool = True, vert_width: int = 1, vert_color: str = None,
+                  vert_style: LINE_STYLE = 'large_dashed', vert_label_background_color: str = 'rgb(46, 46, 46)', horz_visible: bool = True,
+                  horz_width: int = 1, horz_color: str = None, horz_style: LINE_STYLE = 'large_dashed', horz_label_background_color: str = 'rgb(55, 55, 55)'):
         """
         Crosshair formatting for its vertical and horizontal axes.
         """
@@ -482,12 +544,14 @@ class LWC(SeriesCommon):
             crosshair: {{
                 mode: {_crosshair_mode(mode)},
                 vertLine: {{
+                    visible: {_js_bool(vert_visible)},
                     width: {vert_width},
                     {f'color: "{vert_color}",' if vert_color else ''}
                     style: {_line_style(vert_style)},
                     labelBackgroundColor: "{vert_label_background_color}"
                 }},
                 horzLine: {{
+                    visible: {_js_bool(horz_visible)},
                     width: {horz_width},
                     {f'color: "{horz_color}",' if horz_color else ''}
                     style: {_line_style(horz_style)},
@@ -524,13 +588,13 @@ class LWC(SeriesCommon):
             
             {self.id}.chart.subscribeCrosshairMove((param) => {{   
                 if (param.time){{
-                    const data = param.seriesData.get({self.id}.series);
+                    let data = param.seriesData.get({self.id}.series);
                     if (!data) {{return}}
-                    let percentMove = ((data.close-data.open)/data.open)*100
                     let ohlc = `O ${{legendItemFormat(data.open)}} 
                                 | H ${{legendItemFormat(data.high)}} 
                                 | L ${{legendItemFormat(data.low)}}
                                 | C ${{legendItemFormat(data.close)}} `
+                    let percentMove = ((data.close-data.open)/data.open)*100
                     let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
                     let finalString = ''
                     {'finalString += ohlc' if ohlc else ''}
@@ -541,6 +605,8 @@ class LWC(SeriesCommon):
                     {self.id}.legend.innerHTML = ''
                 }}
             }});''')
+
+    def spinner(self, visible): self.run_script(f"{self.id}.spinner.style.display = '{'block' if visible else 'none'}'")
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
                         width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False,
@@ -561,17 +627,19 @@ class SubChart(LWC):
         self.run_script = self._chart.run_script
         self._charts = self._chart._charts
         self.id = f'window.{self._rand.generate()}'
+        self.polygon = self._chart.polygon._subchart(self)
 
         self._create_chart()
         self.topbar = TopBar(self) if topbar else None
         self._make_search_box() if searchbox else None
         if not sync:
             return
-        sync_parent_var = self._parent.id if isinstance(sync, bool) else sync
+        sync_parent_id = self._parent.id if isinstance(sync, bool) else sync
         self.run_script(f'''
-            {sync_parent_var}.chart.timeScale().subscribeVisibleLogicalRangeChange((timeRange) => {{
+            {sync_parent_id}.chart.timeScale().subscribeVisibleLogicalRangeChange((timeRange) => {{
                 {self.id}.chart.timeScale().setVisibleLogicalRange(timeRange)
             }});
+            {self.id}.chart.timeScale().setVisibleLogicalRange({sync_parent_id}.chart.timeScale().getVisibleLogicalRange())
         ''')
 
 
@@ -664,7 +732,7 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
         });
     return chart
 }
-function makeHorizontalLine(chart, price, color, width, style, axisLabelVisible, text) {
+function makeHorizontalLine(chart, lineId, price, color, width, style, axisLabelVisible, text) {
     let priceLine = {
        price: price,
        color: color,
@@ -676,6 +744,7 @@ function makeHorizontalLine(chart, price, color, width, style, axisLabelVisible,
     let line = {
        line: chart.series.createPriceLine(priceLine),
        price: price,
+       id: lineId,
     };
     chart.horizontal_lines.push(line)
 }
@@ -725,7 +794,7 @@ function makeSearchBox(chart, callbackFunction) {
     searchWindow.style.height = '30px'
     searchWindow.style.padding = '10px'
     searchWindow.style.backgroundColor = 'rgba(30, 30, 30, 0.9)'
-    searchWindow.style.border = '3px solid #3C434C'
+    searchWindow.style.border = '2px solid #3C434C'
     searchWindow.style.zIndex = '1000'
     searchWindow.style.display = 'none'
     searchWindow.style.borderRadius = '5px'
@@ -734,14 +803,14 @@ function makeSearchBox(chart, callbackFunction) {
     magnifyingGlass.style.display = 'inline-block';
     magnifyingGlass.style.width = '12px';
     magnifyingGlass.style.height = '12px';
-    magnifyingGlass.style.border = '2px solid #FFF';
+    magnifyingGlass.style.border = '2px solid rgb(240, 240, 240)';
     magnifyingGlass.style.borderRadius = '50%';
     magnifyingGlass.style.position = 'relative';
     let handle = document.createElement('span');
     handle.style.display = 'block';
     handle.style.width = '7px';
     handle.style.height = '2px';
-    handle.style.backgroundColor = '#FFF';
+    handle.style.backgroundColor = 'rgb(240, 240, 240)';
     handle.style.position = 'absolute';
     handle.style.top = 'calc(50% + 7px)';
     handle.style.right = 'calc(50% - 11px)';
@@ -749,15 +818,14 @@ function makeSearchBox(chart, callbackFunction) {
 
     let sBox = document.createElement('input');
     sBox.type = 'text';
-    sBox.placeholder = 'search';
     sBox.style.position = 'relative';
     sBox.style.display = 'inline-block';
     sBox.style.zIndex = '1000';
     sBox.style.textAlign = 'center'
     sBox.style.width = '100px'
     sBox.style.marginLeft = '15px'
-    sBox.style.backgroundColor = 'rgba(0, 122, 255, 0.2)'
-    sBox.style.color = 'lightgrey'
+    sBox.style.backgroundColor = 'rgba(0, 122, 255, 0.3)'
+    sBox.style.color = 'rgb(240,240,240)'
     sBox.style.fontSize = '20px'            
     sBox.style.border = 'none'
     sBox.style.outline = 'none'
@@ -774,7 +842,7 @@ function makeSearchBox(chart, callbackFunction) {
             yPrice = param.point.y;
         }
     });
-    let selectedChart = false
+    let selectedChart = true
     chart.wrapper.addEventListener('mouseover', (event) => {
         selectedChart = true
     })
@@ -785,7 +853,18 @@ function makeSearchBox(chart, callbackFunction) {
         if (!selectedChart) {return}
         if (event.altKey && event.code === 'KeyH') {
             let price = chart.series.coordinateToPrice(yPrice)
-            makeHorizontalLine(chart, price, '#FFFFFF', 1, LightweightCharts.LineStyle.Solid, true, '')
+            
+            let colorList = [
+                'rgba(228, 0, 16, 0.7)',
+                'rgba(255, 133, 34, 0.7)',
+                'rgba(164, 59, 176, 0.7)',
+                'rgba(129, 59, 102, 0.7)',
+                'rgba(91, 20, 248, 0.7)',
+                'rgba(32, 86, 249, 0.7)',
+            ]
+            let color = colorList[Math.floor(Math.random()*colorList.length)]
+            
+            makeHorizontalLine(chart, 0, price, color, 2, LightweightCharts.LineStyle.Solid, true, '')
         }
         if (searchWindow.style.display === 'none') {
             if (/^[a-zA-Z0-9]$/.test(event.key)) {
@@ -806,29 +885,58 @@ function makeSearchBox(chart, callbackFunction) {
     sBox.addEventListener('input', function() {
         sBox.value = sBox.value.toUpperCase();
     });
+    return {
+        window: searchWindow,
+        box: sBox,
+    }
 }
 
-function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName) {
+function makeSpinner(chart) {
+    chart.spinner = document.createElement('div')
+    chart.spinner.style.width = '30px'
+    chart.spinner.style.height = '30px'
+    chart.spinner.style.border = '4px solid rgba(255, 255, 255, 0.6)'
+    chart.spinner.style.borderTop = '4px solid rgba(0, 122, 255, 0.8)'
+    chart.spinner.style.borderRadius = '50%'
+    chart.spinner.style.position = 'absolute'
+    chart.spinner.style.top = '50%'
+    chart.spinner.style.left = '50%'
+    chart.spinner.style.zIndex = 1000
+    chart.spinner.style.transform = 'translate(-50%, -50%)'
+    chart.spinner.style.display = 'none'
+    chart.wrapper.appendChild(chart.spinner)
+    let rotation = 0;
+    const speed = 10; // Adjust this value to change the animation speed
+    function animateSpinner() {
+        rotation += speed
+        chart.spinner.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
+        requestAnimationFrame(animateSpinner)
+    }
+    animateSpinner();
+}
+function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
     let switcherElement = document.createElement('div');
-    switcherElement.style.margin = '4px 18px'
+    switcherElement.style.margin = '4px 14px'
     switcherElement.style.zIndex = '1000'
 
     let intervalElements = items.map(function(item) {
         let itemEl = document.createElement('button');
         itemEl.style.cursor = 'pointer'
-        itemEl.style.padding = '3px 6px'
+        itemEl.style.padding = '2px 5px'
         itemEl.style.margin = '0px 4px'
-        itemEl.style.fontSize = '14px'
-        itemEl.style.color = 'lightgrey'
-        itemEl.style.backgroundColor = item === activeItem ? 'rgba(0, 122, 255, 0.7)' : 'transparent'
-
+        itemEl.style.fontSize = '13px'
+        itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : 'transparent'
+        itemEl.style.color = item === activeItem ? activeColor : inactiveColor
         itemEl.style.border = 'none'
         itemEl.style.borderRadius = '4px'
+
         itemEl.addEventListener('mouseenter', function() {
-            itemEl.style.backgroundColor = item === activeItem ? 'rgba(0, 122, 255, 0.7)' : 'rgb(19, 40, 84)'
+            itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : hoverColor
+            itemEl.style.color = activeColor
         })
         itemEl.addEventListener('mouseleave', function() {
-            itemEl.style.backgroundColor = item === activeItem ? 'rgba(0, 122, 255, 0.7)' : 'transparent'
+            itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : 'transparent'
+            itemEl.style.color = item === activeItem ? activeColor : inactiveColor
         })
         itemEl.innerText = item;
         itemEl.addEventListener('click', function() {
@@ -842,7 +950,8 @@ function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName) 
             return;
         }
         intervalElements.forEach(function(element, index) {
-            element.style.backgroundColor = items[index] === item ? 'rgba(0, 122, 255, 0.7)' : 'transparent'
+            element.style.backgroundColor = items[index] === item ? activeBackgroundColor : 'transparent'
+            element.style.color = items[index] === item ? 'activeColor' : inactiveColor
         });
         activeItem = item;
         callbackFunction(`${callbackName}__${chart.id}__${item}`);
@@ -856,7 +965,8 @@ function makeTextBoxWidget(chart, text) {
     let textBox = document.createElement('div')
     textBox.style.margin = '0px 18px'
     textBox.style.position = 'relative'
-    textBox.style.color = 'lightgrey'
+    textBox.style.fontSize = '16px'
+    textBox.style.color = 'rgb(220, 220, 220)'
     textBox.innerText = text
     chart.topBar.append(textBox)
     makeSeperator(chart.topBar)
@@ -865,7 +975,7 @@ function makeTextBoxWidget(chart, text) {
 function makeTopBar(chart) {
     chart.topBar = document.createElement('div')
     chart.topBar.style.backgroundColor = '#191B1E'
-    chart.topBar.style.borderBottom = '3px solid #3C434C'
+    chart.topBar.style.borderBottom = '2px solid #3C434C'
     chart.topBar.style.display = 'flex'
     chart.topBar.style.alignItems = 'center'
     chart.wrapper.prepend(chart.topBar)
@@ -878,4 +988,3 @@ function makeSeperator(topBar) {
         topBar.appendChild(seperator)
     }
 '''
-

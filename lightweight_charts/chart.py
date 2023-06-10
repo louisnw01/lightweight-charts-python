@@ -1,6 +1,7 @@
 import asyncio
-import webview
+import time
 import multiprocessing as mp
+import webview
 
 from lightweight_charts.js import LWC, CALLBACK_SCRIPT, TopBar
 
@@ -63,6 +64,7 @@ class Chart(LWC):
         if not topbar and not searchbox:
             return
         self.run_script(CALLBACK_SCRIPT)
+        self.run_script(f'makeSpinner({self.id})')
         self.topbar = TopBar(self) if topbar else None
         self._make_search_box() if searchbox else None
 
@@ -79,10 +81,18 @@ class Chart(LWC):
             self._q.put('show')
         if block:
             try:
-                self._exit.wait()
+                while 1:
+                    while not self._exit.is_set() and self.polygon._q.empty():
+                        time.sleep(0.05)
+                        continue
+                    if self._exit.is_set():
+                        self._exit.clear()
+                        return
+                    value = self.polygon._q.get_nowait()
+                    func, args = value[0], value[1:]
+                    func(*args)
             except KeyboardInterrupt:
                 return
-            self._exit.clear()
 
     async def show_async(self, block=False):
         if not self.loaded:
@@ -94,17 +104,23 @@ class Chart(LWC):
         if block:
             try:
                 while 1:
-                    while self._emit.empty() and not self._exit.is_set():
-                        await asyncio.sleep(0.1)
+                    while self._emit.empty() and not self._exit.is_set() and self.polygon._q.empty():
+                        await asyncio.sleep(0.05)
                     if self._exit.is_set():
+                        self._exit.clear()
                         return
-                    key, chart_id, arg = self._emit.get()
-                    self.api.chart = self._charts[chart_id]
-                    if widget := self.api.chart.topbar._widget_with_method(key):
-                        widget.value = arg
-                        await getattr(self.api, key)()
-                    else:
-                        await getattr(self.api, key)(arg)
+                    elif not self._emit.empty():
+                        key, chart_id, arg = self._emit.get()
+                        self.api.chart = self._charts[chart_id]
+                        if widget := self.api.chart.topbar._widget_with_method(key):
+                            widget.value = arg
+                            await getattr(self.api, key)()
+                        else:
+                            await getattr(self.api, key)(arg)
+                        continue
+                    value = self.polygon._q.get()
+                    func, args = value[0], value[1:]
+                    func(*args)
             except KeyboardInterrupt:
                 return
         asyncio.create_task(self.show_async(block=True))
@@ -123,4 +139,3 @@ class Chart(LWC):
         self._exit.wait()
         self._process.terminate()
         del self
-
