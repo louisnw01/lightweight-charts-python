@@ -123,17 +123,18 @@ class SeriesCommon:
 
 
 class Line(SeriesCommon):
-    def __init__(self, parent, color, width):
+    def __init__(self, parent, color, width, price_line, price_label):
         self._parent = parent
         self._rand = self._parent._rand
         self.id = f'window.{self._rand.generate()}'
         self.run_script = self._parent.run_script
-
-        self._parent.run_script(f'''
+        self.run_script(f'''
             {self.id} = {{
                 series: {self._parent.id}.chart.addLineSeries({{
                     color: '{color}',
                     lineWidth: {width},
+                    lastValueVisible: {_js_bool(price_label)},
+                    priceLineVisible: {_js_bool(price_line)},
                 }}),
                 markers: [],
                 horizontal_lines: [],
@@ -240,6 +241,7 @@ class LWC(SeriesCommon):
         self.loaded = False
         self._html = HTML
         self._scripts = []
+        self._final_scripts = []
         self._script_func = None
         self._last_bar = None
         self._interval = None
@@ -259,6 +261,7 @@ class LWC(SeriesCommon):
             return
         self.loaded = True
         [self.run_script(script) for script in self._scripts]
+        [self.run_script(script) for script in self._final_scripts]
 
     def _create_chart(self, autosize=True):
         self.run_script(f'''
@@ -270,11 +273,14 @@ class LWC(SeriesCommon):
     def _make_search_box(self):
         self.run_script(f'{self.id}.search = makeSearchBox({self.id}, {self._js_api_code})')
 
-    def run_script(self, script):
+    def run_script(self, script, run_last=False):
         """
         For advanced users; evaluates JavaScript within the Webview.
         """
-        self._script_func(script) if self.loaded else self._scripts.append(script)
+        if self.loaded:
+            self._script_func(script)
+            return
+        self._scripts.append(script) if not run_last else self._final_scripts.append(script)
 
     def set(self, df: pd.DataFrame):
         """
@@ -409,11 +415,12 @@ class LWC(SeriesCommon):
             bar['volume'] = 0
         self.update(bar, from_tick=True)
 
-    def create_line(self, color: str = 'rgba(214, 237, 255, 0.6)', width: int = 2) -> Line:
+    def create_line(self, color: str = 'rgba(214, 237, 255, 0.6)', width: int = 2,
+                    price_line: bool = True, price_label: bool = True) -> Line:
         """
         Creates and returns a Line object.)\n
         """
-        self._lines.append(Line(self, color, width))
+        self._lines.append(Line(self, color, width, price_line, price_label))
         return self._lines[-1]
 
     def lines(self):
@@ -424,9 +431,10 @@ class LWC(SeriesCommon):
         return self._lines
 
     def price_scale(self, mode: PRICE_SCALE_MODE = 'normal', align_labels: bool = True, border_visible: bool = False,
-                    border_color: str = None, text_color: str = None, entire_text_only: bool = False, ticks_visible: bool = False):
+                    border_color: str = None, text_color: str = None, entire_text_only: bool = False,
+                    ticks_visible: bool = False, scale_margin_top: float = 0.2, scale_margin_bottom: float = 0.2):
         self.run_script(f'''
-            {self.id}.chart.priceScale('right').applyOptions({{
+            {self.id}.series.priceScale().applyOptions({{
                 mode: {_price_scale_mode(mode)},
                 alignLabels: {_js_bool(align_labels)},
                 borderVisible: {_js_bool(border_visible)},
@@ -434,6 +442,7 @@ class LWC(SeriesCommon):
                 {f'textColor: "{text_color}",' if text_color else ''}
                 entireTextOnly: {_js_bool(entire_text_only)},
                 ticksVisible: {_js_bool(ticks_visible)},
+                scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}}
             }})''')
 
     def time_scale(self, right_offset: int = 0, min_bar_spacing: float = 0.5,
@@ -639,8 +648,11 @@ class SubChart(LWC):
             {sync_parent_id}.chart.timeScale().subscribeVisibleLogicalRangeChange((timeRange) => {{
                 {self.id}.chart.timeScale().setVisibleLogicalRange(timeRange)
             }});
-            {self.id}.chart.timeScale().setVisibleLogicalRange({sync_parent_id}.chart.timeScale().getVisibleLogicalRange())
+            syncCrosshairs({self.id}.chart, {sync_parent_id}.chart)
         ''')
+        self.run_script(f'''
+        {self.id}.chart.timeScale().setVisibleLogicalRange({sync_parent_id}.chart.timeScale().getVisibleLogicalRange())
+        ''', run_last=True)
 
 
 SCRIPT = """
@@ -698,7 +710,10 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
                         priceFormat: {type: 'volume'},
                         priceScaleId: '',
                         })
-    chart.chart.priceScale('').applyOptions({
+    chart.series.priceScale().applyOptions({
+        scaleMargins: {top: 0.2, bottom: 0.2},
+        });
+    chart.volumeSeries.priceScale().applyOptions({
         scaleMargins: {top: 0.8, bottom: 0},
         });
     chart.legend.style.position = 'absolute'
@@ -750,6 +765,62 @@ function makeHorizontalLine(chart, lineId, price, color, width, style, axisLabel
 }
 function legendItemFormat(num) {
 return num.toFixed(2).toString().padStart(8, ' ')
+}
+function syncCrosshairs(childChart, parentChart) {
+    let parent = 0
+    let child = 0
+    
+    let parentCrosshairHandler = (e) => {
+        parent ++
+        if (parent < 10) {
+            return
+        }
+        child = 0
+        parentChart.applyOptions({crosshair: { horzLine: {
+            visible: true,
+            labelVisible: true,
+        }}})
+        childChart.applyOptions({crosshair: { horzLine: {
+            visible: false,
+            labelVisible: false,
+        }}})
+        
+        childChart.unsubscribeCrosshairMove(childCrosshairHandler)
+        if (e.time !== undefined) {
+          let xx = childChart.timeScale().timeToCoordinate(e.time);
+          childChart.setCrosshairXY(xx,300,true);
+        } else if (e.point !== undefined){
+          childChart.setCrosshairXY(e.point.x,300,false);
+        }    
+        childChart.subscribeCrosshairMove(childCrosshairHandler)
+    }
+    
+    let childCrosshairHandler = (e) => {
+        child ++
+        if (child < 10) {
+            return
+        }
+        parent = 0
+        childChart.applyOptions({crosshair: {horzLine: {
+            visible: true,
+            labelVisible: true,
+        }}})
+        parentChart.applyOptions({crosshair: {horzLine: {
+            visible: false,
+            labelVisible: false,
+        }}})
+        
+        parentChart.unsubscribeCrosshairMove(parentCrosshairHandler)
+        if (e.time !== undefined) {
+          let xx = parentChart.timeScale().timeToCoordinate(e.time);
+          parentChart.setCrosshairXY(xx,300,true);
+        } else if (e.point !== undefined){
+          parentChart.setCrosshairXY(e.point.x,300,false);
+        }    
+        parentChart.subscribeCrosshairMove(parentCrosshairHandler)
+    }
+    parentChart.subscribeCrosshairMove(parentCrosshairHandler)
+    childChart.subscribeCrosshairMove(childCrosshairHandler)
 }
 """
 

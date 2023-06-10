@@ -57,7 +57,7 @@ If `cumulative_volume` is used, the volume data given to this method will be add
 ___
 
 ### `create_line`
-`color: str` | `width: int` | `-> Line`
+`color: str` | `width: int` | `price_line: bool` | `price_label: bool` | `-> Line`
 
 Creates and returns a [Line](#line) object.
 ___
@@ -100,7 +100,7 @@ Removes a horizontal line at the given price.
 ___
 
 ### `price_scale`
-`mode: 'normal'/'logarithmic'/'percentage'/'index100'` | `align_labels: bool` | `border_visible: bool` | `border_color: str` | `text_color: str` | `entire_text_only: bool` | `ticks_visible: bool`
+`mode: 'normal'/'logarithmic'/'percentage'/'index100'` | `align_labels: bool` | `border_visible: bool` | `border_color: str` | `text_color: str` | `entire_text_only: bool` | `ticks_visible: bool` | `scale_margin_top: float` | `scale_margin_bottom: float`
 
 Price scale options for the chart.
 ___
@@ -108,7 +108,7 @@ ___
 ### `time_scale`
 `right_offset: int` | `min_bar_spacing: float` | `visible: bool` | `time_visible: bool` | `seconds_visible: bool` | `border_visible: bool` | `border_color: str`
 
-Time scale options for the chart.
+Timescale options for the chart.
 ___
 
 ### `layout`
@@ -212,7 +212,7 @@ Creates and returns a [SubChart](#subchart) object, placing it adjacent to the d
 
 `height` | `width`: Specifies the size of the `SubChart`, where `1` is the width/height of the window (100%)
 
-`sync`: If given as `True`, the `SubChart`'s time scale will follow that of the declaring `Chart` or `SubChart`. If a `str` is passed, the `SubChart` will follow the panel with the given id.  Chart ids  can be accessed from the`chart.id` and `subchart.id` attributes. 
+`sync`: If given as `True`, the `SubChart`'s timescale and crosshair will follow that of the declaring `Chart` or `SubChart`. If a `str` is passed, the `SubChart` will follow the panel with the given id.  Chart ids  can be accessed from the`chart.id` and `subchart.id` attributes. 
 
 ```{important}
 `width` and `height` must be given as a number between 0 and 1.
@@ -330,10 +330,10 @@ from lightweight_charts import Chart
 
 if __name__ == '__main__':
     chart = Chart(inner_width=1, inner_height=0.8)
+    chart.time_scale(visible=False)
 
     chart2 = chart.create_subchart(width=1, height=0.2, sync=True, volume_enabled=False)
-    chart2.time_scale(visible=False)
-
+    
     df = pd.read_csv('ohlcv.csv')
     df2 = pd.read_csv('rsi.csv')
 

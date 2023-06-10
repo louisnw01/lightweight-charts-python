@@ -96,7 +96,7 @@ class PolygonAPI:
         for child in self._lasts.values():
             for subbed_chart in child['charts']:
                 if subbed_chart == chart:
-                    self._send_q.put(('_unsubscribe', chart, sec_type, ticker))
+                    self._send_q.put(('_unsubscribe', chart, ticker))
 
         df = pd.DataFrame(data['results'])
         columns = ['t', 'o', 'h', 'l', 'c']
@@ -262,16 +262,6 @@ class PolygonChart(Chart):
 
         {self.id}.search.window.style.display = "block"
         {self.id}.search.box.focus()
-        
-        window.stat = document.createElement('div')
-        window.stat.style.position = 'absolute'
-        window.stat.style.backgroundColor = '#E35C58'
-        window.stat.style.borderRadius = '50%'
-        window.stat.style.height = '8px'
-        window.stat.style.width = '8px'
-        window.stat.style.top = '10px'
-        window.stat.style.right = '25px'
-        {self.id}.topBar.appendChild(window.stat)
         ''')
 
     def show(self):
@@ -289,11 +279,12 @@ class PolygonChart(Chart):
 
         mult, span = _convert_timeframe(self.topbar['timeframe'].value)
         delta = dt.timedelta(**{span + 's': int(mult)})
+        short_delta = (delta < dt.timedelta(days=7))
         start_date = dt.datetime.now()
         remaining_bars = self.num_bars
         while remaining_bars > 0:
             start_date -= delta
-            if start_date.weekday() > 4:  # Monday to Friday (0 to 4)
+            if start_date.weekday() > 4 and short_delta:  # Monday to Friday (0 to 4)
                 continue
             remaining_bars -= 1
         epoch = dt.datetime.fromtimestamp(0)
@@ -307,11 +298,7 @@ class PolygonChart(Chart):
         )
         self.spinner(False)
         self.crosshair(vert_visible=True, horz_visible=True) if success else None
-        if not success:
-            self.run_script(f'window.stat.style.backgroundColor = "#E35C58"')
-            return False
-        self.run_script(f'window.stat.style.backgroundColor = "#4CDE67"') if self.live else None
-        return True
+        return True if success else False
 
     async def on_search(self, searched_string):
         self.topbar['symbol'].set(searched_string if self._polygon(searched_string) else '')

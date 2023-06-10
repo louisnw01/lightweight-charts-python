@@ -116,12 +116,18 @@ class StaticLWC(LWC):
         self.height = height
         self._html = self._html.replace('</script>\n</body>\n</html>', '')
 
-    def run_script(self, script): self._html += '\n' + script
+    def run_script(self, script, run_last=False):
+        if run_last:
+            self._final_scripts.append(script)
+        else:
+            self._html += '\n' + script
 
     def load(self):
         if self.loaded:
             return
         self.loaded = True
+        for script in self._final_scripts:
+            self._html += '\n' + script
         self._load()
 
     def _load(self): pass
