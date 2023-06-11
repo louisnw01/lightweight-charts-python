@@ -78,6 +78,14 @@ class SeriesCommon:
                    {self.id}.series.setMarkers({self.id}.markers)
                    }}
                }});''')
+        
+    def remove_marker_all(self):
+        """
+        Clears the array of markers.\n
+        """
+        self.run_script(f'''
+           {self.id}.markers = []
+           {self.id}.series.setMarkers({self.id}.markers)''')
 
     def horizontal_line(self, price: Union[float, int], color: str = 'rgb(122, 146, 202)', width: int = 1,
                         style: LINE_STYLE = 'solid', text: str = '', axis_label_visible=True):
