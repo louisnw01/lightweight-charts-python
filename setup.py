@@ -12,6 +12,9 @@ setup(
         'pandas',
         'pywebview',
     ],
+    package_data={
+        'lightweight_charts': ['js/*.js'],
+    },
     author='louisnw',
     license='MIT',
     description="Python framework for TradingView's Lightweight Charts JavaScript library.",
