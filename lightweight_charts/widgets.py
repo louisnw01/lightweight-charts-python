@@ -4,7 +4,7 @@ from inspect import iscoroutinefunction
 try:
     import wx.html2
 except ImportError:
-    pass
+    wx = None
 try:
     from PyQt5.QtWebEngineWidgets import QWebEngineView
     from PyQt5.QtWebChannel import QWebChannel
@@ -19,17 +19,17 @@ try:
         def callback(self, message):
             _widget_message(self.chart, message)
 except ImportError:
-    pass
+    QWebEngineView = None
 try:
     from streamlit.components.v1 import html
 except ImportError:
-    pass
+    html = None
 try:
     from IPython.display import HTML, display
 except ImportError:
-    pass
+    HTML = None
 
-from lightweight_charts.js import LWC, TopBar, CALLBACK_SCRIPT
+from lightweight_charts.abstract import LWC, TopBar, JS
 
 
 def _widget_message(chart, string):
@@ -47,13 +47,12 @@ def _widget_message(chart, string):
 
 class WxChart(LWC):
     def __init__(self, parent, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0,
-                 api: object = None, topbar: bool = False, searchbox: bool = False):
-        try:
-            self.webview: wx.html2.WebView = wx.html2.WebView.New(parent)
-        except NameError:
+                 scale_candles_only: bool = False, api: object = None, topbar: bool = False, searchbox: bool = False):
+        if wx is None:
             raise ModuleNotFoundError('wx.html2 was not found, and must be installed to use WxChart.')
+        self.webview: wx.html2.WebView = wx.html2.WebView.New(parent)
 
-        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height)
+        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height, scale_candles_only=scale_candles_only)
         self.api = api
         self._script_func = self.webview.RunScript
         self._js_api_code = 'window.wx_msg.postMessage.bind(window.wx_msg)'
@@ -63,7 +62,7 @@ class WxChart(LWC):
         self.webview.AddScriptMessageHandler('wx_msg')
         self.webview.SetPage(self._html, '')
 
-        self.webview.AddUserScript(CALLBACK_SCRIPT)
+        self.webview.AddUserScript(JS['callback'])
         self._create_chart()
         self.topbar = TopBar(self) if topbar else None
         self._make_search_box() if searchbox else None
@@ -73,12 +72,12 @@ class WxChart(LWC):
 
 class QtChart(LWC):
     def __init__(self, widget=None, api: object = None, topbar: bool = False, searchbox: bool = False,
-                 volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0):
-        try:
-            self.webview = QWebEngineView(widget)
-        except NameError:
+                 volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, scale_candles_only: bool = False):
+        if QWebEngineView is None:
             raise ModuleNotFoundError('QWebEngineView was not found, and must be installed to use QtChart.')
-        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height)
+        self.webview = QWebEngineView(widget)
+
+        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height, scale_candles_only=scale_candles_only)
         self.api = api
         self._script_func = self.webview.page().runJavaScript
         self._js_api_code = 'window.pythonObject.callback'
@@ -101,7 +100,7 @@ class QtChart(LWC):
         '''
         self.webview.page().setHtml(self._html)
 
-        self.run_script(CALLBACK_SCRIPT)
+        self.run_script(JS['callback'])
         self._create_chart()
         self.topbar = TopBar(self) if topbar else None
         self._make_search_box() if searchbox else None
@@ -110,8 +109,8 @@ class QtChart(LWC):
 
 
 class StaticLWC(LWC):
-    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1):
-        super().__init__(volume_enabled, inner_width, inner_height)
+    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False):
+        super().__init__(volume_enabled, inner_width, inner_height, scale_candles_only=scale_candles_only)
         self.width = width
         self.height = height
         self._html = self._html.replace('</script>\n</body>\n</html>', '')
@@ -134,20 +133,19 @@ class StaticLWC(LWC):
 
 
 class StreamlitChart(StaticLWC):
-    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1):
-        super().__init__(volume_enabled, width, height, inner_width, inner_height)
+    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False):
+        super().__init__(volume_enabled, width, height, inner_width, inner_height, scale_candles_only)
         self._create_chart()
 
     def _load(self):
-        try:
-            html(f'{self._html}</script></body></html>', width=self.width, height=self.height)
-        except NameError:
+        if html is None:
             raise ModuleNotFoundError('streamlit.components.v1.html was not found, and must be installed to use StreamlitChart.')
+        html(f'{self._html}</script></body></html>', width=self.width, height=self.height)
 
 
 class JupyterChart(StaticLWC):
-    def __init__(self, volume_enabled=True, width=800, height=350, inner_width=1, inner_height=1):
-        super().__init__(volume_enabled, width, height, inner_width, inner_height)
+    def __init__(self, volume_enabled=True, width=800, height=350, inner_width=1, inner_height=1, scale_candles_only: bool = False):
+        super().__init__(volume_enabled, width, height, inner_width, inner_height, scale_candles_only)
         self._position = ""
 
         self._create_chart(autosize=False)
@@ -164,8 +162,6 @@ class JupyterChart(StaticLWC):
         self.run_script(f'{self.id}.chart.resize({width}, {height})')
 
     def _load(self):
-        try:
-            display(HTML(f'{self._html}</script></body></html>'))
-        except NameError:
+        if HTML is None:
             raise ModuleNotFoundError('IPython.display.HTML was not found, and must be installed to use JupyterChart.')
-
+        display(HTML(f'{self._html}</script></body></html>'))

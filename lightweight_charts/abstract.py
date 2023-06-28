@@ -1,10 +1,49 @@
-import pandas as pd
+import os
 from datetime import timedelta, datetime
-from typing import Union, Literal, Dict
+from base64 import b64decode
+import pandas as pd
+from typing import Union, Literal, Dict, List
 
-from lightweight_charts.pkg import LWC_4_0_1
-from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, _crosshair_mode, _line_style, \
+from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, _crosshair_mode, \
+    _line_style, \
     MissingColumn, _js_bool, _price_scale_mode, PRICE_SCALE_MODE, _marker_position, _marker_shape, IDGen
+
+
+JS = {}
+current_dir = os.path.dirname(os.path.abspath(__file__))
+for file in ('pkg', 'funcs', 'callback'):
+    with open(os.path.join(current_dir, 'js', f'{file}.js'), 'r') as f:
+        JS[file] = f.read()
+
+HTML = f"""
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <title>lightweight-charts-python</title>
+    <script>{JS['pkg']}</script>
+    <meta name="viewport" content ="width=device-width, initial-scale=1">
+    <style>
+    body {{
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }}
+    #wrapper {{
+        width: 100vw;
+        height: 100vh;
+        background-color: #000000;
+    }}
+    </style>
+</head>
+<body>
+    <div id="wrapper"></div>
+    <script>
+    {JS['funcs']}
+    </script>
+</body>
+</html>
+"""
 
 
 class SeriesCommon:
@@ -14,6 +53,11 @@ class SeriesCommon:
             self._interval = common_interval.index[0]
         except IndexError:
             raise IndexError('Not enough bars within the given data to calculate the interval/timeframe.')
+        self.run_script(f'''
+            if ({self.id}.toolBox) {{
+                {self.id}.toolBox.interval = {self._interval.total_seconds()*1000}
+            }}
+        ''')
 
     def _df_datetime_format(self, df: pd.DataFrame):
         df = df.copy()
@@ -95,12 +139,27 @@ class SeriesCommon:
         Removes a horizontal line at the given price.
         """
         self.run_script(f'''
-           {self.id}.horizontal_lines.forEach(function (line) {{
-           if ({price} === line.price) {{
-               {self.id}.series.removePriceLine(line.line);
-               {self.id}.horizontal_lines.splice({self.id}.horizontal_lines.indexOf(line), 1)
-               }}
-           }});''')
+        {self.id}.horizontal_lines.forEach(function (line) {{
+            if ({price} === line.price) {{
+                {self.id}.series.removePriceLine(line.line);
+                {self.id}.horizontal_lines.splice({self.id}.horizontal_lines.indexOf(line), 1)
+            }}
+        }});''')
+
+    def clear_markers(self):
+        """
+        Clears the markers displayed on the data.\n
+        """
+        self.run_script(f'''{self.id}.markers = []; {self.id}.series.setMarkers([]])''')
+
+    def clear_horizontal_lines(self):
+        """
+        Clears the horizontal lines displayed on the data.\n
+        """
+        self.run_script(f'''
+        {self.id}.horizontal_lines.forEach(function (line) {{{self.id}.series.removePriceLine(line.line);}});
+        {self.id}.horizontal_lines = [];
+        ''')
 
     def title(self, title: str): self.run_script(f'{self.id}.series.applyOptions({{title: "{title}"}})')
 
@@ -123,30 +182,43 @@ class SeriesCommon:
 
 
 class Line(SeriesCommon):
-    def __init__(self, parent, color, width, price_line, price_label):
-        self._parent = parent
-        self._rand = self._parent._rand
+    def __init__(self, chart, color, width, price_line, price_label):
+        self.color = color
+        self.name = ''
+        self._chart = chart
+        self._rand = chart._rand
         self.id = f'window.{self._rand.generate()}'
-        self.run_script = self._parent.run_script
+        self.run_script = self._chart.run_script
         self.run_script(f'''
             {self.id} = {{
-                series: {self._parent.id}.chart.addLineSeries({{
+                series: {self._chart.id}.chart.addLineSeries({{
                     color: '{color}',
                     lineWidth: {width},
                     lastValueVisible: {_js_bool(price_label)},
                     priceLineVisible: {_js_bool(price_line)},
+                    {"""autoscaleInfoProvider: () => ({
+                        priceRange: {
+                            minValue: 1_000_000_000,
+                            maxValue: 0,
+                        },
+                    }),""" if self._chart._scale_candles_only else ''}
                 }}),
                 markers: [],
                 horizontal_lines: [],
-            }}
-        ''')
+            }}''')
 
-    def set(self, data: pd.DataFrame):
+    def set(self, data: pd.DataFrame, name=None):
         """
         Sets the line data.\n
-        :param data: columns: date/time, value
+        :param data: If the name parameter is not used, the columns should be named: date/time, value.
+        :param name: The column of the DataFrame to use as the line value. When used, the Line will be named after this column.
         """
-        df = self._parent._df_datetime_format(data)
+        df = self._df_datetime_format(data)
+        if name:
+            if name not in data:
+                raise NameError(f'No column named "{name}".')
+            self.name = name
+            df = df.rename(columns={name: 'value'})
         self._last_bar = df.iloc[-1]
         self.run_script(f'{self.id}.series.setData({df.to_dict("records")})')
 
@@ -155,7 +227,7 @@ class Line(SeriesCommon):
         Updates the line data.\n
         :param series: labels: date/time, value
         """
-        series = self._parent._series_datetime_format(series)
+        series = self._series_datetime_format(series)
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
@@ -163,9 +235,9 @@ class Line(SeriesCommon):
         """
         Irreversibly deletes the line, as well as the object that contains the line.
         """
-        self._parent._lines.remove(self)
+        self._chart._lines.remove(self)
         self.run_script(f'''
-            {self._parent.id}.chart.removeSeries({self.id}.series)
+            {self._chart.id}.chart.removeSeries({self.id}.series)
             delete {self.id}
             ''')
         del self
@@ -174,7 +246,7 @@ class Line(SeriesCommon):
 class Widget:
     def __init__(self, topbar):
         self._chart = topbar._chart
-        self.method = None
+        self._method = None
 
 
 class TextWidget(Widget):
@@ -193,7 +265,7 @@ class SwitcherWidget(Widget):
     def __init__(self, topbar, method, *options, default):
         super().__init__(topbar)
         self.value = default
-        self.method = method.__name__
+        self._method = method.__name__
         self._chart.run_script(f'''
             makeSwitcher({self._chart.id}, {list(options)}, '{default}', {self._chart._js_api_code}, '{method.__name__}',
                         '{topbar.active_background_color}', '{topbar.active_text_color}', '{topbar.text_color}', '{topbar.hover_color}')
@@ -224,13 +296,15 @@ class TopBar:
 
     def _widget_with_method(self, method_name):
         for widget in self._widgets.values():
-            if widget.method == method_name:
+            if widget._method == method_name:
                 return widget
 
 
 class LWC(SeriesCommon):
-    def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False):
+    def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False,
+                 scale_candles_only: bool = False):
         self.volume_enabled = volume_enabled
+        self._scale_candles_only = scale_candles_only
         self._inner_width = inner_width
         self._inner_height = inner_height
         self._dynamic_loading = dynamic_loading
@@ -248,6 +322,7 @@ class LWC(SeriesCommon):
         self._charts = {self.id: self}
         self._lines = []
         self._js_api_code = None
+        self._return_q = None
 
         self._background_color = '#000000'
         self._volume_up_color = 'rgba(83,141,131,0.8)'
@@ -340,7 +415,7 @@ class LWC(SeriesCommon):
                 timer = null;
                 }}, 50);
             }});
-        ''') if self._dynamic_loading else self.run_script(f'{self.id}.series.setData({bars})')
+        ''') if self._dynamic_loading else self.run_script(f'{self.id}.candleData = {bars}; {self.id}.series.setData({self.id}.candleData)')
 
     def fit(self):
         """
@@ -423,12 +498,11 @@ class LWC(SeriesCommon):
         self._lines.append(Line(self, color, width, price_line, price_label))
         return self._lines[-1]
 
-    def lines(self):
+    def lines(self) -> List[Line]:
         """
         Returns all lines for the chart.
-        :return:
         """
-        return self._lines
+        return self._lines.copy()
 
     def price_scale(self, mode: PRICE_SCALE_MODE = 'normal', align_labels: bool = True, border_visible: bool = False,
                     border_color: str = None, text_color: str = None, entire_text_only: bool = False,
@@ -461,7 +535,6 @@ class LWC(SeriesCommon):
                     secondsVisible: {_js_bool(seconds_visible)},
                     borderVisible: {_js_bool(border_visible)},
                     {f'borderColor: "{border_color}",' if border_color else ''}
-                    
                 }}
             }})''')
 
@@ -584,38 +657,63 @@ class LWC(SeriesCommon):
               }}
           }})''')
 
-    def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, color: str = None,
+    def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, lines: bool = True, color: str = None,
                font_size: int = None, font_family: str = None):
         """
         Configures the legend of the chart.
         """
-        if visible:
-            self.run_script(f'''
-            {f"{self.id}.legend.style.color = '{color}'" if color else ''}
-            {f"{self.id}.legend.style.fontSize = {font_size}" if font_size else ''}
-            {f"{self.id}.legend.style.fontFamily = '{font_family}'" if font_family else ''}
-            
-            {self.id}.chart.subscribeCrosshairMove((param) => {{   
-                if (param.time){{
-                    let data = param.seriesData.get({self.id}.series);
-                    if (!data) {{return}}
-                    let ohlc = `O ${{legendItemFormat(data.open)}} 
-                                | H ${{legendItemFormat(data.high)}} 
-                                | L ${{legendItemFormat(data.low)}}
-                                | C ${{legendItemFormat(data.close)}} `
-                    let percentMove = ((data.close-data.open)/data.open)*100
-                    let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
-                    let finalString = ''
-                    {'finalString += ohlc' if ohlc else ''}
-                    {'finalString += percent' if percent else ''}
-                    {self.id}.legend.innerHTML = finalString
-                }}
-                else {{
-                    {self.id}.legend.innerHTML = ''
-                }}
-            }});''')
+        if not visible:
+            return
+        lines_code = ''
+        for i, line in enumerate(self._lines):
+            lines_code += f'''finalString += `<br><span style="color: {line.color};">▨</span>{f' {line.name}'} :
+            ${{legendItemFormat(param.seriesData.get({line.id}.series).value)}}`;'''
+
+        self.run_script(f'''
+        {f"{self.id}.legend.style.color = '{color}'" if color else ''}
+        {f"{self.id}.legend.style.fontSize = {font_size}" if font_size else ''}
+        {f"{self.id}.legend.style.fontFamily = '{font_family}'" if font_family else ''}
+        
+        {self.id}.chart.subscribeCrosshairMove((param) => {{   
+            if (param.time){{
+                let data = param.seriesData.get({self.id}.series);
+                if (!data) {{return}}
+                let ohlc = `O ${{legendItemFormat(data.open)}} 
+                            | H ${{legendItemFormat(data.high)}} 
+                            | L ${{legendItemFormat(data.low)}}
+                            | C ${{legendItemFormat(data.close)}} `
+                let percentMove = ((data.close-data.open)/data.open)*100
+                let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
+                let finalString = '<span style="line-height: 1.8;">'
+                {'finalString += ohlc' if ohlc else ''}
+                {'finalString += percent' if percent else ''}
+                {lines_code if lines else ''}
+                {self.id}.legend.innerHTML = finalString+'</span>'
+            }}
+            else {{
+                {self.id}.legend.innerHTML = ''
+            }}
+        }});''')
 
     def spinner(self, visible): self.run_script(f"{self.id}.spinner.style.display = '{'block' if visible else 'none'}'")
+
+    def screenshot(self) -> bytes:
+        """
+        Takes a screenshot. This method can only be used after the chart window is visible.
+        :return: a bytes object containing a screenshot of the chart.
+        """
+        self.run_script(f'''
+            let canvas = {self.id}.chart.takeScreenshot()
+            canvas.toBlob(function(blob) {{
+                const reader = new FileReader();
+                reader.onload = function(event) {{
+                    {self._js_api_code}(`return__{self.id}__${{event.target.result}}`)
+                }};
+                reader.readAsDataURL(blob);
+            }})
+            ''')
+        serial_data = self._return_q.get()
+        return b64decode(serial_data.split(',')[1])
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
                         width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False,
@@ -633,6 +731,7 @@ class SubChart(LWC):
         self._position = position
         self._rand = self._chart._rand
         self._js_api_code = self._chart._js_api_code
+        self._return_q = self._chart._return_q
         self.run_script = self._chart.run_script
         self._charts = self._chart._charts
         self.id = f'window.{self._rand.generate()}'
@@ -655,407 +754,4 @@ class SubChart(LWC):
         ''', run_last=True)
 
 
-SCRIPT = """
-document.getElementById('wrapper').style.backgroundColor = '#000000'
 
-function makeChart(innerWidth, innerHeight, autoSize=true) {
-    let chart = {
-        markers: [],
-        horizontal_lines: [],
-        div: document.createElement('div'),
-        wrapper: document.createElement('div'),
-        legend: document.createElement('div'),
-        scale: {
-            width: innerWidth,
-            height: innerHeight
-        },
-    }    
-    chart.chart = LightweightCharts.createChart(chart.div, {
-        width: window.innerWidth*innerWidth,
-        height: window.innerHeight*innerHeight,
-        layout: {
-            textColor: '#d1d4dc',
-            background: {
-                color:'#000000',
-                type: LightweightCharts.ColorType.Solid,
-                },
-            fontSize: 12
-            },
-        rightPriceScale: {
-            scaleMargins: {top: 0.3, bottom: 0.25},
-        },
-        timeScale: {timeVisible: true, secondsVisible: false},
-        crosshair: {
-            mode: LightweightCharts.CrosshairMode.Normal,
-            vertLine: {
-                labelBackgroundColor: 'rgb(46, 46, 46)'
-            },
-            horzLine: {
-                labelBackgroundColor: 'rgb(55, 55, 55)'
-            }
-        },
-        grid: {
-            vertLines: {color: 'rgba(29, 30, 38, 5)'},
-            horzLines: {color: 'rgba(29, 30, 58, 5)'},
-        },
-        handleScroll: {vertTouchDrag: true},
-    })
-    let up = 'rgba(39, 157, 130, 100)'
-    let down = 'rgba(200, 97, 100, 100)'
-    chart.series = chart.chart.addCandlestickSeries({color: 'rgb(0, 120, 255)', upColor: up, borderUpColor: up, wickUpColor: up,
-                                        downColor: down, borderDownColor: down, wickDownColor: down, lineWidth: 2,
-                                        })
-    chart.volumeSeries = chart.chart.addHistogramSeries({
-                        color: '#26a69a',
-                        priceFormat: {type: 'volume'},
-                        priceScaleId: '',
-                        })
-    chart.series.priceScale().applyOptions({
-        scaleMargins: {top: 0.2, bottom: 0.2},
-        });
-    chart.volumeSeries.priceScale().applyOptions({
-        scaleMargins: {top: 0.8, bottom: 0},
-        });
-    chart.legend.style.position = 'absolute'
-    chart.legend.style.zIndex = 1000
-    chart.legend.style.width = `${(chart.scale.width*100)-8}vw`
-    chart.legend.style.top = '10px'
-    chart.legend.style.left = '10px'
-    chart.legend.style.fontFamily = 'Monaco'
-    chart.legend.style.fontSize = '11px'
-    chart.legend.style.color = 'rgb(191, 195, 203)'
-    
-    chart.wrapper.style.width = `${100*innerWidth}%`
-    chart.wrapper.style.height = `${100*innerHeight}%`
-    chart.div.style.position = 'relative'
-    chart.wrapper.style.display = 'flex'
-    chart.wrapper.style.flexDirection = 'column'
-    
-    chart.div.appendChild(chart.legend)
-    chart.wrapper.appendChild(chart.div)
-    document.getElementById('wrapper').append(chart.wrapper)
-    
-    if (!autoSize) {
-        return chart
-    }
-    let topBarOffset = 0
-    window.addEventListener('resize', function() {
-        if ('topBar' in chart) {
-        topBarOffset = chart.topBar.offsetHeight
-        }
-        chart.chart.resize(window.innerWidth*innerWidth, (window.innerHeight*innerHeight)-topBarOffset)
-        });
-    return chart
-}
-function makeHorizontalLine(chart, lineId, price, color, width, style, axisLabelVisible, text) {
-    let priceLine = {
-       price: price,
-       color: color,
-       lineWidth: width,
-       lineStyle: style,
-       axisLabelVisible: axisLabelVisible,
-       title: text,
-    };
-    let line = {
-       line: chart.series.createPriceLine(priceLine),
-       price: price,
-       id: lineId,
-    };
-    chart.horizontal_lines.push(line)
-}
-function legendItemFormat(num) {
-return num.toFixed(2).toString().padStart(8, ' ')
-}
-function syncCrosshairs(childChart, parentChart) {
-    let parent = 0
-    let child = 0
-    
-    let parentCrosshairHandler = (e) => {
-        parent ++
-        if (parent < 10) {
-            return
-        }
-        child = 0
-        parentChart.applyOptions({crosshair: { horzLine: {
-            visible: true,
-            labelVisible: true,
-        }}})
-        childChart.applyOptions({crosshair: { horzLine: {
-            visible: false,
-            labelVisible: false,
-        }}})
-        
-        childChart.unsubscribeCrosshairMove(childCrosshairHandler)
-        if (e.time !== undefined) {
-          let xx = childChart.timeScale().timeToCoordinate(e.time);
-          childChart.setCrosshairXY(xx,300,true);
-        } else if (e.point !== undefined){
-          childChart.setCrosshairXY(e.point.x,300,false);
-        }    
-        childChart.subscribeCrosshairMove(childCrosshairHandler)
-    }
-    
-    let childCrosshairHandler = (e) => {
-        child ++
-        if (child < 10) {
-            return
-        }
-        parent = 0
-        childChart.applyOptions({crosshair: {horzLine: {
-            visible: true,
-            labelVisible: true,
-        }}})
-        parentChart.applyOptions({crosshair: {horzLine: {
-            visible: false,
-            labelVisible: false,
-        }}})
-        
-        parentChart.unsubscribeCrosshairMove(parentCrosshairHandler)
-        if (e.time !== undefined) {
-          let xx = parentChart.timeScale().timeToCoordinate(e.time);
-          parentChart.setCrosshairXY(xx,300,true);
-        } else if (e.point !== undefined){
-          parentChart.setCrosshairXY(e.point.x,300,false);
-        }    
-        parentChart.subscribeCrosshairMove(parentCrosshairHandler)
-    }
-    parentChart.subscribeCrosshairMove(parentCrosshairHandler)
-    childChart.subscribeCrosshairMove(childCrosshairHandler)
-}
-"""
-
-HTML = f"""
-<!DOCTYPE html>
-<html lang="">
-<head>
-    <title>lightweight-charts-python</title>
-    <script>{LWC_4_0_1}</script>
-    <meta name="viewport" content ="width=device-width, initial-scale=1">
-    <style>
-    body {{
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    }}
-    #wrapper {{
-        width: 100vw;
-        height: 100vh;
-    }}
-    </style>
-</head>
-<body>
-    <div id="wrapper"></div>
-    <script>
-    {SCRIPT}
-    </script>
-</body>
-</html>"""
-
-CALLBACK_SCRIPT = '''
-function makeSearchBox(chart, callbackFunction) {
-    let searchWindow = document.createElement('div')
-    searchWindow.style.position = 'absolute'
-    searchWindow.style.top = '0'
-    searchWindow.style.bottom = '200px'
-    searchWindow.style.left = '0'
-    searchWindow.style.right = '0'
-    searchWindow.style.margin = 'auto'
-    searchWindow.style.width = '150px'
-    searchWindow.style.height = '30px'
-    searchWindow.style.padding = '10px'
-    searchWindow.style.backgroundColor = 'rgba(30, 30, 30, 0.9)'
-    searchWindow.style.border = '2px solid #3C434C'
-    searchWindow.style.zIndex = '1000'
-    searchWindow.style.display = 'none'
-    searchWindow.style.borderRadius = '5px'
-    
-    let magnifyingGlass = document.createElement('span');
-    magnifyingGlass.style.display = 'inline-block';
-    magnifyingGlass.style.width = '12px';
-    magnifyingGlass.style.height = '12px';
-    magnifyingGlass.style.border = '2px solid rgb(240, 240, 240)';
-    magnifyingGlass.style.borderRadius = '50%';
-    magnifyingGlass.style.position = 'relative';
-    let handle = document.createElement('span');
-    handle.style.display = 'block';
-    handle.style.width = '7px';
-    handle.style.height = '2px';
-    handle.style.backgroundColor = 'rgb(240, 240, 240)';
-    handle.style.position = 'absolute';
-    handle.style.top = 'calc(50% + 7px)';
-    handle.style.right = 'calc(50% - 11px)';
-    handle.style.transform = 'rotate(45deg)';
-
-    let sBox = document.createElement('input');
-    sBox.type = 'text';
-    sBox.style.position = 'relative';
-    sBox.style.display = 'inline-block';
-    sBox.style.zIndex = '1000';
-    sBox.style.textAlign = 'center'
-    sBox.style.width = '100px'
-    sBox.style.marginLeft = '15px'
-    sBox.style.backgroundColor = 'rgba(0, 122, 255, 0.3)'
-    sBox.style.color = 'rgb(240,240,240)'
-    sBox.style.fontSize = '20px'            
-    sBox.style.border = 'none'
-    sBox.style.outline = 'none'
-    sBox.style.borderRadius = '2px'
-    
-    searchWindow.appendChild(magnifyingGlass)
-    magnifyingGlass.appendChild(handle)
-    searchWindow.appendChild(sBox)
-    chart.div.appendChild(searchWindow);
-
-    let yPrice = null
-    chart.chart.subscribeCrosshairMove((param) => {
-        if (param.point){
-            yPrice = param.point.y;
-        }
-    });
-    let selectedChart = true
-    chart.wrapper.addEventListener('mouseover', (event) => {
-        selectedChart = true
-    })
-    chart.wrapper.addEventListener('mouseout', (event) => {
-        selectedChart = false
-    })
-    document.addEventListener('keydown', function(event) {
-        if (!selectedChart) {return}
-        if (event.altKey && event.code === 'KeyH') {
-            let price = chart.series.coordinateToPrice(yPrice)
-            
-            let colorList = [
-                'rgba(228, 0, 16, 0.7)',
-                'rgba(255, 133, 34, 0.7)',
-                'rgba(164, 59, 176, 0.7)',
-                'rgba(129, 59, 102, 0.7)',
-                'rgba(91, 20, 248, 0.7)',
-                'rgba(32, 86, 249, 0.7)',
-            ]
-            let color = colorList[Math.floor(Math.random()*colorList.length)]
-            
-            makeHorizontalLine(chart, 0, price, color, 2, LightweightCharts.LineStyle.Solid, true, '')
-        }
-        if (searchWindow.style.display === 'none') {
-            if (/^[a-zA-Z0-9]$/.test(event.key)) {
-                searchWindow.style.display = 'block';
-                sBox.focus();
-            }
-        }
-        else if (event.key === 'Enter') {
-            callbackFunction(`on_search__${chart.id}__${sBox.value}`)
-            searchWindow.style.display = 'none'
-            sBox.value = ''
-        }
-        else if (event.key === 'Escape') {
-            searchWindow.style.display = 'none'
-            sBox.value = ''
-        }
-    });
-    sBox.addEventListener('input', function() {
-        sBox.value = sBox.value.toUpperCase();
-    });
-    return {
-        window: searchWindow,
-        box: sBox,
-    }
-}
-
-function makeSpinner(chart) {
-    chart.spinner = document.createElement('div')
-    chart.spinner.style.width = '30px'
-    chart.spinner.style.height = '30px'
-    chart.spinner.style.border = '4px solid rgba(255, 255, 255, 0.6)'
-    chart.spinner.style.borderTop = '4px solid rgba(0, 122, 255, 0.8)'
-    chart.spinner.style.borderRadius = '50%'
-    chart.spinner.style.position = 'absolute'
-    chart.spinner.style.top = '50%'
-    chart.spinner.style.left = '50%'
-    chart.spinner.style.zIndex = 1000
-    chart.spinner.style.transform = 'translate(-50%, -50%)'
-    chart.spinner.style.display = 'none'
-    chart.wrapper.appendChild(chart.spinner)
-    let rotation = 0;
-    const speed = 10; // Adjust this value to change the animation speed
-    function animateSpinner() {
-        rotation += speed
-        chart.spinner.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
-        requestAnimationFrame(animateSpinner)
-    }
-    animateSpinner();
-}
-function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
-    let switcherElement = document.createElement('div');
-    switcherElement.style.margin = '4px 14px'
-    switcherElement.style.zIndex = '1000'
-
-    let intervalElements = items.map(function(item) {
-        let itemEl = document.createElement('button');
-        itemEl.style.cursor = 'pointer'
-        itemEl.style.padding = '2px 5px'
-        itemEl.style.margin = '0px 4px'
-        itemEl.style.fontSize = '13px'
-        itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : 'transparent'
-        itemEl.style.color = item === activeItem ? activeColor : inactiveColor
-        itemEl.style.border = 'none'
-        itemEl.style.borderRadius = '4px'
-
-        itemEl.addEventListener('mouseenter', function() {
-            itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : hoverColor
-            itemEl.style.color = activeColor
-        })
-        itemEl.addEventListener('mouseleave', function() {
-            itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : 'transparent'
-            itemEl.style.color = item === activeItem ? activeColor : inactiveColor
-        })
-        itemEl.innerText = item;
-        itemEl.addEventListener('click', function() {
-            onItemClicked(item);
-        });
-        switcherElement.appendChild(itemEl);
-        return itemEl;
-    });
-    function onItemClicked(item) {
-        if (item === activeItem) {
-            return;
-        }
-        intervalElements.forEach(function(element, index) {
-            element.style.backgroundColor = items[index] === item ? activeBackgroundColor : 'transparent'
-            element.style.color = items[index] === item ? 'activeColor' : inactiveColor
-        });
-        activeItem = item;
-        callbackFunction(`${callbackName}__${chart.id}__${item}`);
-    }
-    chart.topBar.appendChild(switcherElement)
-    makeSeperator(chart.topBar)
-    return switcherElement;
-}
-
-function makeTextBoxWidget(chart, text) {
-    let textBox = document.createElement('div')
-    textBox.style.margin = '0px 18px'
-    textBox.style.position = 'relative'
-    textBox.style.fontSize = '16px'
-    textBox.style.color = 'rgb(220, 220, 220)'
-    textBox.innerText = text
-    chart.topBar.append(textBox)
-    makeSeperator(chart.topBar)
-    return textBox
-}
-function makeTopBar(chart) {
-    chart.topBar = document.createElement('div')
-    chart.topBar.style.backgroundColor = '#191B1E'
-    chart.topBar.style.borderBottom = '2px solid #3C434C'
-    chart.topBar.style.display = 'flex'
-    chart.topBar.style.alignItems = 'center'
-    chart.wrapper.prepend(chart.topBar)
-}
-function makeSeperator(topBar) {
-    let seperator = document.createElement('div')
-        seperator.style.width = '1px'
-        seperator.style.height = '20px'
-        seperator.style.backgroundColor = '#3C434C'
-        topBar.appendChild(seperator)
-    }
-'''

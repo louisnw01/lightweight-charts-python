@@ -99,6 +99,16 @@ ___
 Removes a horizontal line at the given price.
 ___
 
+### `clear_markers`
+
+Clears the markers displayed on the data.
+___
+
+### `clear_horizontal_lines`
+
+Clears the horizontal lines displayed on the data.
+___
+
 ### `price_scale`
 `mode: 'normal'/'logarithmic'/'percentage'/'index100'` | `align_labels: bool` | `border_visible: bool` | `border_color: str` | `text_color: str` | `entire_text_only: bool` | `ticks_visible: bool` | `scale_margin_top: float` | `scale_margin_bottom: float`
 
@@ -169,7 +179,7 @@ Sets the title label for the chart.
 ___
 
 ### `legend`
-`visible: bool` | `ohlc: bool` | `percent: bool` | `color: str` | `font_size: int` | `font_family: str`
+`visible: bool` | `ohlc: bool` | `percent: bool` | `lines: bool` | `color: str` | `font_size: int` | `font_family: str`
 
 Configures the legend of the chart.
 ___
@@ -201,7 +211,9 @@ ___
 Shows the hidden candles on the chart.
 ___
 
-
+### `polygon`
+Used to access Polygon.io's API (see [here](https://lightweight-charts-python.readthedocs.io/en/latest/polygon.html))
+___
 
 ### `create_subchart`
 `volume_enabled: bool` | `position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/str` | `-> SubChart`
@@ -222,7 +234,7 @@ ___
 
 
 ## Chart
-`volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `debug: bool` |
+`volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `maximize: bool` | `debug: bool` |
 `api: object` | `topbar: bool` | `searchbox: bool`
 
 The main object used for the normal functionality of lightweight-charts-python, built on the pywebview library.
@@ -250,6 +262,27 @@ ___
 
 Show the chart asynchronously. This should be utilised when using [Callbacks](#callbacks).
 
+### `screenshot`
+`-> bytes`
+
+Takes a screenshot of the chart, and returns a bytes object containing the image. For example:
+
+```python
+if __name__ == '__main__':
+    chart = Chart()
+    df = pd.read_csv('ohlcv.csv')
+    chart.set(df)
+    chart.show()
+    
+    img = chart.screenshot()
+    with open('screenshot.png', 'wb') as f:
+        f.write(img)
+```
+
+```{important}
+This method must be called after the chart window is open.
+```
+
 ___
 
 ## Line
@@ -264,11 +297,21 @@ The `line` object should only be accessed from the [`create_line`](#create-line)
 ___
 
 ### `set`
-`data: pd.DataFrame`
+`data: pd.DataFrame` `name: str`
 
 Sets the data for the line.
 
-This should be given as a DataFrame, with the columns: `time | value`
+When not using the `name` parameter, the columns should be named: `time | value`.
+
+Otherwise, the method will use the column named after the string given in `name`. This name will also be used within the legend of the chart. For example:
+```python
+line = chart.create_line()
+
+# DataFrame with columns: date | SMA 50
+df = pd.read_csv('sma50.csv')
+
+line.set(df, name='SMA 50')
+```
 ___
 
 ### `update`

@@ -1,28 +1,30 @@
 import asyncio
-import time
 import multiprocessing as mp
 import webview
 
-from lightweight_charts.js import LWC, CALLBACK_SCRIPT, TopBar
+from lightweight_charts.abstract import LWC, JS, TopBar
 
 
 class CallbackAPI:
-    def __init__(self, emit): self.emit = emit
+    def __init__(self, emit_queue, return_queue):
+        self.emit_q, self.return_q = emit_queue, return_queue
 
     def callback(self, message: str):
         messages = message.split('__')
         name, chart_id = messages[:2]
         args = messages[2:]
-        self.emit.put((name, chart_id, *args))
+        self.return_q.put(*args) if name == 'return' else self.emit_q.put((name, chart_id, *args))
 
 
 class PyWV:
-    def __init__(self, q, exit, loaded, html, width, height, x, y, on_top, debug, emit):
+    def __init__(self, q, exit, loaded, html, width, height, x, y, on_top, maximize, debug, emit_queue, return_queue):
+        if maximize:
+            width, height = webview.screens[0].width, webview.screens[0].height
         self.queue = q
         self.exit = exit
         self.loaded = loaded
         self.debug = debug
-        js_api = CallbackAPI(emit)
+        js_api = CallbackAPI(emit_queue, return_queue)
         self.webview = webview.create_window('', html=html, on_top=on_top, js_api=js_api, width=width, height=height,
                                              x=x, y=y, background_color='#000000')
         self.webview.events.loaded += self.on_js_load
@@ -40,30 +42,28 @@ class PyWV:
                 except KeyError:
                     return
 
-    def on_js_load(self):
-        self.loaded.set(), self.loop()
+    def on_js_load(self): self.loaded.set(), self.loop()
 
 
 class Chart(LWC):
     def __init__(self, volume_enabled: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
-                 on_top: bool = False, debug: bool = False, api: object = None, topbar: bool = False, searchbox: bool = False,
-                 inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False):
-        super().__init__(volume_enabled, inner_width, inner_height, dynamic_loading)
-        self._emit = mp.Queue()
-        self._q = mp.Queue()
+                 on_top: bool = False, maximize: bool = False, debug: bool = False,
+                 api: object = None, topbar: bool = False, searchbox: bool = False,
+                 inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False, scale_candles_only: bool = False):
+        super().__init__(volume_enabled, inner_width, inner_height, dynamic_loading, scale_candles_only)
+        self._q, self._emit_q, self._return_q = (mp.Queue() for _ in range(3))
+        self._exit, self._loaded = mp.Event(), mp.Event()
         self._script_func = self._q.put
-        self._exit = mp.Event()
-        self._loaded = mp.Event()
+        self._api = api
+        self._js_api_code = 'pywebview.api.callback'
         self._process = mp.Process(target=PyWV, args=(self._q, self._exit, self._loaded, self._html,
-                                                      width, height, x, y, on_top, debug, self._emit), daemon=True)
+                                                      width, height, x, y, on_top, maximize, debug,
+                                                      self._emit_q, self._return_q), daemon=True)
         self._process.start()
         self._create_chart()
-
-        self.api = api
-        self._js_api_code = 'pywebview.api.callback'
         if not topbar and not searchbox:
             return
-        self.run_script(CALLBACK_SCRIPT)
+        self.run_script(JS['callback'])
         self.run_script(f'makeSpinner({self.id})')
         self.topbar = TopBar(self) if topbar else None
         self._make_search_box() if searchbox else None
@@ -80,50 +80,35 @@ class Chart(LWC):
         else:
             self._q.put('show')
         if block:
-            try:
-                while 1:
-                    while not self._exit.is_set() and self.polygon._q.empty():
-                        time.sleep(0.05)
-                        continue
-                    if self._exit.is_set():
-                        self._exit.clear()
-                        return
-                    value = self.polygon._q.get_nowait()
-                    func, args = value[0], value[1:]
-                    func(*args)
-            except KeyboardInterrupt:
-                return
+            asyncio.run(self.show_async(block=True))
 
     async def show_async(self, block=False):
-        if not self.loaded:
-            self._q.put('start')
-            self._loaded.wait()
-            self._on_js_load()
-        else:
-            self._q.put('show')
-        if block:
-            try:
-                while 1:
-                    while self._emit.empty() and not self._exit.is_set() and self.polygon._q.empty():
-                        await asyncio.sleep(0.05)
-                    if self._exit.is_set():
-                        self._exit.clear()
-                        return
-                    elif not self._emit.empty():
-                        key, chart_id, arg = self._emit.get()
-                        self.api.chart = self._charts[chart_id]
-                        if widget := self.api.chart.topbar._widget_with_method(key):
-                            widget.value = arg
-                            await getattr(self.api, key)()
-                        else:
-                            await getattr(self.api, key)(arg)
-                        continue
-                    value = self.polygon._q.get()
-                    func, args = value[0], value[1:]
-                    func(*args)
-            except KeyboardInterrupt:
-                return
-        asyncio.create_task(self.show_async(block=True))
+        self.show(block=False)
+        if not block:
+            asyncio.create_task(self.show_async(block=True))
+            return
+        try:
+            while 1:
+                while self._emit_q.empty() and not self._exit.is_set() and self.polygon._q.empty():
+                    await asyncio.sleep(0.05)
+                if self._exit.is_set():
+                    self._exit.clear()
+                    return
+                elif not self._emit_q.empty():
+                    key, chart_id, arg = self._emit_q.get()
+                    self._api.chart = self._charts[chart_id]
+                    if widget := self._api.chart.topbar._widget_with_method(key):
+                        widget.value = arg
+                        await getattr(self._api, key)()
+                    else:
+                        await getattr(self._api, key)(arg)
+                    continue
+                value = self.polygon._q.get()
+                func, args = value[0], value[1:]
+                func(*args)
+        except KeyboardInterrupt:
+            return
+
 
     def hide(self):
         """
