@@ -150,7 +150,7 @@ class SeriesCommon:
         """
         Clears the markers displayed on the data.\n
         """
-        self.run_script(f'''{self.id}.markers = []; {self.id}.series.setMarkers([]])''')
+        self.run_script(f'''{self.id}.markers = []; {self.id}.series.setMarkers([])''')
 
     def clear_horizontal_lines(self):
         """
@@ -666,8 +666,8 @@ class LWC(SeriesCommon):
             return
         lines_code = ''
         for i, line in enumerate(self._lines):
-            lines_code += f'''finalString += `<br><span style="color: {line.color};">▨</span>{f' {line.name}'} :
-            ${{legendItemFormat(param.seriesData.get({line.id}.series).value)}}`;'''
+            lines_code += f'''finalString += `<span style="color: {line.color};">▨</span>{f' {line.name}'} :
+            ${{legendItemFormat(param.seriesData.get({line.id}.series).value)}}<br>`;'''
 
         self.run_script(f'''
         {f"{self.id}.legend.style.color = '{color}'" if color else ''}
@@ -677,16 +677,19 @@ class LWC(SeriesCommon):
         {self.id}.chart.subscribeCrosshairMove((param) => {{   
             if (param.time){{
                 let data = param.seriesData.get({self.id}.series);
-                if (!data) {{return}}
-                let ohlc = `O ${{legendItemFormat(data.open)}} 
-                            | H ${{legendItemFormat(data.high)}} 
-                            | L ${{legendItemFormat(data.low)}}
-                            | C ${{legendItemFormat(data.close)}} `
-                let percentMove = ((data.close-data.open)/data.open)*100
-                let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
                 let finalString = '<span style="line-height: 1.8;">'
-                {'finalString += ohlc' if ohlc else ''}
-                {'finalString += percent' if percent else ''}
+                if (data) {{
+                    let ohlc = `O ${{legendItemFormat(data.open)}} 
+                                | H ${{legendItemFormat(data.high)}} 
+                                | L ${{legendItemFormat(data.low)}}
+                                | C ${{legendItemFormat(data.close)}} `
+                    let percentMove = ((data.close-data.open)/data.open)*100
+                    let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
+                    
+                    {'finalString += ohlc' if ohlc else ''}
+                    {'finalString += percent' if percent else ''}
+                    {'finalString += "<br>"' if ohlc or percent else ''}
+                }}
                 {lines_code if lines else ''}
                 {self.id}.legend.innerHTML = finalString+'</span>'
             }}
