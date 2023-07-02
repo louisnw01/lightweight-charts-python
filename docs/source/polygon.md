@@ -107,7 +107,7 @@ This object requires the `requests` library for static data, and the `websockets
 
 All data is requested within the chart window through searching and selectors.
 
-As well as the parameters from the CHART LINK object, PolygonChart also has the parameters:
+As well as the parameters from the [Chart](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#chart) object, PolygonChart also has the parameters:
 
 * `api_key`: The user's Polygon.io API key.
 * `num_bars`: The target number of bars to be displayed on the chart
@@ -118,7 +118,7 @@ As well as the parameters from the CHART LINK object, PolygonChart also has the 
 * `live`: If True, the chart will update in real-time.
 ___
 
-### Example
+### Example:
 
 ```python
 from lightweight_charts import PolygonChart
