@@ -12,7 +12,7 @@ from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, C
 JS = {}
 current_dir = os.path.dirname(os.path.abspath(__file__))
 for file in ('pkg', 'funcs', 'callback'):
-    with open(os.path.join(current_dir, 'js', f'{file}.js'), 'r') as f:
+    with open(os.path.join(current_dir, 'js', f'{file}.js'), 'r', encoding='utf-8') as f:
         JS[file] = f.read()
 
 HTML = f"""
@@ -673,6 +673,8 @@ class LWC(SeriesCommon):
         {f"{self.id}.legend.style.color = '{color}'" if color else ''}
         {f"{self.id}.legend.style.fontSize = {font_size}" if font_size else ''}
         {f"{self.id}.legend.style.fontFamily = '{font_family}'" if font_family else ''}
+        
+        legendItemFormat = (num) => num.toFixed(2).toString().padStart(8, ' ')
         
         {self.id}.chart.subscribeCrosshairMove((param) => {{   
             if (param.time){{

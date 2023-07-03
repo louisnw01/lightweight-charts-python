@@ -58,7 +58,7 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
         scaleMargins: {top: 0.8, bottom: 0},
     });
     chart.legend.style.position = 'absolute'
-    chart.legend.style.zIndex = 1000
+    chart.legend.style.zIndex = '1000'
     chart.legend.style.width = `${(chart.scale.width*100)-8}vw`
     chart.legend.style.top = '10px'
     chart.legend.style.left = '10px'
@@ -78,14 +78,11 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
     chart.wrapper.appendChild(chart.div)
     document.getElementById('wrapper').append(chart.wrapper)
 
-    if (!autoSize) {
-        return chart
-    }
+    if (!autoSize) return chart
+
     let topBarOffset = 0
     window.addEventListener('resize', function() {
-        if ('topBar' in chart) {
-        topBarOffset = chart.topBar.offsetHeight
-        }
+        if ('topBar' in chart) topBarOffset = chart.topBar.offsetHeight
         chart.chart.resize(window.innerWidth*innerWidth, (window.innerHeight*innerHeight)-topBarOffset)
         });
     return chart
@@ -106,61 +103,39 @@ function makeHorizontalLine(chart, lineId, price, color, width, style, axisLabel
     };
     chart.horizontal_lines.push(line)
 }
-function legendItemFormat(num) {
-return num.toFixed(2).toString().padStart(8, ' ')
-}
 function syncCrosshairs(childChart, parentChart) {
+    function crosshairHandler (e, thisChart, otherChart, otherHandler) {
+        thisChart.applyOptions({crosshair: { horzLine: {
+            visible: true,
+            labelVisible: true,
+        }}})
+        otherChart.applyOptions({crosshair: { horzLine: {
+            visible: false,
+            labelVisible: false,
+        }}})
+
+        otherChart.unsubscribeCrosshairMove(otherHandler)
+        if (e.time !== undefined) {
+          let xx = otherChart.timeScale().timeToCoordinate(e.time);
+          otherChart.setCrosshairXY(xx,300,true);
+        } else if (e.point !== undefined){
+          otherChart.setCrosshairXY(e.point.x,300,false);
+        }
+        otherChart.subscribeCrosshairMove(otherHandler)
+    }
     let parent = 0
     let child = 0
-
     let parentCrosshairHandler = (e) => {
         parent ++
-        if (parent < 10) {
-            return
-        }
+        if (parent < 10) return
         child = 0
-        parentChart.applyOptions({crosshair: { horzLine: {
-            visible: true,
-            labelVisible: true,
-        }}})
-        childChart.applyOptions({crosshair: { horzLine: {
-            visible: false,
-            labelVisible: false,
-        }}})
-
-        childChart.unsubscribeCrosshairMove(childCrosshairHandler)
-        if (e.time !== undefined) {
-          let xx = childChart.timeScale().timeToCoordinate(e.time);
-          childChart.setCrosshairXY(xx,300,true);
-        } else if (e.point !== undefined){
-          childChart.setCrosshairXY(e.point.x,300,false);
-        }
-        childChart.subscribeCrosshairMove(childCrosshairHandler)
+        crosshairHandler(e, parentChart, childChart, childCrosshairHandler)
     }
-
     let childCrosshairHandler = (e) => {
         child ++
-        if (child < 10) {
-            return
-        }
+        if (child < 10) return
         parent = 0
-        childChart.applyOptions({crosshair: {horzLine: {
-            visible: true,
-            labelVisible: true,
-        }}})
-        parentChart.applyOptions({crosshair: {horzLine: {
-            visible: false,
-            labelVisible: false,
-        }}})
-
-        parentChart.unsubscribeCrosshairMove(parentCrosshairHandler)
-        if (e.time !== undefined) {
-          let xx = parentChart.timeScale().timeToCoordinate(e.time);
-          parentChart.setCrosshairXY(xx,300,true);
-        } else if (e.point !== undefined){
-          parentChart.setCrosshairXY(e.point.x,300,false);
-        }
-        parentChart.subscribeCrosshairMove(parentCrosshairHandler)
+        crosshairHandler(e, childChart, parentChart, parentCrosshairHandler)
     }
     parentChart.subscribeCrosshairMove(parentCrosshairHandler)
     childChart.subscribeCrosshairMove(childCrosshairHandler)

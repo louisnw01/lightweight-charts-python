@@ -8,38 +8,23 @@ function makeSearchBox(chart, callbackFunction) {
     searchWindow.style.margin = 'auto'
     searchWindow.style.width = '150px'
     searchWindow.style.height = '30px'
-    searchWindow.style.padding = '10px'
+    searchWindow.style.padding = '5px'
+    searchWindow.style.zIndex = '1000'
+    searchWindow.style.alignItems = 'center'
+    searchWindow.style.alignItems = 'center'
     searchWindow.style.backgroundColor = 'rgba(30, 30, 30, 0.9)'
     searchWindow.style.border = '2px solid #3C434C'
-    searchWindow.style.zIndex = '1000'
-    searchWindow.style.display = 'none'
     searchWindow.style.borderRadius = '5px'
+    searchWindow.style.display = 'none'
 
-    let magnifyingGlass = document.createElement('span');
-    magnifyingGlass.style.display = 'inline-block';
-    magnifyingGlass.style.width = '12px';
-    magnifyingGlass.style.height = '12px';
-    magnifyingGlass.style.border = '2px solid rgb(240, 240, 240)';
-    magnifyingGlass.style.borderRadius = '50%';
-    magnifyingGlass.style.position = 'relative';
-    let handle = document.createElement('span');
-    handle.style.display = 'block';
-    handle.style.width = '7px';
-    handle.style.height = '2px';
-    handle.style.backgroundColor = 'rgb(240, 240, 240)';
-    handle.style.position = 'absolute';
-    handle.style.top = 'calc(50% + 7px)';
-    handle.style.right = 'calc(50% - 11px)';
-    handle.style.transform = 'rotate(45deg)';
+    let magnifyingGlass = document.createElement('div');
+    magnifyingGlass.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1"><path style="fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke:lightgray;stroke-opacity:1;stroke-miterlimit:4;" d="M 15 15 L 21 21 M 10 17 C 6.132812 17 3 13.867188 3 10 C 3 6.132812 6.132812 3 10 3 C 13.867188 3 17 6.132812 17 10 C 17 13.867188 13.867188 17 10 17 Z M 10 17 "/></svg>`
 
     let sBox = document.createElement('input');
     sBox.type = 'text';
-    sBox.style.position = 'relative';
-    sBox.style.display = 'inline-block';
-    sBox.style.zIndex = '1000';
     sBox.style.textAlign = 'center'
     sBox.style.width = '100px'
-    sBox.style.marginLeft = '15px'
+    sBox.style.marginLeft = '10px'
     sBox.style.backgroundColor = 'rgba(0, 122, 255, 0.3)'
     sBox.style.color = 'rgb(240,240,240)'
     sBox.style.fontSize = '20px'
@@ -48,7 +33,6 @@ function makeSearchBox(chart, callbackFunction) {
     sBox.style.borderRadius = '2px'
 
     searchWindow.appendChild(magnifyingGlass)
-    magnifyingGlass.appendChild(handle)
     searchWindow.appendChild(sBox)
     chart.div.appendChild(searchWindow);
 
@@ -84,7 +68,7 @@ function makeSearchBox(chart, callbackFunction) {
         }
         if (searchWindow.style.display === 'none') {
             if (/^[a-zA-Z0-9]$/.test(event.key)) {
-                searchWindow.style.display = 'block';
+                searchWindow.style.display = 'flex';
                 sBox.focus();
             }
         }
@@ -117,12 +101,12 @@ function makeSpinner(chart) {
     chart.spinner.style.position = 'absolute'
     chart.spinner.style.top = '50%'
     chart.spinner.style.left = '50%'
-    chart.spinner.style.zIndex = 1000
+    chart.spinner.style.zIndex = '1000'
     chart.spinner.style.transform = 'translate(-50%, -50%)'
     chart.spinner.style.display = 'none'
     chart.wrapper.appendChild(chart.spinner)
     let rotation = 0;
-    const speed = 10; // Adjust this value to change the animation speed
+    const speed = 10;
     function animateSpinner() {
         rotation += speed
         chart.spinner.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
@@ -130,6 +114,7 @@ function makeSpinner(chart) {
     }
     animateSpinner();
 }
+
 function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
     let switcherElement = document.createElement('div');
     switcherElement.style.margin = '4px 14px'
@@ -180,7 +165,6 @@ function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, 
 function makeTextBoxWidget(chart, text) {
     let textBox = document.createElement('div')
     textBox.style.margin = '0px 18px'
-    textBox.style.position = 'relative'
     textBox.style.fontSize = '16px'
     textBox.style.color = 'rgb(220, 220, 220)'
     textBox.innerText = text
@@ -188,6 +172,7 @@ function makeTextBoxWidget(chart, text) {
     makeSeperator(chart.topBar)
     return textBox
 }
+
 function makeTopBar(chart) {
     chart.topBar = document.createElement('div')
     chart.topBar.style.backgroundColor = '#191B1E'
@@ -199,10 +184,8 @@ function makeTopBar(chart) {
 
 function makeSeperator(topBar) {
     let seperator = document.createElement('div')
-        seperator.style.width = '1px'
-        seperator.style.height = '20px'
-        seperator.style.backgroundColor = '#3C434C'
-        topBar.appendChild(seperator)
+    seperator.style.width = '1px'
+    seperator.style.height = '20px'
+    seperator.style.backgroundColor = '#3C434C'
+    topBar.appendChild(seperator)
     }
-
-

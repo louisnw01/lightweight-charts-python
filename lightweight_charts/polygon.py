@@ -322,7 +322,7 @@ class PolygonChart(Chart):
         {self.id}.search.box.style.backgroundColor = 'rgba(91, 98, 246, 0.5)'
         {self.id}.spinner.style.borderTop = '4px solid rgba(91, 98, 246, 0.8)'
 
-        {self.id}.search.window.style.display = "block"
+        {self.id}.search.window.style.display = "flex"
         {self.id}.search.box.focus()
         
         //let polyLogo = document.createElement('div')
