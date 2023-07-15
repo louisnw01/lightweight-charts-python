@@ -1,4 +1,4 @@
-function makeChart(innerWidth, innerHeight, autoSize=true) {
+function makeChartCore(wrapper, innerWidth, innerHeight, autoSize=true) {
     let chart = {
         markers: [],
         horizontal_lines: [],
@@ -11,8 +11,8 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
         },
     }
     chart.chart = LightweightCharts.createChart(chart.div, {
-        width: window.innerWidth*innerWidth,
-        height: window.innerHeight*innerHeight,
+        width: wrapper.offsetWidth*innerWidth,
+        height: window.offsetHeight*innerHeight,
         layout: {
             textColor: '#d1d4dc',
             background: {
@@ -76,16 +76,20 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
 
     chart.div.appendChild(chart.legend)
     chart.wrapper.appendChild(chart.div)
-    document.getElementById('wrapper').append(chart.wrapper)
+    wrapper.appendChild(chart.wrapper)
 
     if (!autoSize) return chart
 
     let topBarOffset = 0
     window.addEventListener('resize', function() {
         if ('topBar' in chart) topBarOffset = chart.topBar.offsetHeight
-        chart.chart.resize(window.innerWidth*innerWidth, (window.innerHeight*innerHeight)-topBarOffset)
+        chart.chart.resize(wrapper.offsetWidth*innerWidth, (wrapper.offsetHeight*innerHeight)-topBarOffset)
         });
     return chart
+}
+function makeChart(innerWidth, innerHeight, autoSize=true) {
+    const wrapper = document.getElementById("wrapper")
+    makeChartCore(wrapper, innerWidth, innerHeight, autoSize)
 }
 function makeHorizontalLine(chart, lineId, price, color, width, style, axisLabelVisible, text) {
     let priceLine = {
@@ -125,13 +129,12 @@ function syncCrosshairs(childChart, parentChart) {
     }
     let parent = 0
     let child = 0
-    let parentCrosshairHandler = (e) => {
-        parent ++
-        if (parent < 10) return
+    function parentCrosshairHandler (e) {
+        parent = parent +1
         child = 0
         crosshairHandler(e, parentChart, childChart, childCrosshairHandler)
     }
-    let childCrosshairHandler = (e) => {
+    function childCrosshairHandler(e) {
         child ++
         if (child < 10) return
         parent = 0

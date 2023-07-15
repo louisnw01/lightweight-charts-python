@@ -29,21 +29,16 @@ try:
 except ImportError:
     HTML = None
 
+try:
+    from lightweight_charts._panel import PanelChart
+except ModuleNotFoundError:
+    class PanelChart(pn.reactive.ReactiveHTML, LWC):
+        """"Panel was not found, and must be installed to use PanelChart."""
+        def __init__(self, **kwargs):
+            raise ModuleNotFoundError("panel was not found, and must be installed to use PanelChart.")
+
 from lightweight_charts.abstract import LWC, TopBar, JS
-
-
-def _widget_message(chart, string):
-    messages = string.split('__')
-    name, chart_id = messages[:2]
-    arg = messages[2]
-    chart.api.chart = chart._charts[chart_id]
-    method = getattr(chart.api, name)
-    if widget := chart.api.chart.topbar._widget_with_method(name):
-        widget.value = arg
-        asyncio.create_task(getattr(chart.api, name)()) if iscoroutinefunction(method) else method()
-    else:
-        asyncio.create_task(getattr(chart.api, name)(arg)) if iscoroutinefunction(method) else method(arg)
-
+from lightweight_charts.util import _widget_message
 
 class WxChart(LWC):
     def __init__(self, parent, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0,

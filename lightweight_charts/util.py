@@ -2,6 +2,8 @@ import re
 from random import choices
 from string import ascii_lowercase
 from typing import Literal
+from inspect import iscoroutinefunction
+import asyncio
 
 
 class MissingColumn(KeyError):
@@ -91,3 +93,15 @@ def _convert_timeframe(timeframe):
         return 1, spans[timeframe]
     timespan = spans[timeframe.replace(multiplier, '')]
     return multiplier, timespan
+
+def _widget_message(chart, string):
+    messages = string.split('__')
+    name, chart_id = messages[:2]
+    arg = messages[2]
+    chart.api.chart = chart._charts[chart_id]
+    method = getattr(chart.api, name)
+    if widget := chart.api.chart.topbar._widget_with_method(name):
+        widget.value = arg
+        asyncio.create_task(getattr(chart.api, name)()) if iscoroutinefunction(method) else method()
+    else:
+        asyncio.create_task(getattr(chart.api, name)(arg)) if iscoroutinefunction(method) else method(arg)

@@ -314,7 +314,7 @@ class LWC(SeriesCommon):
         self._position = 'left'
         self.loaded = False
         self._html = HTML
-        self._scripts = []
+        self._scripts_list = []
         self._final_scripts = []
         self._script_func = None
         self._last_bar = None
@@ -335,7 +335,7 @@ class LWC(SeriesCommon):
         if self.loaded:
             return
         self.loaded = True
-        [self.run_script(script) for script in self._scripts]
+        [self.run_script(script) for script in self._scripts_list]
         [self.run_script(script) for script in self._final_scripts]
 
     def _create_chart(self, autosize=True):
@@ -355,7 +355,7 @@ class LWC(SeriesCommon):
         if self.loaded:
             self._script_func(script)
             return
-        self._scripts.append(script) if not run_last else self._final_scripts.append(script)
+        self._scripts_list.append(script) if not run_last else self._final_scripts.append(script)
 
     def set(self, df: pd.DataFrame):
         """
@@ -757,6 +757,3 @@ class SubChart(LWC):
         self.run_script(f'''
         {self.id}.chart.timeScale().setVisibleLogicalRange({sync_parent_id}.chart.timeScale().getVisibleLogicalRange())
         ''', run_last=True)
-
-
-

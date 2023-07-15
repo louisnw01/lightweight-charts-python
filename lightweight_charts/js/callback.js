@@ -116,6 +116,7 @@ function makeSpinner(chart) {
 }
 
 function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
+    console.log(callbackFunction)
     let switcherElement = document.createElement('div');
     switcherElement.style.margin = '4px 14px'
     switcherElement.style.zIndex = '1000'
@@ -147,6 +148,7 @@ function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, 
         return itemEl;
     });
     function onItemClicked(item) {
+        console.log("onItemClicked")
         if (item === activeItem) {
             return;
         }
