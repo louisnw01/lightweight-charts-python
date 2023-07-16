@@ -29,7 +29,7 @@ try:
 except ImportError:
     HTML = None
 
-from lightweight_charts.abstract import LWC, TopBar, JS
+from lightweight_charts.abstract import LWC, JS
 
 
 def _widget_message(chart, string):
@@ -47,40 +47,41 @@ def _widget_message(chart, string):
 
 class WxChart(LWC):
     def __init__(self, parent, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0,
-                 scale_candles_only: bool = False, api: object = None, topbar: bool = False, searchbox: bool = False):
+                 scale_candles_only: bool = False, api: object = None, topbar: bool = False, searchbox: bool = False,
+                 toolbox: bool = False):
         if wx is None:
             raise ModuleNotFoundError('wx.html2 was not found, and must be installed to use WxChart.')
         self.webview: wx.html2.WebView = wx.html2.WebView.New(parent)
 
-        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height, scale_candles_only=scale_candles_only)
+        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height,
+                         scale_candles_only=scale_candles_only, topbar=topbar, searchbox=searchbox, toolbox=toolbox,
+                         _js_api_code='window.wx_msg.postMessage.bind(window.wx_msg)')
         self.api = api
         self._script_func = self.webview.RunScript
-        self._js_api_code = 'window.wx_msg.postMessage.bind(window.wx_msg)'
 
         self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(500, self._on_js_load))
         self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: _widget_message(self, e.GetString()))
         self.webview.AddScriptMessageHandler('wx_msg')
         self.webview.SetPage(self._html, '')
-
-        self.webview.AddUserScript(JS['callback'])
-        self._create_chart()
-        self.topbar = TopBar(self) if topbar else None
-        self._make_search_box() if searchbox else None
+        self.webview.AddUserScript(JS['callback']) if topbar or searchbox else None
+        self.webview.AddUserScript(JS['toolbox']) if toolbox else None
 
     def get_webview(self): return self.webview
 
 
 class QtChart(LWC):
-    def __init__(self, widget=None, api: object = None, topbar: bool = False, searchbox: bool = False,
-                 volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, scale_candles_only: bool = False):
+    def __init__(self, widget=None, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0,
+                 scale_candles_only: bool = False, api: object = None, topbar: bool = False, searchbox: bool = False,
+                 toolbox: bool = False):
         if QWebEngineView is None:
             raise ModuleNotFoundError('QWebEngineView was not found, and must be installed to use QtChart.')
         self.webview = QWebEngineView(widget)
 
-        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height, scale_candles_only=scale_candles_only)
+        super().__init__(volume_enabled, inner_width=inner_width, inner_height=inner_height,
+                         scale_candles_only=scale_candles_only, topbar=topbar, searchbox=searchbox, toolbox=toolbox,
+                         _js_api_code='window.pythonObject.callback')
         self.api = api
         self._script_func = self.webview.page().runJavaScript
-        self._js_api_code = 'window.pythonObject.callback'
 
         self.web_channel = QWebChannel()
         self.bridge = Bridge(self)
@@ -100,17 +101,12 @@ class QtChart(LWC):
         '''
         self.webview.page().setHtml(self._html)
 
-        self.run_script(JS['callback'])
-        self._create_chart()
-        self.topbar = TopBar(self) if topbar else None
-        self._make_search_box() if searchbox else None
-
     def get_webview(self): return self.webview
 
 
 class StaticLWC(LWC):
-    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False):
-        super().__init__(volume_enabled, inner_width, inner_height, scale_candles_only=scale_candles_only)
+    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox=False, autosize=True):
+        super().__init__(volume_enabled, inner_width, inner_height, scale_candles_only=scale_candles_only, toolbox=toolbox, autosize=autosize)
         self.width = width
         self.height = height
         self._html = self._html.replace('</script>\n</body>\n</html>', '')
@@ -133,9 +129,8 @@ class StaticLWC(LWC):
 
 
 class StreamlitChart(StaticLWC):
-    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False):
-        super().__init__(volume_enabled, width, height, inner_width, inner_height, scale_candles_only)
-        self._create_chart()
+    def __init__(self, volume_enabled=True, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox: bool = False):
+        super().__init__(volume_enabled, width, height, inner_width, inner_height, scale_candles_only, toolbox)
 
     def _load(self):
         if html is None:
@@ -144,11 +139,10 @@ class StreamlitChart(StaticLWC):
 
 
 class JupyterChart(StaticLWC):
-    def __init__(self, volume_enabled=True, width=800, height=350, inner_width=1, inner_height=1, scale_candles_only: bool = False):
-        super().__init__(volume_enabled, width, height, inner_width, inner_height, scale_candles_only)
+    def __init__(self, volume_enabled=True, width: int = 800, height=350, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox: bool = False):
+        super().__init__(volume_enabled, width, height, inner_width, inner_height, scale_candles_only, toolbox, autosize=False)
         self._position = ""
 
-        self._create_chart(autosize=False)
         self.run_script(f'''
             for (var i = 0; i < document.getElementsByClassName("tv-lightweight-charts").length; i++) {{
                     var element = document.getElementsByClassName("tv-lightweight-charts")[i];

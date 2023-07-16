@@ -1,4 +1,4 @@
-function makeSearchBox(chart, callbackFunction) {
+function makeSearchBox(chart) {
     let searchWindow = document.createElement('div')
     searchWindow.style.position = 'absolute'
     searchWindow.style.top = '0'
@@ -49,39 +49,28 @@ function makeSearchBox(chart, callbackFunction) {
     chart.wrapper.addEventListener('mouseout', (event) => {
         selectedChart = false
     })
-    document.addEventListener('keydown', function(event) {
-        if (!selectedChart) {return}
-        if (event.altKey && event.code === 'KeyH') {
-            let price = chart.series.coordinateToPrice(yPrice)
-
-            let colorList = [
-                'rgba(228, 0, 16, 0.7)',
-                'rgba(255, 133, 34, 0.7)',
-                'rgba(164, 59, 176, 0.7)',
-                'rgba(129, 59, 102, 0.7)',
-                'rgba(91, 20, 248, 0.7)',
-                'rgba(32, 86, 249, 0.7)',
-            ]
-            let color = colorList[Math.floor(Math.random()*colorList.length)]
-
-            makeHorizontalLine(chart, 0, price, color, 2, LightweightCharts.LineStyle.Solid, true, '')
-        }
+    chart.commandFunctions.push((event) => {
         if (searchWindow.style.display === 'none') {
             if (/^[a-zA-Z0-9]$/.test(event.key)) {
                 searchWindow.style.display = 'flex';
                 sBox.focus();
+                return true
             }
+            else return false
         }
         else if (event.key === 'Enter') {
-            callbackFunction(`on_search__${chart.id}__${sBox.value}`)
+            chart.callbackFunction(`on_search__${chart.id}__${sBox.value}`)
             searchWindow.style.display = 'none'
             sBox.value = ''
+            return true
         }
         else if (event.key === 'Escape') {
             searchWindow.style.display = 'none'
             sBox.value = ''
+            return true
         }
-    });
+        else return false
+    })
     sBox.addEventListener('input', function() {
         sBox.value = sBox.value.toUpperCase();
     });
@@ -115,7 +104,7 @@ function makeSpinner(chart) {
     animateSpinner();
 }
 
-function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
+function makeSwitcher(chart, items, activeItem, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
     let switcherElement = document.createElement('div');
     switcherElement.style.margin = '4px 14px'
     switcherElement.style.zIndex = '1000'
@@ -155,7 +144,7 @@ function makeSwitcher(chart, items, activeItem, callbackFunction, callbackName, 
             element.style.color = items[index] === item ? 'activeColor' : inactiveColor
         });
         activeItem = item;
-        callbackFunction(`${callbackName}__${chart.id}__${item}`);
+        chart.callbackFunction(`${callbackName}__${chart.id}__${item}`);
     }
     chart.topBar.appendChild(switcherElement)
     makeSeperator(chart.topBar)

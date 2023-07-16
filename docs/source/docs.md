@@ -9,11 +9,11 @@
 ___
 
 ## Common Methods
-These methods can be used within the [`Chart`](#chart), [`SubChart`](#subchart), [`QtChart`](#qtchart), [`WxChart`](#wxchart) and [`StreamlitChart`](#streamlitchart) objects.
+The methods below can be used within all chart objects.
 
 ___
 ### `set`
-`data: pd.DataFrame`
+`data: pd.DataFrame` `render_drawings: bool`
 
 Sets the initial data for the chart.
 
@@ -21,7 +21,11 @@ The data must be given as a DataFrame, with the columns:
 
 `time | open | high | low | close | volume`
 
-The `time` column can also be named `date`, and the `volume` column can be omitted if volume is not enabled.
+The `time` column can also be named `date` or be the index, and the `volume` column can be omitted if volume is not enabled.
+
+Column names are not case sensitive.
+
+If `render_drawings` is `True`, any drawings made using the `toolbox` will be redrawn with the new data. This is designed to be used when switching to a different timeframe of the same symbol.
 
 ```{important}
 the `time` column must have rows all of the same timezone and locale. This is particularly noticeable for data which crosses over daylight saving hours on data with intervals of less than 1 day. Errors are likely to be raised if they are not converted beforehand.
@@ -53,7 +57,7 @@ As before, the `time` can also be named `date`, and the `volume` can be omitted 
 The provided ticks do not need to be rounded to an interval (1 min, 5 min etc.), as the library handles this automatically.```````
 ```
 
-If `cumulative_volume` is used, the volume data given to this method will be added onto the latest bar of volume data.
+If `cumulative_volume` is used, the volume data given will be added onto the latest bar of volume data.
 ___
 
 ### `create_line`
@@ -65,14 +69,29 @@ ___
 ### `lines`
 `-> List[Line]`
 
-Returns a list of all Line objects for the chart or subchart.
+Returns a list of all lines for the chart or subchart.
 ___
+
+### `trend_line`
+`start_time: str/datetime` | `start_value: float/int` | `end_time: str/datetime` | `end_value: float/int` | `color: str` | `width: int` | `-> Line`
+
+Creates a trend line, drawn from the first point (`start_time`, `start_value`) to the last point (`end_time`, `end_value`).
+___
+
+### `ray_line`
+`start_time: str/datetime` | `value: float/int` | `color: str` | `width: int` | `-> Line`
+
+Creates a ray line, drawn from the first point (`start_time`, `value`) and onwards.
+___
+
 ### `marker`
 `time: datetime` | `position: 'above'/'below'/'inside'` | `shape: 'arrow_up'/'arrow_down'/'circle'/'square'` | `color: str` | `text: str` | `-> str`
 
 Adds a marker to the chart, and returns its id.
 
 If the `time` parameter is not given, the marker will be placed at the latest bar.
+
+When using multiple markers, they should be placed in chronological order or display bugs may be present.
 ___
 
 ### `remove_marker`
@@ -88,9 +107,11 @@ chart.remove_marker(marker)
 ___
 
 ### `horizontal_line`
-`price: float/int` | `color: str` | `width: int` | `style: 'solid'/'dotted'/'dashed'/'large_dashed'/'sparse_dotted'` | `text: str` | `axis_label_visible: bool`
+`price: float/int` | `color: str` | `width: int` | `style: 'solid'/'dotted'/'dashed'/'large_dashed'/'sparse_dotted'` | `text: str` | `axis_label_visible: bool` | `interactive: bool` | `-> HorizontalLine`
 
-Places a horizontal line at the given price.
+Places a horizontal line at the given price, and returns a HorizontalLine object.
+
+If `interactive` is set to `True`, this horizontal line can be edited on the chart. Upon its movement a callback will also be emitted to an `on_horizontal_line_move` method, containing its ID and price. The toolbox should be enabled during its usage. It is designed to be used to update an order (limit, stop, etc.) directly on the chart.
 ___
 
 ### `remove_horizontal_line`
@@ -107,6 +128,12 @@ ___
 ### `clear_horizontal_lines`
 
 Clears the horizontal lines displayed on the data.
+___
+
+### `precision`
+`precision: int`
+
+Sets the precision of the chart based on the given number of decimal places.
 ___
 
 ### `price_scale`
@@ -172,12 +199,6 @@ ___
 Overlays a watermark on top of the chart.
 ___
 
-### `title`
-`title: str`
-
-Sets the title label for the chart.
-___
-
 ### `legend`
 `visible: bool` | `ohlc: bool` | `percent: bool` | `lines: bool` | `color: str` | `font_size: int` | `font_family: str`
 
@@ -191,7 +212,7 @@ Shows a loading spinner on the chart, which can be used to visualise the loading
 ___
 
 ### `price_line`
-`label_visible: bool` | `line_visible: bool`
+`label_visible: bool` | `line_visible: bool` | `title: str`
 
 Configures the visibility of the last value price line and its label.
 ___
@@ -212,7 +233,7 @@ Shows the hidden candles on the chart.
 ___
 
 ### `polygon`
-Used to access Polygon.io's API (see [here](https://lightweight-charts-python.readthedocs.io/en/latest/polygon.html))
+Used to access Polygon.io's API (see [here](https://lightweight-charts-python.readthedocs.io/en/latest/polygon.html)).
 ___
 
 ### `create_subchart`
@@ -227,7 +248,7 @@ Creates and returns a [SubChart](#subchart) object, placing it adjacent to the d
 `sync`: If given as `True`, the `SubChart`'s timescale and crosshair will follow that of the declaring `Chart` or `SubChart`. If a `str` is passed, the `SubChart` will follow the panel with the given id.  Chart ids  can be accessed from the`chart.id` and `subchart.id` attributes. 
 
 ```{important}
-`width` and `height` must be given as a number between 0 and 1.
+`width` and `height` should be given as a number between 0 and 1.
 ```
 
 ___
@@ -235,25 +256,29 @@ ___
 
 ## Chart
 `volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `maximize: bool` | `debug: bool` |
-`api: object` | `topbar: bool` | `searchbox: bool`
+`api: object` | `topbar: bool` | `searchbox: bool` | `toolbox: bool`
 
 The main object used for the normal functionality of lightweight-charts-python, built on the pywebview library.
+
+```{important}
+The `Chart` object should be defined within an `if __name__ == '__main__'` block.
+```
 ___
 
 ### `show`
 `block: bool`
 
-Shows the chart window. If `block` is enabled, the method will block code execution until the window is closed.
+Shows the chart window, blocking until the chart has loaded. If `block` is enabled, the method will block code execution until the window is closed.
 ___
 
 ### `hide`
 
-Hides the chart window, and can be later shown by calling `chart.show()`.
+Hides the chart window, which can be later shown by calling `chart.show()`.
 ___
 
 ### `exit`
 
-Exits and destroys the chart and window.
+Exits and destroys the chart window.
 
 ___
 
@@ -280,7 +305,7 @@ if __name__ == '__main__':
 ```
 
 ```{important}
-This method must be called after the chart window is open.
+This method should be called after the chart window has loaded.
 ```
 
 ___
@@ -288,11 +313,10 @@ ___
 ## Line
 
 The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to:
-
-[`title`](#title), [`marker`](#marker), [`horizontal_line`](#horizontal-line) [`hide_data`](#hide-data), [`show_data`](#show-data) and[`price_line`](#price-line) methods.
+[`title`](#title), [`marker`](#marker), [`horizontal_line`](#horizontal-line) [`hide_data`](#hide-data), [`show_data`](#show-data) and[`price_line`](#price-line).
 
 ```{important}
-The `line` object should only be accessed from the [`create_line`](#create-line) method of `Chart`.
+The `Line` object should only be accessed from the [`create_line`](#create-line) method of `Chart`.
 ```
 ___
 
@@ -324,7 +348,28 @@ ___
 
 ### `delete`
 
-Irreversibly deletes the line on the chart as well as the Line object.
+Irreversibly deletes the line.
+___
+
+## HorizontalLine
+
+The `HorizontalLine` object represents a `PriceLine` in Lightweight Charts.
+
+```{important}
+The `HorizontalLine` object should only be accessed from the [`horizontal_line`](#horizontal-line) Common Method.
+```
+___
+
+### `update`
+`price: float/int`
+
+Updates the price of the horizontal line.
+
+___
+
+### `delete`
+
+Irreversibly deletes the horizontal line.
 ___
 
 ## SubChart
@@ -511,6 +556,19 @@ async def main():
 if __name__ == '__main__':
     asyncio.run(main())
 ```
+___
+
+## Toolbox
+The Toolbox allows for trendlines, ray lines and horizontal lines to be drawn and edited directly on the chart.
+
+It can be used within any Chart object, and is enabled by setting the `toolbox` parameter to `True` upon Chart declaration.
+
+The following hotkeys can also be used when the Toolbox is enabled:
+* Alt+T: Trendline
+* Alt+H: Horizontal Line
+* Alt+R: Ray Line
+* Meta+Z: Undo
+
 ___
 
 ## QtChart

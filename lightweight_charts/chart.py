@@ -2,7 +2,7 @@ import asyncio
 import multiprocessing as mp
 import webview
 
-from lightweight_charts.abstract import LWC, JS, TopBar
+from lightweight_charts.abstract import LWC
 
 
 class CallbackAPI:
@@ -48,25 +48,17 @@ class PyWV:
 class Chart(LWC):
     def __init__(self, volume_enabled: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
                  on_top: bool = False, maximize: bool = False, debug: bool = False,
-                 api: object = None, topbar: bool = False, searchbox: bool = False,
+                 api: object = None, topbar: bool = False, searchbox: bool = False, toolbox: bool = False,
                  inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False, scale_candles_only: bool = False):
-        super().__init__(volume_enabled, inner_width, inner_height, dynamic_loading, scale_candles_only)
+        super().__init__(volume_enabled, inner_width, inner_height, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox, 'pywebview.api.callback')
         self._q, self._emit_q, self._return_q = (mp.Queue() for _ in range(3))
         self._exit, self._loaded = mp.Event(), mp.Event()
         self._script_func = self._q.put
         self._api = api
-        self._js_api_code = 'pywebview.api.callback'
         self._process = mp.Process(target=PyWV, args=(self._q, self._exit, self._loaded, self._html,
                                                       width, height, x, y, on_top, maximize, debug,
                                                       self._emit_q, self._return_q), daemon=True)
         self._process.start()
-        self._create_chart()
-        if not topbar and not searchbox:
-            return
-        self.run_script(JS['callback'])
-        self.run_script(f'makeSpinner({self.id})')
-        self.topbar = TopBar(self) if topbar else None
-        self._make_search_box() if searchbox else None
 
     def show(self, block: bool = False):
         """
@@ -101,7 +93,7 @@ class Chart(LWC):
                         widget.value = arg
                         await getattr(self._api, key)()
                     else:
-                        await getattr(self._api, key)(arg)
+                        await getattr(self._api, key)(*arg.split(';;;'))
                     continue
                 value = self.polygon._q.get()
                 func, args = value[0], value[1:]

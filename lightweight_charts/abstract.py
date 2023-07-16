@@ -11,7 +11,7 @@ from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, C
 
 JS = {}
 current_dir = os.path.dirname(os.path.abspath(__file__))
-for file in ('pkg', 'funcs', 'callback'):
+for file in ('pkg', 'funcs', 'callback', 'toolbox'):
     with open(os.path.join(current_dir, 'js', f'{file}.js'), 'r', encoding='utf-8') as f:
         JS[file] = f.read()
 
@@ -59,10 +59,15 @@ class SeriesCommon:
             }}
         ''')
 
-    def _df_datetime_format(self, df: pd.DataFrame):
+    def _df_datetime_format(self, df: pd.DataFrame, exclude_lowercase=None):
         df = df.copy()
+        df.columns = df.columns.str.lower()
+        if exclude_lowercase:
+            df[exclude_lowercase] = df[exclude_lowercase.lower()]
         if 'date' in df.columns:
             df = df.rename(columns={'date': 'time'})
+        elif 'time' not in df.columns:
+            df['time'] = df.index
         self._set_interval(df)
         df['time'] = self._datetime_format(df['time'])
         return df
@@ -76,11 +81,14 @@ class SeriesCommon:
 
     def _datetime_format(self, arg: Union[pd.Series, str]):
         arg = pd.to_datetime(arg)
-        if self._interval != timedelta(days=1):
-            arg = arg.astype('int64') // 10 ** 9 if isinstance(arg, pd.Series) else arg.timestamp()
-            arg = self._interval.total_seconds() * (arg // self._interval.total_seconds())
+        if self._interval < timedelta(days=1):
+            if isinstance(arg, pd.Series):
+                arg = arg.astype('int64') // 10 ** 9
+            else:
+                arg = self._interval.total_seconds() * (arg.timestamp() // self._interval.total_seconds())
         else:
             arg = arg.dt.strftime('%Y-%m-%d') if isinstance(arg, pd.Series) else arg.strftime('%Y-%m-%d')
+
         return arg
 
     def marker(self, time: datetime = None, position: MARKER_POSITION = 'below', shape: MARKER_SHAPE = 'arrow_up',
@@ -123,28 +131,21 @@ class SeriesCommon:
                    }}
                }});''')
 
-    def horizontal_line(self, price: Union[float, int], color: str = 'rgb(122, 146, 202)', width: int = 1,
-                        style: LINE_STYLE = 'solid', text: str = '', axis_label_visible=True):
+    def horizontal_line(self, price: Union[float, int], color: str = 'rgb(122, 146, 202)', width: int = 2,
+                        style: LINE_STYLE = 'solid', text: str = '', axis_label_visible: bool = True, interactive: bool = False) -> 'HorizontalLine':
         """
         Creates a horizontal line at the given price.\n
         """
-        line_id = self._rand.generate()
-        self.run_script(f"""
-        makeHorizontalLine({self.id}, '{line_id}', {price}, '{color}', {width}, {_line_style(style)}, {_js_bool(axis_label_visible)}, '{text}')
-        """)
-        return line_id
+        return HorizontalLine(self, price, color, width, style, text, axis_label_visible, interactive)
 
-    def remove_horizontal_line(self, price: Union[float, int]):
+    def remove_horizontal_line(self, price: Union[float, int] = None):
         """
         Removes a horizontal line at the given price.
         """
         self.run_script(f'''
         {self.id}.horizontal_lines.forEach(function (line) {{
-            if ({price} === line.price) {{
-                {self.id}.series.removePriceLine(line.line);
-                {self.id}.horizontal_lines.splice({self.id}.horizontal_lines.indexOf(line), 1)
-            }}
-        }});''')
+            if ({price} === line.price) line.deleteLine()
+        }})''')
 
     def clear_markers(self):
         """
@@ -161,13 +162,22 @@ class SeriesCommon:
         {self.id}.horizontal_lines = [];
         ''')
 
-    def title(self, title: str): self.run_script(f'{self.id}.series.applyOptions({{title: "{title}"}})')
-
-    def price_line(self, label_visible: bool = True, line_visible: bool = True):
+    def price_line(self, label_visible: bool = True, line_visible: bool = True, title: str = ''):
         self.run_script(f'''
         {self.id}.series.applyOptions({{
             lastValueVisible: {_js_bool(label_visible)},
             priceLineVisible: {_js_bool(line_visible)},
+            title: '{title}',
+        }})''')
+
+    def precision(self, precision: int):
+        """
+        Sets the precision and minMove.\n
+        :param precision: The number of decimal places.
+        """
+        self.run_script(f'''
+        {self.id}.series.applyOptions({{
+            priceFormat: {{precision: {precision}, minMove: {1 / (10 ** precision)}}}
         }})''')
 
     def hide_data(self): self._toggle_data(False)
@@ -180,47 +190,79 @@ class SeriesCommon:
         {f'{self.id}.volumeSeries.applyOptions({{visible: {_js_bool(arg)}}})' if hasattr(self, 'volume_enabled') and self.volume_enabled else ''}
         ''')
 
+class HorizontalLine:
+    def __init__(self, chart, price, color, width, style, text, axis_label_visible, interactive):
+        self._chart = chart
+        self.id = self._chart._rand.generate()
+        self._chart.run_script(f'''
+        {self.id} = new HorizontalLine({self._chart.id}, '{self.id}', {price}, '{color}', {width}, {_line_style(style)}, {_js_bool(axis_label_visible)}, '{text}')
+        ''')
+        if not interactive: return
+        self._chart.run_script(f'if ("toolBox" in {self._chart.id}) {self._chart.id}.toolBox.drawings.push({self.id})')
+
+    def update(self, price):
+        """
+        Moves the horizontal line to the given price.
+        """
+        self._chart.run_script(f'{self.id}.updatePrice({price})')
+
+    def delete(self):
+        """
+        Irreversibly deletes the horizontal line.
+        """
+        self._chart.run_script(f'{self.id}.deleteLine()')
+        del self
+
 
 class Line(SeriesCommon):
-    def __init__(self, chart, color, width, price_line, price_label):
+    def __init__(self, chart, color, width, price_line, price_label, crosshair_marker=True):
         self.color = color
         self.name = ''
         self._chart = chart
         self._rand = chart._rand
-        self.id = f'window.{self._rand.generate()}'
+        self.id = self._rand.generate()
         self.run_script = self._chart.run_script
         self.run_script(f'''
-            {self.id} = {{
-                series: {self._chart.id}.chart.addLineSeries({{
-                    color: '{color}',
-                    lineWidth: {width},
-                    lastValueVisible: {_js_bool(price_label)},
-                    priceLineVisible: {_js_bool(price_line)},
-                    {"""autoscaleInfoProvider: () => ({
-                        priceRange: {
-                            minValue: 1_000_000_000,
-                            maxValue: 0,
-                        },
-                    }),""" if self._chart._scale_candles_only else ''}
-                }}),
-                markers: [],
-                horizontal_lines: [],
-            }}''')
+        {self.id} = {{
+            series: {self._chart.id}.chart.addLineSeries({{
+                color: '{color}',
+                lineWidth: {width},
+                lastValueVisible: {_js_bool(price_label)},
+                priceLineVisible: {_js_bool(price_line)},
+                crosshairMarkerVisible: {_js_bool(crosshair_marker)},
+                {"""autoscaleInfoProvider: () => ({
+                    priceRange: {
+                        minValue: 1_000_000_000,
+                        maxValue: 0,
+                    },
+                }),""" if self._chart._scale_candles_only else ''}
+            }}),
+            markers: [],
+            horizontal_lines: [],
+            name: '',
+            color: '{color}',
+            }}
+        {self._chart.id}.lines.push({self.id})
+        if ('legend' in {self._chart.id}) {{
+            {self._chart.id}.legend.makeLines({self._chart.id})
+        }} 
+        ''')
 
-    def set(self, data: pd.DataFrame, name=None):
+
+    def set(self, data: pd.DataFrame, name=''):
         """
         Sets the line data.\n
         :param data: If the name parameter is not used, the columns should be named: date/time, value.
         :param name: The column of the DataFrame to use as the line value. When used, the Line will be named after this column.
         """
-        df = self._df_datetime_format(data)
+        df = self._df_datetime_format(data, exclude_lowercase=name)
         if name:
             if name not in data:
                 raise NameError(f'No column named "{name}".')
             self.name = name
             df = df.rename(columns={name: 'value'})
         self._last_bar = df.iloc[-1]
-        self.run_script(f'{self.id}.series.setData({df.to_dict("records")})')
+        self.run_script(f'{self.id}.series.setData({df.to_dict("records")}); {self.id}.name = "{name}"')
 
     def update(self, series: pd.Series):
         """
@@ -231,11 +273,23 @@ class Line(SeriesCommon):
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
+    def _set_trend(self, start_time, start_value, end_time, end_value, ray=False):
+        def time_format(time_val):
+            time_val = self._chart._datetime_format(time_val)
+            return f"'{time_val}'" if isinstance(time_val, str) else time_val
+        self.run_script(f'''
+        let logical
+        if ({_js_bool(ray)}) logical = {self._chart.id}.chart.timeScale().getVisibleLogicalRange()
+        {self.id}.series.setData(calculateTrendLine({time_format(start_time)}, {start_value}, {time_format(end_time)}, {end_value},
+                                {self._chart._interval.total_seconds()*1000}, {self._chart.id}, {_js_bool(ray)}))
+        if (logical) {self._chart.id}.chart.timeScale().setVisibleLogicalRange(logical)
+        ''')
+
     def delete(self):
         """
         Irreversibly deletes the line, as well as the object that contains the line.
         """
-        self._chart._lines.remove(self)
+        self._chart._lines.remove(self) if self in self._chart._lines else None
         self.run_script(f'''
             {self._chart.id}.chart.removeSeries({self.id}.series)
             delete {self.id}
@@ -253,7 +307,7 @@ class TextWidget(Widget):
     def __init__(self, topbar, initial_text):
         super().__init__(topbar)
         self.value = initial_text
-        self.id = f"window.{self._chart._rand.generate()}"
+        self.id = self._chart._rand.generate()
         self._chart.run_script(f'''{self.id} = makeTextBoxWidget({self._chart.id}, "{initial_text}")''')
 
     def set(self, string):
@@ -267,9 +321,9 @@ class SwitcherWidget(Widget):
         self.value = default
         self._method = method.__name__
         self._chart.run_script(f'''
-            makeSwitcher({self._chart.id}, {list(options)}, '{default}', {self._chart._js_api_code}, '{method.__name__}',
+            makeSwitcher({self._chart.id}, {list(options)}, '{default}', '{method.__name__}',
                         '{topbar.active_background_color}', '{topbar.active_text_color}', '{topbar.text_color}', '{topbar.hover_color}')
-            {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width}, (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
+            reSize({self._chart.id})
         ''')
 
 
@@ -279,8 +333,7 @@ class TopBar:
         self._widgets: Dict[str, Widget] = {}
         self._chart.run_script(f'''
             makeTopBar({self._chart.id})
-            {self._chart.id}.chart.resize(window.innerWidth*{self._chart._inner_width},
-            (window.innerHeight*{self._chart._inner_height})-{self._chart.id}.topBar.offsetHeight)
+            reSize({self._chart.id})
         ''')
         self.active_background_color = 'rgba(0, 122, 255, 0.7)'
         self.active_text_color = 'rgb(240, 240, 240)'
@@ -302,15 +355,17 @@ class TopBar:
 
 class LWC(SeriesCommon):
     def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False,
-                 scale_candles_only: bool = False):
+                 scale_candles_only: bool = False, topbar: bool = False, searchbox: bool = False, toolbox: bool = False,
+                 _js_api_code: str = '""', autosize=True, _run_script=None):
         self.volume_enabled = volume_enabled
         self._scale_candles_only = scale_candles_only
         self._inner_width = inner_width
         self._inner_height = inner_height
         self._dynamic_loading = dynamic_loading
-
+        if _run_script:
+            self.run_script = _run_script
         self._rand = IDGen()
-        self.id = f'window.{self._rand.generate()}'
+        self.id = self._rand.generate()
         self._position = 'left'
         self.loaded = False
         self._html = HTML
@@ -321,7 +376,7 @@ class LWC(SeriesCommon):
         self._interval = None
         self._charts = {self.id: self}
         self._lines = []
-        self._js_api_code = None
+        self._js_api_code = _js_api_code
         self._return_q = None
 
         self._background_color = '#000000'
@@ -331,22 +386,27 @@ class LWC(SeriesCommon):
         from lightweight_charts.polygon import PolygonAPI
         self.polygon: PolygonAPI = PolygonAPI(self)
 
+        self.run_script(f'''
+            {self.id} = makeChart({self._js_api_code}, {self._inner_width}, {self._inner_height}, autoSize={_js_bool(autosize)})
+            {self.id}.id = '{self.id}'
+            {self.id}.wrapper.style.float = "{self._position}"
+        ''')
+        if toolbox:
+            self.run_script(JS['toolbox'])
+            self.run_script(f'{self.id}.toolBox = new ToolBox({self.id})')
+        if not topbar and not searchbox:
+            return
+        self.run_script(JS['callback'])
+        self.run_script(f'makeSpinner({self.id})')
+        self.topbar = TopBar(self) if topbar else None
+        self.run_script(f'{self.id}.search = makeSearchBox({self.id})') if searchbox else None
+
     def _on_js_load(self):
         if self.loaded:
             return
         self.loaded = True
         [self.run_script(script) for script in self._scripts]
         [self.run_script(script) for script in self._final_scripts]
-
-    def _create_chart(self, autosize=True):
-        self.run_script(f'''
-            {self.id} = makeChart({self._inner_width}, {self._inner_height}, autoSize={_js_bool(autosize)})
-            {self.id}.id = '{self.id}'
-            {self.id}.wrapper.style.float = "{self._position}"
-            ''')
-
-    def _make_search_box(self):
-        self.run_script(f'{self.id}.search = makeSearchBox({self.id}, {self._js_api_code})')
 
     def run_script(self, script, run_last=False):
         """
@@ -357,14 +417,17 @@ class LWC(SeriesCommon):
             return
         self._scripts.append(script) if not run_last else self._final_scripts.append(script)
 
-    def set(self, df: pd.DataFrame):
+    def set(self, df: pd.DataFrame = None, render_drawings=False):
         """
         Sets the initial data for the chart.\n
         :param df: columns: date/time, open, high, low, close, volume (if volume enabled).
+        :param render_drawings: Re-renders any drawings made through the toolbox. Otherwise, they will be deleted.
         """
-        if df.empty:
+
+        if df.empty or df is None:
             self.run_script(f'{self.id}.series.setData([])')
             self.run_script(f'{self.id}.volumeSeries.setData([])')
+            # self.run_script(f"if ('toolBox' in {self.id}) {self.id}.toolBox.{render_or_clear}()")
             return
         bars = self._df_datetime_format(df)
         self._last_bar = bars.iloc[-1]
@@ -416,6 +479,7 @@ class LWC(SeriesCommon):
                 }}, 50);
             }});
         ''') if self._dynamic_loading else self.run_script(f'{self.id}.candleData = {bars}; {self.id}.series.setData({self.id}.candleData)')
+        self.run_script(f"if ('toolBox' in {self.id}) {self.id}.toolBox.{'clearDrawings' if not render_drawings else 'renderDrawings'}()")
 
     def fit(self):
         """
@@ -446,7 +510,6 @@ class LWC(SeriesCommon):
             let barsInfo = {self.id}.series.barsInLogicalRange(logicalRange);
                 
             if ({self.id}.candleData[{self.id}.candleData.length-1].time === {bar['time']}) {{
-            
                 {self.id}.shownData[{self.id}.shownData.length-1] = {bar}
                 {self.id}.candleData[{self.id}.candleData.length-1] = {bar}
             }}
@@ -461,7 +524,15 @@ class LWC(SeriesCommon):
             {self.id}.candleData.push({bar})
             }}
             {self.id}.series.update({self.id}.shownData[{self.id}.shownData.length-1])
-            ''') if self._dynamic_loading else self.run_script(f'{self.id}.series.update({bar})')
+            ''') if self._dynamic_loading else self.run_script(f'''
+            if (chartTimeToDate({self.id}.candleData[{self.id}.candleData.length-1].time).getTime() === chartTimeToDate({bar['time']}).getTime()) {{
+                {self.id}.candleData[{self.id}.candleData.length-1] = {bar}
+            }}
+            else {{
+                {self.id}.candleData.push({bar})
+            }}
+            {self.id}.series.update({bar})
+            ''')
 
     def update_from_tick(self, series, cumulative_volume=False):
         """
@@ -503,6 +574,16 @@ class LWC(SeriesCommon):
         Returns all lines for the chart.
         """
         return self._lines.copy()
+
+    def trend_line(self, start_time, start_value, end_time, end_value, color: str = '#1E80F0', width: int = 2) -> Line:
+        line = Line(self, color, width, price_line=False, price_label=False, crosshair_marker=False)
+        line._set_trend(start_time, start_value, end_time, end_value, ray=False)
+        return line
+
+    def ray_line(self, start_time, value, color: str = '#1E80F0', width: int = 2) -> Line:
+        line = Line(self, color, width, price_line=False, price_label=False, crosshair_marker=False)
+        line._set_trend(start_time, value, start_time, value, ray=True)
+        return line
 
     def price_scale(self, mode: PRICE_SCALE_MODE = 'normal', align_labels: bool = True, border_visible: bool = False,
                     border_color: str = None, text_color: str = None, entire_text_only: bool = False,
@@ -657,48 +738,16 @@ class LWC(SeriesCommon):
               }}
           }})''')
 
-    def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, lines: bool = True, color: str = None,
-               font_size: int = None, font_family: str = None):
+    def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, lines: bool = True, color: str = 'rgb(191, 195, 203)',
+               font_size: int = 11, font_family: str = 'Monaco'):
         """
         Configures the legend of the chart.
         """
         if not visible:
             return
-        lines_code = ''
-        for i, line in enumerate(self._lines):
-            lines_code += f'''finalString += `<span style="color: {line.color};">▨</span>{f' {line.name}'} :
-            ${{legendItemFormat(param.seriesData.get({line.id}.series).value)}}<br>`;'''
-
         self.run_script(f'''
-        {f"{self.id}.legend.style.color = '{color}'" if color else ''}
-        {f"{self.id}.legend.style.fontSize = {font_size}" if font_size else ''}
-        {f"{self.id}.legend.style.fontFamily = '{font_family}'" if font_family else ''}
-        
-        legendItemFormat = (num) => num.toFixed(2).toString().padStart(8, ' ')
-        
-        {self.id}.chart.subscribeCrosshairMove((param) => {{   
-            if (param.time){{
-                let data = param.seriesData.get({self.id}.series);
-                let finalString = '<span style="line-height: 1.8;">'
-                if (data) {{
-                    let ohlc = `O ${{legendItemFormat(data.open)}} 
-                                | H ${{legendItemFormat(data.high)}} 
-                                | L ${{legendItemFormat(data.low)}}
-                                | C ${{legendItemFormat(data.close)}} `
-                    let percentMove = ((data.close-data.open)/data.open)*100
-                    let percent = `| ${{percentMove >= 0 ? '+' : ''}}${{percentMove.toFixed(2)}} %`
-                    
-                    {'finalString += ohlc' if ohlc else ''}
-                    {'finalString += percent' if percent else ''}
-                    {'finalString += "<br>"' if ohlc or percent else ''}
-                }}
-                {lines_code if lines else ''}
-                {self.id}.legend.innerHTML = finalString+'</span>'
-            }}
-            else {{
-                {self.id}.legend.innerHTML = ''
-            }}
-        }});''')
+        {self.id}.legend = new Legend({self.id}, {_js_bool(ohlc)}, {_js_bool(percent)}, {_js_bool(lines)}, '{color}', {font_size}, '{font_family}')
+        ''')
 
     def spinner(self, visible): self.run_script(f"{self.id}.spinner.style.display = '{'block' if visible else 'none'}'")
 
@@ -721,30 +770,24 @@ class LWC(SeriesCommon):
         return b64decode(serial_data.split(',')[1])
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
-                        width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False,
-                        topbar: bool = False, searchbox: bool = False):
-        subchart = SubChart(self, volume_enabled, position, width, height, sync, topbar, searchbox)
+                        width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False, dynamic_loading: bool = False,
+                        scale_candles_only: bool = False, topbar: bool = False, searchbox: bool = False, toolbox: bool = False):
+        subchart = SubChart(self, volume_enabled, position, width, height, sync, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox)
         self._charts[subchart.id] = subchart
         return subchart
 
 
 class SubChart(LWC):
-    def __init__(self, parent, volume_enabled, position, width, height, sync, topbar, searchbox):
-        super().__init__(volume_enabled, width, height)
+    def __init__(self, parent, volume_enabled, position, width, height, sync, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox):
         self._chart = parent._chart if isinstance(parent, SubChart) else parent
+        super().__init__(volume_enabled, width, height, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox,
+                         self._chart._js_api_code, _run_script=self._chart.run_script)
         self._parent = parent
         self._position = position
-        self._rand = self._chart._rand
-        self._js_api_code = self._chart._js_api_code
         self._return_q = self._chart._return_q
-        self.run_script = self._chart.run_script
         self._charts = self._chart._charts
-        self.id = f'window.{self._rand.generate()}'
         self.polygon = self._chart.polygon._subchart(self)
 
-        self._create_chart()
-        self.topbar = TopBar(self) if topbar else None
-        self._make_search_box() if searchbox else None
         if not sync:
             return
         sync_parent_id = self._parent.id if isinstance(sync, bool) else sync
@@ -757,6 +800,3 @@ class SubChart(LWC):
         self.run_script(f'''
         {self.id}.chart.timeScale().setVisibleLogicalRange({sync_parent_id}.chart.timeScale().getVisibleLogicalRange())
         ''', run_last=True)
-
-
-

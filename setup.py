@@ -5,9 +5,9 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='lightweight_charts',
-    version='1.0.13.4',
+    version='1.0.14',
     packages=find_packages(),
-    python_requires='>=3.9',
+    python_requires='>=3.8',
     install_requires=[
         'pandas',
         'pywebview',

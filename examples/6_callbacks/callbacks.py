@@ -13,7 +13,7 @@ def get_bar_data(symbol, timeframe):
 
 class API:
     def __init__(self):
-        self.chart = None  # Changes after each callback.
+        self.chart: Chart = None  # Changes after each callback.
 
     async def on_search(self, searched_string):  # Called when the user searches.
         new_data = get_bar_data(searched_string, self.chart.topbar['timeframe'].value)
@@ -26,13 +26,16 @@ class API:
         new_data = get_bar_data(self.chart.topbar['symbol'].value, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
-        self.chart.set(new_data)
+        self.chart.set(new_data, render_drawings=True)
+
+    async def on_horizontal_line_move(self, line_id, price):
+        print(f'Horizontal line moved to: {price}')
 
 
 async def main():
     api = API()
 
-    chart = Chart(api=api, topbar=True, searchbox=True)
+    chart = Chart(api=api, topbar=True, searchbox=True, toolbox=True)
     chart.legend(True)
 
     chart.topbar.textbox('symbol', 'TSLA')
@@ -40,6 +43,8 @@ async def main():
 
     df = get_bar_data('TSLA', '5min')
     chart.set(df)
+
+    chart.horizontal_line(200, interactive=True)
 
     await chart.show_async(block=True)
 

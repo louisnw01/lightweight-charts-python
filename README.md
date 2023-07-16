@@ -3,7 +3,7 @@
 # lightweight-charts-python
 
 [![PyPi Release](https://img.shields.io/pypi/v/lightweight-charts?color=32a852&label=PyPi)](https://pypi.org/project/lightweight-charts/)
-[![Made with Python](https://img.shields.io/badge/Python-3.9+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
+[![Made with Python](https://img.shields.io/badge/Python-3.8+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
 [![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
@@ -24,10 +24,12 @@ ___
 1. Simple and easy to use.
 2. Blocking or non-blocking GUI.
 3. Streamlined for live data, with methods for updating directly from tick data.
-4. __Supports:__ Jupyter Notebooks, PyQt, wxPython, Streamlit, and asyncio.
-5. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#callbacks) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
-6. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart).
+4. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart).
+5. The Toolbox, allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
+6. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#callbacks) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
 7. Direct integration of market data through [Polygon.io's](https://polygon.io) market data API.
+
+__Supports:__ Jupyter Notebooks, PyQt, wxPython, Streamlit, and asyncio.
 ___
 
 ### 1. Display data from a csv:
@@ -129,19 +131,20 @@ def calculate_sma(data: pd.DataFrame, period: int = 50):
    result = []
    for i in range(period - 1, len(data)):
       val = avg(data.iloc[i - period + 1:i])
-      result.append({'time': data.iloc[i]['date'], 'value': val})
+      result.append({'time': data.iloc[i]['date'], f'SMA {period}': val})
    return pd.DataFrame(result)
 
 
 if __name__ == '__main__':
    chart = Chart()
-
+   chart.legend(visible=True)
+   
    df = pd.read_csv('ohlcv.csv')
    chart.set(df)
 
    line = chart.create_line()
-   sma_data = calculate_sma(df)
-   line._set(sma_data)
+   sma_data = calculate_sma(df, period=50)
+   line.set(sma_data, name='SMA 50')
 
    chart.show(block=True)
 
@@ -218,12 +221,15 @@ class API:
         if new_data.empty:
             return
         self.chart.set(new_data)
+            
+    async def on_horizontal_line_move(self, line_id, price):
+        print(f'Horizontal line moved to: {price}')
 
 
 async def main():
     api = API()
 
-    chart = Chart(api=api, topbar=True, searchbox=True)
+    chart = Chart(api=api, topbar=True, searchbox=True, toolbox=True)
     chart.legend(True)
 
     chart.topbar.textbox('corner', 'TSLA')
@@ -231,6 +237,8 @@ async def main():
 
     df = get_bar_data('TSLA', '5min')
     chart.set(df)
+    
+    chart.horizontal_line(200, interactive=True)
 
     await chart.show_async(block=True)
 
@@ -245,6 +253,8 @@ ___
 <div align="center">
 
 [![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
+
+Inquiries: [shaders_worker_0e@icloud.com](mailto:shaders_worker_0e@icloud.com)
 ___
 
 _This package is an independent creation and has not been endorsed, sponsored, or approved by TradingView. The author of this package does not have any official relationship with TradingView, and the package does not represent the views or opinions of TradingView._

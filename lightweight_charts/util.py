@@ -27,7 +27,7 @@ class IDGen(list):
         var = ''.join(choices(ascii_lowercase, k=8))
         if var not in self:
             self.append(var)
-            return var
+            return f'window.{var}'
         self.generate()
 
 

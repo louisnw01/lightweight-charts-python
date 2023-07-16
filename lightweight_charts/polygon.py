@@ -49,6 +49,7 @@ class PolygonAPI:
         self._using_live_data = False
         self._using_live = {'stocks': False, 'options': False, 'indices': False, 'crypto': False, 'forex': False}
         self._ws = {'stocks': None, 'options': None, 'indices': None, 'crypto': None, 'forex': None}
+        self._tickers = {}
 
 
     def log(self, info: bool):
@@ -156,7 +157,9 @@ class PolygonAPI:
             columns.append('v')
         df = df[columns].rename(columns=rename)
         df['time'] = pd.to_datetime(df['time'], unit='ms')
-        chart.set(df)
+
+        chart.set(df, render_drawings=self._tickers.get(chart) == ticker)
+        self._tickers[chart] = ticker
 
         if not live:
             return True
@@ -300,10 +303,10 @@ class PolygonChart(Chart):
     def __init__(self, api_key: str, live: bool = False, num_bars: int = 200, end_date: str = 'now', limit: int = 5_000,
                  timeframe_options: tuple = ('1min', '5min', '30min', 'D', 'W'),
                  security_options: tuple = ('Stock', 'Option', 'Index', 'Forex', 'Crypto'),
-                 width: int = 800, height: int = 600, x: int = None, y: int = None,
+                 toolbox: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
                  on_top: bool = False, maximize: bool = False, debug: bool = False):
         super().__init__(volume_enabled=True, width=width, height=height, x=x, y=y, on_top=on_top, maximize=maximize, debug=debug,
-                         api=self, topbar=True, searchbox=True)
+                         api=self, topbar=True, searchbox=True, toolbox=toolbox)
         self.chart = self
         self.num_bars = num_bars
         self.end_date = end_date
@@ -337,7 +340,7 @@ class PolygonChart(Chart):
 
     def _polygon(self, symbol):
         self.spinner(True)
-        self.set(pd.DataFrame())
+        self.set(pd.DataFrame(), True)
         self.crosshair(vert_visible=False, horz_visible=False)
 
         mult, span = _convert_timeframe(self.topbar['timeframe'].value)
