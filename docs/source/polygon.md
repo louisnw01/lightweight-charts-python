@@ -1,6 +1,6 @@
 # Polygon.io
 
-[Polygon.io's](https://polygon.io) market data API is directly integrated within lightweight-charts-python, and is easy to use within the library.
+[Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API is directly integrated within lightweight-charts-python, and is easy to use within the library.
 ___
 ## Requirements
 To use data from Polygon, there are certain libraries (not listed as requirements) that must be installed:

@@ -27,7 +27,7 @@ ___
 4. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart).
 5. The Toolbox, allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
 6. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#callbacks) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
-7. Direct integration of market data through [Polygon.io's](https://polygon.io) market data API.
+7. Direct integration of market data through [Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API.
 
 __Supports:__ Jupyter Notebooks, PyQt, wxPython, Streamlit, and asyncio.
 ___
