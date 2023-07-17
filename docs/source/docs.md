@@ -567,7 +567,7 @@ The following hotkeys can also be used when the Toolbox is enabled:
 * Alt+T: Trendline
 * Alt+H: Horizontal Line
 * Alt+R: Ray Line
-* Meta+Z: Undo
+* Meta+Z or Ctrl+Z: Undo
 
 ___
 

@@ -21,6 +21,12 @@ if (!window.ToolBox) {
             this.subscribeHoverMove()
         }
 
+        toJSON() {
+            // Exclude the chart attribute from serialization
+            const {chart, ...serialized} = this;
+            return serialized;
+        }
+
         makeToolBox() {
             let toolBoxElem = document.createElement('div')
             toolBoxElem.style.position = 'absolute'
@@ -63,7 +69,7 @@ if (!window.ToolBox) {
                 this.drawings.splice(this.drawings.length - 1)
             }
             this.chart.commandFunctions.push((event) => {
-                if (event.metaKey && event.code === 'KeyZ') {
+                if ((event.metaKey || event.ctrlKey) && event.code === 'KeyZ') {
                     commandZHandler(this.drawings[this.drawings.length - 1])
                     return true
                 }
@@ -73,10 +79,13 @@ if (!window.ToolBox) {
         }
 
         makeToolBoxElement(action, keyCmd, paths) {
-            let elem = document.createElement('div')
-            elem.style.margin = '3px'
-            elem.style.borderRadius = '4px'
-            elem.style.display = 'flex'
+            let icon = {
+                elem: document.createElement('div'),
+                action: action,
+            }
+            icon.elem.style.margin = '3px'
+            icon.elem.style.borderRadius = '4px'
+            icon.elem.style.display = 'flex'
 
             let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("width", "29");
@@ -87,54 +96,53 @@ if (!window.ToolBox) {
             group.setAttribute("fill", this.iconColor)
 
             svg.appendChild(group)
-            elem.appendChild(svg);
+            icon.elem.appendChild(svg);
 
-            elem.addEventListener('mouseenter', () => {
-                elem.style.backgroundColor = elem === this.chart.activeIcon ? this.activeBackgroundColor : this.hoverColor
+            icon.elem.addEventListener('mouseenter', () => {
+                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.hoverColor
                 document.body.style.cursor = 'pointer'
             })
-            elem.addEventListener('mouseleave', () => {
-                elem.style.backgroundColor = elem === this.chart.activeIcon ? this.activeBackgroundColor : this.backgroundColor
+            icon.elem.addEventListener('mouseleave', () => {
+                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.backgroundColor
                 document.body.style.cursor = this.chart.cursor
             })
-            elem.addEventListener('click', () => {
+            icon.elem.addEventListener('click', () => {
                 if (this.chart.activeIcon) {
-                    this.chart.activeIcon.style.backgroundColor = this.backgroundColor
+                    this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                     group.setAttribute("fill", this.iconColor)
                     document.body.style.cursor = 'crosshair'
                     this.chart.cursor = 'crosshair'
-                    action(false)
+                    this.chart.activeIcon.action(false)
+                    if (this.chart.activeIcon === icon) {
+                        return this.chart.activeIcon = null
+                    }
                 }
-                if (this.chart.activeIcon === elem) {
-                    this.chart.activeIcon = null
-                    return
-                }
-                this.chart.activeIcon = elem
+                this.chart.activeIcon = icon
                 group.setAttribute("fill", this.activeIconColor)
-                elem.style.backgroundColor = this.activeBackgroundColor
+                icon.elem.style.backgroundColor = this.activeBackgroundColor
                 document.body.style.cursor = 'crosshair'
                 this.chart.cursor = 'crosshair'
-                action(true)
+                this.chart.activeIcon.action(true)
             })
             this.chart.commandFunctions.push((event) => {
                 if (event.altKey && event.code === keyCmd) {
                     if (this.chart.activeIcon) {
-                        this.chart.activeIcon.style.backgroundColor = this.backgroundColor
+                        this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                         group.setAttribute("fill", this.iconColor)
                         document.body.style.cursor = 'crosshair'
                         this.chart.cursor = 'crosshair'
-                        action(false)
+                        this.chart.activeIcon.action(false)
                     }
-                    this.chart.activeIcon = elem
+                    this.chart.activeIcon = icon
                     group.setAttribute("fill", this.activeIconColor)
-                    elem.style.backgroundColor = this.activeBackgroundColor
+                    icon.elem.style.backgroundColor = this.activeBackgroundColor
                     document.body.style.cursor = 'crosshair'
                     this.chart.cursor = 'crosshair'
-                    action(true)
+                    this.chart.activeIcon.action(true)
                     return true
                 }
             })
-            return elem
+            return icon.elem
         }
 
         onTrendSelect(toggle, ray = false) {
@@ -152,7 +160,7 @@ if (!window.ToolBox) {
 
 
             if (!toggle) {
-                this.chart.chart.unsubscribeClick(this.chart.clickHandler)
+                this.chart.chart.unsubscribeClick(this.clickHandler)
                 return
             }
             let crosshairHandlerTrend = (param) => {
@@ -206,7 +214,7 @@ if (!window.ToolBox) {
                 }, 10);
             }
 
-            this.chart.clickHandler = (param) => {
+            this.clickHandler = (param) => {
                 if (!this.makingDrawing) {
                     this.makingDrawing = true
                     trendLine.line = this.chart.chart.addLineSeries({
@@ -235,29 +243,29 @@ if (!window.ToolBox) {
                     trendLine.line.setMarkers([])
                     this.drawings.push(trendLine)
                     this.chart.chart.unsubscribeCrosshairMove(crosshairHandlerTrend)
-                    this.chart.chart.unsubscribeClick(this.chart.clickHandler)
+                    this.chart.chart.unsubscribeClick(this.clickHandler)
                     document.body.style.cursor = 'default'
                     this.chart.cursor = 'default'
-                    this.chart.activeIcon.style.backgroundColor = this.backgroundColor
+                    this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                     this.chart.activeIcon = null
                 }
             }
-            this.chart.chart.subscribeClick(this.chart.clickHandler)
+            this.chart.chart.subscribeClick(this.clickHandler)
         }
 
-        onHorzSelect(toggle) {
-            let clickHandlerHorz = (param) => {
+        clickHandlerHorz = (param) => {
                 let price = this.chart.series.coordinateToPrice(param.point.y)
                 let lineStyle = LightweightCharts.LineStyle.Solid
                 let line = new HorizontalLine(this.chart, 'toolBox', price, null, 2, lineStyle, true)
                 this.drawings.push(line)
-                this.chart.chart.unsubscribeClick(clickHandlerHorz)
+                this.chart.chart.unsubscribeClick(this.clickHandlerHorz)
                 document.body.style.cursor = 'default'
                 this.chart.cursor = 'default'
-                this.chart.activeIcon.style.backgroundColor = this.backgroundColor
+                this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                 this.chart.activeIcon = null
             }
-            this.chart.chart.subscribeClick(clickHandlerHorz)
+        onHorzSelect(toggle) {
+            !toggle ? this.chart.chart.unsubscribeClick(this.clickHandlerHorz) : this.chart.chart.subscribeClick(this.clickHandlerHorz)
         }
 
         onRaySelect(toggle) {
