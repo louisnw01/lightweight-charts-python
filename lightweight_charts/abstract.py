@@ -371,7 +371,7 @@ class ToolBox:
         self.run_script = chart.run_script
         self.id = chart.id
         self._return_q = chart._return_q
-
+        self._save_under = None
         self._saved_drawings = {}
 
     def save_drawings_under(self, widget: Widget):
@@ -404,6 +404,8 @@ class ToolBox:
             json.dump(self._saved_drawings, f)
 
     def _save_drawings(self, drawings):
+        if not self._save_under:
+            return
         self._saved_drawings[self._save_under.value] = json.loads(drawings)
 
 
