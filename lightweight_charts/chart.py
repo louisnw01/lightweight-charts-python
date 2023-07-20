@@ -87,13 +87,17 @@ class Chart(LWC):
                     self._exit.clear()
                     return
                 elif not self._emit_q.empty():
-                    key, chart_id, arg = self._emit_q.get()
+                    name, chart_id, arg = self._emit_q.get()
                     self._api.chart = self._charts[chart_id]
-                    if widget := self._api.chart.topbar._widget_with_method(key):
+                    if name == 'save_drawings':
+                        self._api.chart.toolbox._save_drawings(arg)
+                        continue
+                    method = getattr(self._api, name)
+                    if hasattr(self._api.chart, 'topbar') and (widget := self._api.chart.topbar._widget_with_method(name)):
                         widget.value = arg
-                        await getattr(self._api, key)()
+                        await method() if asyncio.iscoroutinefunction(method) else method()
                     else:
-                        await getattr(self._api, key)(*arg.split(';;;'))
+                        await method(*arg.split(';;;')) if asyncio.iscoroutinefunction(method) else method(arg)
                     continue
                 value = self.polygon._q.get()
                 func, args = value[0], value[1:]

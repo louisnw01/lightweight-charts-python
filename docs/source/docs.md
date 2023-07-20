@@ -325,7 +325,7 @@ ___
 
 Sets the data for the line.
 
-When not using the `name` parameter, the columns should be named: `time | value`.
+When not using the `name` parameter, the columns should be named: `time | value` (Not case sensitive).
 
 Otherwise, the method will use the column named after the string given in `name`. This name will also be used within the legend of the chart. For example:
 ```python
@@ -469,6 +469,7 @@ The ID shown above will change depending upon which pane was used to search, due
 
 ```{important}
 * Search callbacks will always be emitted to a method named `on_search`
+* `API` class methods can be either coroutines or normal methods.
 ```
 ___
 
@@ -568,7 +569,33 @@ The following hotkeys can also be used when the Toolbox is enabled:
 * Alt+H: Horizontal Line
 * Alt+R: Ray Line
 * Meta+Z or Ctrl+Z: Undo
+___
 
+### `save_drawings_under`
+`widget: Widget`
+
+Saves drawings under a specific `topbar` text widget. For example:
+
+```python
+chart.toolbox.save_drawings_under(chart.topbar['symbol'])
+```
+___
+
+### `load_drawings`
+`tag: str`
+
+Loads and displays drawings stored under the tag given.
+___
+### `import_drawings`
+`file_path: str`
+
+Imports the drawings stored at the JSON file given in `file_path`.
+
+___
+### `export_drawings`
+`file_path: str`
+
+Exports all currently saved drawings to the JSON file given in `file_path`.
 ___
 
 ## QtChart

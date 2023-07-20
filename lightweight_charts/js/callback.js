@@ -42,7 +42,7 @@ function makeSearchBox(chart) {
             yPrice = param.point.y;
         }
     });
-    let selectedChart = true
+    let selectedChart = false
     chart.wrapper.addEventListener('mouseover', (event) => {
         selectedChart = true
     })
@@ -50,6 +50,7 @@ function makeSearchBox(chart) {
         selectedChart = false
     })
     chart.commandFunctions.push((event) => {
+        if (!selectedChart) return
         if (searchWindow.style.display === 'none') {
             if (/^[a-zA-Z0-9]$/.test(event.key)) {
                 searchWindow.style.display = 'flex';

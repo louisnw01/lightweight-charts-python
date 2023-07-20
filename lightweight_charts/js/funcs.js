@@ -106,6 +106,12 @@ if (!window.HorizontalLine) {
             this.chart.horizontal_lines.push(this)
         }
 
+        toJSON() {
+            // Exclude the chart attribute from serialization
+            const {chart, line, ...serialized} = this;
+            return serialized;
+        }
+
         updatePrice(price) {
             this.chart.series.removePriceLine(this.line)
             this.price = price
@@ -361,36 +367,3 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, interval, 
     }
     return trendData;
 }
-
-
-/*
-let customMenu = document.createElement('div')
-customMenu.style.position = 'absolute'
-customMenu.style.zIndex = '10000'
-customMenu.style.background = 'rgba(25, 25, 25, 0.7)'
-customMenu.style.color = 'lightgrey'
-customMenu.style.display = 'none'
-customMenu.style.borderRadius = '5px'
-customMenu.style.padding = '5px 10px'
-document.body.appendChild(customMenu)
-
-function menuItem(text) {
-    let elem = document.createElement('div')
-    elem.innerText = text
-    customMenu.appendChild(elem)
-}
-menuItem('Delete drawings')
-menuItem('Hide all indicators')
-menuItem('Save Chart State')
-
-let closeMenu = (event) => {if (!customMenu.contains(event.target)) customMenu.style.display = 'none';}
-document.addEventListener('contextmenu', function (event) {
-    event.preventDefault(); // Prevent default right-click menu
-    customMenu.style.left = event.clientX + 'px';
-    customMenu.style.top = event.clientY + 'px';
-    customMenu.style.display = 'block';
-    document.removeEventListener('click', closeMenu)
-    document.addEventListener('click', closeMenu)
-    });
-
-*/

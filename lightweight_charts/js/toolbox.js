@@ -66,7 +66,8 @@ if (!window.ToolBox) {
                     this.chart.chart.removeSeries(toDelete.line);
                     if (toDelete.ray) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
                 }
-                this.drawings.splice(this.drawings.length - 1)
+                this.drawings.splice(this.drawings.indexOf(toDelete))
+                this.saveDrawings()
             }
             this.chart.commandFunctions.push((event) => {
                 if ((event.metaKey || event.ctrlKey) && event.code === 'KeyZ') {
@@ -248,6 +249,7 @@ if (!window.ToolBox) {
                     this.chart.cursor = 'default'
                     this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                     this.chart.activeIcon = null
+                    this.saveDrawings()
                 }
             }
             this.chart.chart.subscribeClick(this.clickHandler)
@@ -263,6 +265,7 @@ if (!window.ToolBox) {
                 this.chart.cursor = 'default'
                 this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                 this.chart.activeIcon = null
+                this.saveDrawings()
             }
         onHorzSelect(toggle) {
             !toggle ? this.chart.chart.unsubscribeClick(this.clickHandlerHorz) : this.chart.chart.subscribeClick(this.clickHandlerHorz)
@@ -319,7 +322,6 @@ if (!window.ToolBox) {
             let mouseDown = false
             let clickedEnd = false
             let checkForClick = (event) => {
-                //if (!hoveringOver) return
                 mouseDown = true
                 document.body.style.cursor = 'grabbing'
                 this.chart.chart.applyOptions({
@@ -345,11 +347,11 @@ if (!window.ToolBox) {
                     this.chart.chart.subscribeCrosshairMove(checkForDrag)
                 }
                 originalIndex = this.chart.chart.timeScale().coordinateToLogical(x)
-                this.chart.chart.unsubscribeClick(checkForClick)
+                document.removeEventListener('mousedown', checkForClick)
             }
             let checkForRelease = (event) => {
                 mouseDown = false
-                document.body.style.cursor = 'pointer'
+                document.body.style.cursor = this.chart.cursor
 
                 this.chart.chart.applyOptions({handleScroll: true})
                 if (hoveringOver && 'price' in hoveringOver && hoveringOver.id !== 'toolBox') {
@@ -359,6 +361,7 @@ if (!window.ToolBox) {
                 document.removeEventListener('mousedown', checkForClick)
                 document.removeEventListener('mouseup', checkForRelease)
                 this.chart.chart.subscribeCrosshairMove(hoverOver)
+                this.saveDrawings()
             }
             let checkForDrag = (param) => {
                 if (!param.point) return
@@ -485,6 +488,54 @@ if (!window.ToolBox) {
                 else this.chart.chart.removeSeries(item.line)
             })
             this.drawings = []
+        }
+
+        saveDrawings() {
+            let drawingsString = JSON.stringify(this.drawings, (key, value) => {
+                if (key === '' && Array.isArray(value)) {
+                    return value.filter(item => !(item && typeof item === 'object' && 'priceLine' in item && item.id !== 'toolBox'));
+                } else if (key === 'line' || (value && typeof value === 'object' && 'priceLine' in value && value.id !== 'toolBox')) {
+                    return undefined;
+                }
+                return value;
+            });
+            this.chart.callbackFunction(`save_drawings__${this.chart.id}__${drawingsString}`)
+        }
+
+        loadDrawings(drawings) {
+            this.drawings = drawings
+            this.chart.chart.applyOptions({
+                handleScroll: false
+            })
+            let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+            this.drawings.forEach((item) => {
+                if ('price' in item) {
+                    this.drawings[this.drawings.indexOf(item)] = new HorizontalLine(this.chart, 'toolBox', item.priceLine.price, item.priceLine.color, 2, item.priceLine.lineStyle, item.priceLine.axisLabelVisible)
+                }
+                else {
+                    this.drawings[this.drawings.indexOf(item)].line = this.chart.chart.addLineSeries({
+                        lineWidth: 2,
+                        lastValueVisible: false,
+                        priceLineVisible: false,
+                        crosshairMarkerVisible: false,
+                        autoscaleInfoProvider: () => ({
+                            priceRange: {
+                                minValue: 1_000_000_000,
+                                maxValue: 0,
+                            },
+                        }),
+                    })
+                    let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from).getTime() / this.interval) * this.interval), this.interval)
+                    let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to).getTime() / this.interval) * this.interval), this.interval)
+                    let data = calculateTrendLine(startDate, item.data[0].value, endDate, item.data[item.data.length - 1].value, this.interval, this.chart, item.ray)
+                    if (data.length !== 0) item.data = data
+                    item.line.setData(data)
+                }
+            })
+            this.chart.chart.applyOptions({
+                handleScroll: true
+            })
+            this.chart.chart.timeScale().setVisibleLogicalRange(logical)
         }
     }
 

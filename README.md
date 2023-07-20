@@ -30,6 +30,8 @@ ___
 7. Direct integration of market data through [Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API.
 
 __Supports:__ Jupyter Notebooks, PyQt, wxPython, Streamlit, and asyncio.
+
+PartTimeLarry: [Interactive Brokers API and TradingView Charts in Python](https://www.youtube.com/watch?v=TlhDI3PforA)
 ___
 
 ### 1. Display data from a csv:
