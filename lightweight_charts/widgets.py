@@ -33,16 +33,17 @@ from lightweight_charts.abstract import LWC, JS
 
 
 def _widget_message(chart, string):
-    messages = string.split('__')
+    messages = string.split('_~_')
     name, chart_id = messages[:2]
     arg = messages[2]
     chart.api.chart = chart._charts[chart_id]
-    method = getattr(chart.api, name)
-    if widget := chart.api.chart.topbar._widget_with_method(name):
+    fixed_callbacks = ('on_search', 'on_horizontal_line_move')
+    func = chart._methods[name] if name not in fixed_callbacks else getattr(chart._api, name)
+    if hasattr(chart._api.chart, 'topbar') and (widget := chart._api.chart.topbar._widget_with_method(name)):
         widget.value = arg
-        asyncio.create_task(getattr(chart.api, name)()) if iscoroutinefunction(method) else method()
+        asyncio.create_task(func()) if asyncio.iscoroutinefunction(func) else func()
     else:
-        asyncio.create_task(getattr(chart.api, name)(arg)) if iscoroutinefunction(method) else method(arg)
+        asyncio.create_task(func(*arg.split(';;;'))) if asyncio.iscoroutinefunction(func) else func(*arg.split(';;;'))
 
 
 class WxChart(LWC):

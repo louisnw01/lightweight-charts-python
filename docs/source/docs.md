@@ -307,6 +307,29 @@ if __name__ == '__main__':
 ```{important}
 This method should be called after the chart window has loaded.
 ```
+___
+
+### `add_hotkey`
+`modifier: 'ctrl'/'shift'/'alt'/'meta'` | `key: str/int/tuple` | `method: object`
+
+Adds a global hotkey to the chart window, which will execute the method or function given.
+
+When using a number in `key`, it should be given as an integer. If multiple key commands are needed for the same function, you can pass a tuple to `key`. For example:
+
+```python
+def place_buy_order(key):
+    print(f'Buy {key} shares.')
+    
+    
+def place_sell_order(key):
+    print(f'Sell all shares, because I pressed {key}.')
+
+
+chart.add_hotkey('shift', (1, 2, 3), place_buy_order)
+chart.add_hotkey('shift', 'X', place_sell_order)
+```
+
+
 
 ___
 
@@ -436,19 +459,19 @@ ___
 
 ## Callbacks
 
-The `Chart` object allows for asyncronous callbacks to be passed back to python when using the `show_async` method, allowing for more sophisticated chart layouts including searching, timeframe selectors, and text boxes.
+The `Chart` object allows for asynchronous and synchronous callbacks to be passed back to python when using the `show_async` method, allowing for more sophisticated chart layouts including searching, timeframe selectors, and text boxes.
 
 [`QtChart`](#qtchart) and [`WxChart`](#wxchart) can also use callbacks, however they use their respective event loops to emit callbacks rather than asyncio.
 
 A variety of the parameters below should be passed to the Chart upon decaration.
-* `api`: The class object that the callbacks will be emitted to (see [How to use Callbacks](#how-to-use-callbacks)).
+* `api`: The class object that the fixed callbacks will always be emitted to (see [How to use Callbacks](#how-to-use-callbacks)).
 * `topbar`: Adds a [TopBar](#topbar) to the `Chart` or `SubChart` and allows use of the `create_switcher` method.
 * `searchbox`: Adds a search box onto the `Chart` or `SubChart` that is activated by typing.
 
 ___
 ### How to use Callbacks
 
-Callbacks are emitted to the class given as the `api` parameter shown above.
+Fixed Callbacks are emitted to the class given as the `api` parameter shown above.
 
 Take a look at this minimal example:
 
@@ -470,6 +493,7 @@ The ID shown above will change depending upon which pane was used to search, due
 ```{important}
 * Search callbacks will always be emitted to a method named `on_search`
 * `API` class methods can be either coroutines or normal methods.
+* Non fixed callbacks (switchers, hotkeys) can be methods, coroutines, or regular functions.
 ```
 ___
 
@@ -569,6 +593,8 @@ The following hotkeys can also be used when the Toolbox is enabled:
 * Alt+H: Horizontal Line
 * Alt+R: Ray Line
 * Meta+Z or Ctrl+Z: Undo
+
+Drawings can also be deleted by right-clicking on them, which brings up a context menu.
 ___
 
 ### `save_drawings_under`

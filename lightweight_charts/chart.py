@@ -10,7 +10,7 @@ class CallbackAPI:
         self.emit_q, self.return_q = emit_queue, return_queue
 
     def callback(self, message: str):
-        messages = message.split('__')
+        messages = message.split('_~_')
         name, chart_id = messages[:2]
         args = messages[2:]
         self.return_q.put(*args) if name == 'return' else self.emit_q.put((name, chart_id, *args))
@@ -92,12 +92,13 @@ class Chart(LWC):
                     if name == 'save_drawings':
                         self._api.chart.toolbox._save_drawings(arg)
                         continue
-                    method = getattr(self._api, name)
+                    fixed_callbacks = ('on_search', 'on_horizontal_line_move')
+                    func = self._methods[name] if name not in fixed_callbacks else getattr(self._api, name)
                     if hasattr(self._api.chart, 'topbar') and (widget := self._api.chart.topbar._widget_with_method(name)):
                         widget.value = arg
-                        await method() if asyncio.iscoroutinefunction(method) else method()
+                        await func() if asyncio.iscoroutinefunction(func) else func()
                     else:
-                        await method(*arg.split(';;;')) if asyncio.iscoroutinefunction(method) else method(arg)
+                        await func(*arg.split(';;;')) if asyncio.iscoroutinefunction(func) else func(*arg.split(';;;'))
                     continue
                 value = self.polygon._q.get()
                 func, args = value[0], value[1:]

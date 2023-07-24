@@ -332,9 +332,9 @@ class SwitcherWidget(Widget):
     def __init__(self, topbar, method, *options, default):
         super().__init__(topbar)
         self.value = default
-        self._method = method.__name__
+        self._method = str(method)
         self._chart.run_script(f'''
-            makeSwitcher({self._chart.id}, {list(options)}, '{default}', '{method.__name__}',
+            makeSwitcher({self._chart.id}, {list(options)}, '{default}', '{self._method}',
                         '{topbar.active_background_color}', '{topbar.active_text_color}', '{topbar.text_color}', '{topbar.hover_color}')
             reSize({self._chart.id})
         ''')
@@ -356,6 +356,7 @@ class TopBar:
     def __getitem__(self, item): return self._widgets.get(item)
 
     def switcher(self, name, method, *options, default=None):
+        self._chart._methods[str(method)] = method
         self._widgets[name] = SwitcherWidget(self, method, *options, default=default if default else options[0])
 
     def textbox(self, name, initial_text=''): self._widgets[name] = TextWidget(self, initial_text)
@@ -401,7 +402,7 @@ class ToolBox:
         Exports the current list of drawings to the given file path.
         """
         with open(file_path, 'w+') as f:
-            json.dump(self._saved_drawings, f)
+            json.dump(self._saved_drawings, f, indent=4)
 
     def _save_drawings(self, drawings):
         if not self._save_under:
@@ -433,6 +434,7 @@ class LWC(SeriesCommon):
         self._charts = {self.id: self}
         self._lines = []
         self._js_api_code = _js_api_code
+        self._methods = {}
         self._return_q = None
 
         self._background_color = '#000000'
@@ -818,13 +820,28 @@ class LWC(SeriesCommon):
             canvas.toBlob(function(blob) {{
                 const reader = new FileReader();
                 reader.onload = function(event) {{
-                    {self._js_api_code}(`return__{self.id}__${{event.target.result}}`)
+                    {self._js_api_code}(`return_~_{self.id}_~_${{event.target.result}}`)
                 }};
                 reader.readAsDataURL(blob);
             }})
             ''')
         serial_data = self._return_q.get()
         return b64decode(serial_data.split(',')[1])
+
+    def add_hotkey(self, modifier_key: Literal['ctrl', 'alt', 'shift', 'meta'], keys: Union[str, tuple, int], method):
+        self._methods[str(method)] = method
+        if not isinstance(keys, tuple): keys = (keys,)
+        for key in keys:
+            key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
+            self.run_script(f'''
+                {self.id}.commandFunctions.unshift((event) => {{
+                    if (event.{modifier_key + 'Key'} && event.code === '{key_code}') {{
+                        event.preventDefault()
+                        {self.id}.callbackFunction(`{str(method)}_~_{self.id}_~_{key}`)
+                        return true
+                    }}
+                    else return false
+            }})''')
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
                         width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False, dynamic_loading: bool = False,

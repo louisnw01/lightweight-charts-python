@@ -367,3 +367,49 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, interval, 
     }
     return trendData;
 }
+
+
+if (!window.ContextMenu) {
+    class ContextMenu {
+        constructor() {
+            this.menu = document.createElement('div')
+            this.menu.style.position = 'absolute'
+            this.menu.style.zIndex = '10000'
+            this.menu.style.background = 'rgb(50, 50, 50)'
+            this.menu.style.color = 'lightgrey'
+            this.menu.style.display = 'none'
+            this.menu.style.borderRadius = '5px'
+            this.menu.style.padding = '3px 3px'
+            this.menu.style.fontSize = '14px'
+            this.menu.style.cursor = 'default'
+            document.body.appendChild(this.menu)
+
+            let closeMenu = (event) => {
+                if (!this.menu.contains(event.target)) this.menu.style.display = 'none';
+            }
+
+            this.onRightClick = (event) => {
+                event.preventDefault();
+                this.menu.style.left = event.clientX + 'px';
+                this.menu.style.top = event.clientY + 'px';
+                this.menu.style.display = 'block';
+                document.removeEventListener('click', closeMenu)
+                document.addEventListener('click', closeMenu)
+            }
+        }
+        listen(active) {
+            active ? document.addEventListener('contextmenu', this.onRightClick) : document.removeEventListener('contextmenu', this.onRightClick)
+        }
+        menuItem(text, action) {
+            let elem = document.createElement('div')
+            elem.innerText = text
+            elem.style.padding = '0px 10px'
+            elem.style.borderRadius = '3px'
+            this.menu.appendChild(elem)
+            elem.addEventListener('mouseover', (event) => elem.style.backgroundColor = 'rgba(0, 122, 255, 0.3)')
+            elem.addEventListener('mouseout', (event) => elem.style.backgroundColor = 'transparent')
+            elem.addEventListener('click', (event) => {action(); this.menu.style.display = 'none'})
+        }
+    }
+    window.ContextMenu = ContextMenu
+}

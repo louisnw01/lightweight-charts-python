@@ -57,17 +57,8 @@ if (!window.ToolBox) {
 
             let commandZHandler = (toDelete) => {
                 if (!toDelete) return
-                if ('price' in toDelete) {
-                    if (toDelete.id !== 'toolBox') return commandZHandler(this.drawings[this.drawings.indexOf(toDelete) - 1])
-                    this.chart.series.removePriceLine(toDelete.line)
-                } else {
-                    let logical
-                    if (toDelete.ray) logical = this.chart.chart.timeScale().getVisibleLogicalRange()
-                    this.chart.chart.removeSeries(toDelete.line);
-                    if (toDelete.ray) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
-                }
-                this.drawings.splice(this.drawings.indexOf(toDelete))
-                this.saveDrawings()
+                if ('price' in toDelete && toDelete.id !== 'toolBox') return commandZHandler(this.drawings[this.drawings.indexOf(toDelete) - 1])
+                this.deleteDrawing(toDelete)
             }
             this.chart.commandFunctions.push((event) => {
                 if ((event.metaKey || event.ctrlKey) && event.code === 'KeyZ') {
@@ -184,15 +175,13 @@ if (!window.ToolBox) {
 
 
                 if (!currentTime) return this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
-                trendLine.data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart, ray)
-                trendLine.from = trendLine.data[0].time
-                trendLine.to = trendLine.data[trendLine.data.length - 1].time
-
+                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart, ray)
+                trendLine.from = [data[0].time, data[0].value]
+                trendLine.to = [data[data.length - 1].time, data[data.length-1].value]
 
                 if (ray) logical = this.chart.chart.timeScale().getVisibleLogicalRange()
 
-
-                trendLine.line.setData(trendLine.data)
+                trendLine.line.setData(data)
 
                 if (logical) {
                     this.chart.chart.applyOptions({handleScroll: true})
@@ -278,6 +267,11 @@ if (!window.ToolBox) {
         subscribeHoverMove() {
             let hoveringOver = null
             let x, y
+
+            let onClickDelete = () => this.deleteDrawing(contextMenu.drawing)
+            let contextMenu = new ContextMenu()
+            contextMenu.menuItem('Delete Drawing', onClickDelete)
+
             let hoverOver = (param) => {
                 if (!param.point || this.makingDrawing) return
                 this.chart.chart.unsubscribeCrosshairMove(hoverOver)
@@ -308,10 +302,13 @@ if (!window.ToolBox) {
                         document.addEventListener('mousedown', checkForClick)
                         document.addEventListener('mouseup', checkForRelease)
                         hoveringOver = drawing
+                        contextMenu.listen(true)
+                        contextMenu.drawing = drawing
                     } else if (hoveringOver === drawing) {
                         if (!horizontal && !drawing.ray) drawing.line.setMarkers([])
                         document.body.style.cursor = this.chart.cursor
                         hoveringOver = null
+                        contextMenu.listen(false)
                     }
                 })
                 this.chart.chart.subscribeCrosshairMove(hoverOver)
@@ -335,10 +332,10 @@ if (!window.ToolBox) {
                 if ('price' in hoveringOver) {
                     originalPrice = hoveringOver.price
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerHorz)
-                } else if (Math.abs(this.chart.chart.timeScale().timeToCoordinate(hoveringOver.data[0].time) - x) < 4 && !hoveringOver.ray) {
+                } else if (Math.abs(this.chart.chart.timeScale().timeToCoordinate(hoveringOver.from[0]) - x) < 4 && !hoveringOver.ray) {
                     clickedEnd = 'first'
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
-                } else if (Math.abs(this.chart.chart.timeScale().timeToCoordinate(hoveringOver.data[hoveringOver.data.length - 1].time) - x) < 4 && !hoveringOver.ray) {
+                } else if (Math.abs(this.chart.chart.timeScale().timeToCoordinate(hoveringOver.to[0]) - x) < 4 && !hoveringOver.ray) {
                     clickedEnd = 'last'
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
                 } else {
@@ -355,7 +352,7 @@ if (!window.ToolBox) {
 
                 this.chart.chart.applyOptions({handleScroll: true})
                 if (hoveringOver && 'price' in hoveringOver && hoveringOver.id !== 'toolBox') {
-                    this.chart.callbackFunction(`on_horizontal_line_move__${this.chart.id}__${hoveringOver.id};;;${hoveringOver.price.toFixed(8)}`);
+                    this.chart.callbackFunction(`on_horizontal_line_move_~_${this.chart.id}_~_${hoveringOver.id};;;${hoveringOver.price.toFixed(8)}`);
                 }
                 hoveringOver = null
                 document.removeEventListener('mousedown', checkForClick)
@@ -373,32 +370,31 @@ if (!window.ToolBox) {
                 let priceDiff = priceAtCursor - originalPrice
                 let barsToMove = param.logical - originalIndex
 
-                let startBarIndex = this.chart.candleData.findIndex(item => chartTimeToDate(item.time).getTime() === chartTimeToDate(hoveringOver.data[0].time).getTime())
-                let endBarIndex = this.chart.candleData.findIndex(item => chartTimeToDate(item.time).getTime() === chartTimeToDate(hoveringOver.data[hoveringOver.data.length - 1].time).getTime())
+                let startBarIndex = this.chart.candleData.findIndex(item => chartTimeToDate(item.time).getTime() === chartTimeToDate(hoveringOver.from[0]).getTime())
+                let endBarIndex = this.chart.candleData.findIndex(item => chartTimeToDate(item.time).getTime() === chartTimeToDate(hoveringOver.to[0]).getTime())
 
-                let startBar
+                let startDate
                 let endBar
                 if (hoveringOver.ray) {
                     endBar = this.chart.candleData[startBarIndex + barsToMove]
-                    startBar = hoveringOver.data[hoveringOver.data.length - 1]
+                    startDate = hoveringOver.to[0]
                 } else {
-                    startBar = this.chart.candleData[startBarIndex + barsToMove]
+                    startDate = this.chart.candleData[startBarIndex + barsToMove].time
                     endBar = endBarIndex === -1 ? null : this.chart.candleData[endBarIndex + barsToMove]
                 }
 
-                let endDate = endBar ? endBar.time : dateToChartTime(new Date(chartTimeToDate(hoveringOver.data[hoveringOver.data.length - 1].time).getTime() + (barsToMove * this.interval)), this.interval)
-                let startDate = startBar.time
-                let startValue = hoveringOver.data[0].value + priceDiff
-                let endValue = hoveringOver.data[hoveringOver.data.length - 1].value + priceDiff
-                hoveringOver.data = calculateTrendLine(startDate, startValue, endDate, endValue, this.interval, this.chart, hoveringOver.ray)
+                let endDate = endBar ? endBar.time : dateToChartTime(new Date(chartTimeToDate(hoveringOver.to[0]).getTime() + (barsToMove * this.interval)), this.interval)
+                let startValue = hoveringOver.from[1] + priceDiff
+                let endValue = hoveringOver.to[1] + priceDiff
+                let data = calculateTrendLine(startDate, startValue, endDate, endValue, this.interval, this.chart, hoveringOver.ray)
 
                 let logical
-                if (chartTimeToDate(hoveringOver.data[hoveringOver.data.length - 1].time).getTime() >= chartTimeToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime()) {
+                if (chartTimeToDate(data[data.length - 1].time).getTime() >= chartTimeToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime()) {
                     logical = this.chart.chart.timeScale().getVisibleLogicalRange()
                 }
-                hoveringOver.from = hoveringOver.data[0].time
-                hoveringOver.to = hoveringOver.data[hoveringOver.data.length - 1].time
-                hoveringOver.line.setData(hoveringOver.data)
+                hoveringOver.from = [data[0].time, data[0].value]
+                hoveringOver.to = [data[data.length - 1].time, data[data.length - 1].value]
+                hoveringOver.line.setData(data)
                 if (logical) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
 
                 if (!hoveringOver.ray) {
@@ -423,11 +419,11 @@ if (!window.ToolBox) {
 
                 let [firstTime, firstPrice] = [null, null]
                 if (clickedEnd === 'last') {
-                    firstTime = hoveringOver.data[0].time
-                    firstPrice = hoveringOver.data[0].value
+                    firstTime = hoveringOver.from[0]
+                    firstPrice = hoveringOver.from[1]
                 } else if (clickedEnd === 'first') {
-                    firstTime = hoveringOver.data[hoveringOver.data.length - 1].time
-                    firstPrice = hoveringOver.data[hoveringOver.data.length - 1].value
+                    firstTime = hoveringOver.to[0]
+                    firstPrice = hoveringOver.to[1]
                 }
 
                 let logical
@@ -440,11 +436,11 @@ if (!window.ToolBox) {
                     logical = this.chart.chart.timeScale().getVisibleLogicalRange()
                 }
 
-                hoveringOver.data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart)
-                hoveringOver.line.setData(hoveringOver.data)
+                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart)
+                hoveringOver.line.setData(data)
 
-                hoveringOver.from = hoveringOver.data[0].time
-                hoveringOver.to = hoveringOver.data[hoveringOver.data.length - 1].time
+                hoveringOver.from = [data[0].time, data[0].value]
+                hoveringOver.to = [data[data.length - 1].time, data[data.length - 1].value]
                 if (logical) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
 
                 hoveringOver.markers = [
@@ -473,13 +469,26 @@ if (!window.ToolBox) {
             //let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
             this.drawings.forEach((item) => {
                 if ('price' in item) return
-                let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from).getTime() / this.interval) * this.interval), this.interval)
-                let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to).getTime() / this.interval) * this.interval), this.interval)
-                let data = calculateTrendLine(startDate, item.data[0].value, endDate, item.data[item.data.length - 1].value, this.interval, this.chart, item.ray)
-                if (data.length !== 0) item.data = data
+                let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from[0]).getTime() / this.interval) * this.interval), this.interval)
+                let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to[0]).getTime() / this.interval) * this.interval), this.interval)
+                let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.interval, this.chart, item.ray)
                 item.line.setData(data)
             })
             //this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+        }
+
+        deleteDrawing(drawing) {
+            if ('price' in drawing) {
+                this.chart.series.removePriceLine(drawing.line)
+            }
+            else {
+                let logical
+                if (drawing.ray) logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+                this.chart.chart.removeSeries(drawing.line);
+                if (drawing.ray) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+            }
+            this.drawings.splice(this.drawings.indexOf(drawing), 1)
+            this.saveDrawings()
         }
 
         clearDrawings() {
@@ -499,7 +508,7 @@ if (!window.ToolBox) {
                 }
                 return value;
             });
-            this.chart.callbackFunction(`save_drawings__${this.chart.id}__${drawingsString}`)
+            this.chart.callbackFunction(`save_drawings_~_${this.chart.id}_~_${drawingsString}`)
         }
 
         loadDrawings(drawings) {
@@ -525,10 +534,9 @@ if (!window.ToolBox) {
                             },
                         }),
                     })
-                    let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from).getTime() / this.interval) * this.interval), this.interval)
-                    let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to).getTime() / this.interval) * this.interval), this.interval)
-                    let data = calculateTrendLine(startDate, item.data[0].value, endDate, item.data[item.data.length - 1].value, this.interval, this.chart, item.ray)
-                    if (data.length !== 0) item.data = data
+                    let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from[0]).getTime() / this.interval) * this.interval), this.interval)
+                    let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to[0]).getTime() / this.interval) * this.interval), this.interval)
+                    let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.interval, this.chart, item.ray)
                     item.line.setData(data)
                 }
             })
