@@ -525,6 +525,3 @@ ___
 _Bu paket bağımsız bir yaratımdır ve TradingView tarafından onaylanmamıştır, desteklenmemiştir veya onaylanmamıştır. Bu paketin yazarının TradingView ile herhangi bir resmi ilişkisi yoktur ve paket, TradingView'in görüşlerini veya fikirlerini temsil etmemektedir._
 </div>
 ___
-
-_Bu paket bağımsız bir yaratımdır ve TradingView tarafından onaylanmamıştır, desteklenmemiştir veya onaylanmamıştır. Bu paketin yazarının TradingView ile herhangi bir resmi ilişkisi yoktur ve paket, TradingView'in görüşlerini veya fikirlerini temsil etmemektedir._
-</div>
