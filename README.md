@@ -267,10 +267,10 @@ _This package is an independent creation and has not been endorsed, sponsored, o
 
 # lightweight-charts-python
 
-[![PyPi Release](https://img.shields.io/pypi/v/lightweight-charts?color=32a852&label=PyPi)](https://pypi.org/project/lightweight-charts/)
-[![Made with Python](https://img.shields.io/badge/Python-3.8+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
-[![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
-[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
+[![PyPi Sürümü](https://img.shields.io/pypi/v/lightweight-charts?color=32a852&label=PyPi)](https://pypi.org/project/lightweight-charts/)
+[![Python ile yapılmış](https://img.shields.io/badge/Python-3.8+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
+[![Lisans](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
+[![Belgeler](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
 ![cover](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/cover.png)
 
@@ -309,7 +309,7 @@ if __name__ == '__main__':
     
     chart = Chart()
     
-    # Columns: | time | open | high | low | close | volume (if volume is enabled) |
+    # Sütunlar: | zaman | aç | yüksek | düşük | kapat | hacim (eğer ses etkinse) |
     df = pd.read_csv('ohlcv.csv')
     chart.set(df)
     
@@ -364,7 +364,7 @@ if __name__ == '__main__':
     
     df1 = pd.read_csv('ohlc.csv')
     
-    # Columns: | time | price | volume (if volume is enabled) |
+    # Sütunlar: | zaman | fiyat | hacim (eğer ses etkinse) |
     df2 = pd.read_csv('ticks.csv')
     
     chart = Chart(volume_enabled=False)
@@ -472,16 +472,16 @@ def get_bar_data(symbol, timeframe):
 
 class API:
     def __init__(self):
-        self.chart = None  # Changes after each callback.
+        self.chart = None  # Her geri aramadan sonra değişir.
 
-    async def on_search(self, searched_string):  # Called when the user searches.
+    async def on_search(self, searched_string):  # Kullanıcı arama yaptığında çağrılır.
         new_data = get_bar_data(searched_string, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
         self.chart.topbar['corner'].set(searched_string)
         self.chart.set(new_data)
 
-    async def on_timeframe_selection(self):  # Called when the user changes the timeframe.
+    async def on_timeframe_selection(self):  # Kullanıcı zaman çerçevesini değiştirdiğinde çağrılır.
         new_data = get_bar_data(self.chart.topbar['corner'].value, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
@@ -517,9 +517,13 @@ ___
 
 <div align="center">
 
-[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
+[![Belgeler](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
 
-Inquiries: [shaders_worker_0e@icloud.com](mailto:shaders_worker_0e@icloud.com)
+Araştırma: [shaders_worker_0e@icloud.com](mailto:shaders_worker_0e@icloud.com)
+___
+
+_Bu paket bağımsız bir yaratımdır ve TradingView tarafından onaylanmamıştır, desteklenmemiştir veya onaylanmamıştır. Bu paketin yazarının TradingView ile herhangi bir resmi ilişkisi yoktur ve paket, TradingView'in görüşlerini veya fikirlerini temsil etmemektedir._
+</div>
 ___
 
 _Bu paket bağımsız bir yaratımdır ve TradingView tarafından onaylanmamıştır, desteklenmemiştir veya onaylanmamıştır. Bu paketin yazarının TradingView ile herhangi bir resmi ilişkisi yoktur ve paket, TradingView'in görüşlerini veya fikirlerini temsil etmemektedir._
