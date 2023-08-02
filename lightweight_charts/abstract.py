@@ -5,6 +5,7 @@ from base64 import b64decode
 import pandas as pd
 from typing import Union, Literal, Dict, List
 
+from lightweight_charts.table import Table
 from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, _crosshair_mode, \
     _line_style, \
     MissingColumn, _js_bool, _price_scale_mode, PRICE_SCALE_MODE, _marker_position, _marker_shape, IDGen
@@ -12,7 +13,7 @@ from lightweight_charts.util import LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, C
 
 JS = {}
 current_dir = os.path.dirname(os.path.abspath(__file__))
-for file in ('pkg', 'funcs', 'callback', 'toolbox'):
+for file in ('pkg', 'funcs', 'callback', 'toolbox', 'table'):
     with open(os.path.join(current_dir, 'js', f'{file}.js'), 'r', encoding='utf-8') as f:
         JS[file] = f.read()
 
@@ -41,6 +42,7 @@ HTML = f"""
     <div id="wrapper"></div>
     <script>
     {JS['funcs']}
+    {JS['table']}
     </script>
 </body>
 </html>
@@ -89,6 +91,8 @@ class SeriesCommon:
                 self._rename(series, {exclude_lowercase.lower(): exclude_lowercase}, False)
         if 'date' in series.index:
             self._rename(series, {'date': 'time'}, False)
+        elif 'time' not in series.index:
+            series['time'] = series.name
         series['time'] = self._datetime_format(series['time'])
         return series
 
@@ -219,6 +223,9 @@ class HorizontalLine:
         """
         self._chart.run_script(f'{self.id}.updatePrice({price})')
 
+    def label(self, text: str):
+        self._chart.run_script(f'{self.id}.updateLabel("{text}")')
+
     def delete(self):
         """
         Irreversibly deletes the horizontal line.
@@ -258,7 +265,7 @@ class Line(SeriesCommon):
         {self._chart.id}.lines.push({self.id})
         if ('legend' in {self._chart.id}) {{
             {self._chart.id}.legend.makeLines({self._chart.id})
-        }} 
+        }}
         ''')
 
 
@@ -268,6 +275,9 @@ class Line(SeriesCommon):
         :param data: If the name parameter is not used, the columns should be named: date/time, value.
         :param name: The column of the DataFrame to use as the line value. When used, the Line will be named after this column.
         """
+        if data.empty or data is None:
+            self.run_script(f'{self.id}.series.setData([]); {self.id}.name = "{name}"')
+            return
         df = self._df_datetime_format(data, exclude_lowercase=name)
         if name:
             if name not in data:
@@ -282,7 +292,9 @@ class Line(SeriesCommon):
         Updates the line data.\n
         :param series: labels: date/time, value
         """
-        series = self._series_datetime_format(series)
+        series = self._series_datetime_format(series, exclude_lowercase=self.name)
+        if self.name in series.index:
+            series.rename({self.name: 'value'}, inplace=True)
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
@@ -413,7 +425,7 @@ class ToolBox:
 class LWC(SeriesCommon):
     def __init__(self, volume_enabled: bool = True, inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False,
                  scale_candles_only: bool = False, topbar: bool = False, searchbox: bool = False, toolbox: bool = False,
-                 _js_api_code: str = '""', autosize=True, _run_script=None):
+                 _js_api_code: str = None, autosize=True, _run_script=None):
         self.volume_enabled = volume_enabled
         self._scale_candles_only = scale_candles_only
         self._inner_width = inner_width
@@ -433,7 +445,7 @@ class LWC(SeriesCommon):
         self._interval = None
         self._charts = {self.id: self}
         self._lines = []
-        self._js_api_code = _js_api_code
+        self.run_script(f'window.callbackFunction = {_js_api_code}') if _js_api_code else None
         self._methods = {}
         self._return_q = None
 
@@ -445,7 +457,7 @@ class LWC(SeriesCommon):
         self.polygon: PolygonAPI = PolygonAPI(self)
 
         self.run_script(f'''
-            {self.id} = makeChart({self._js_api_code}, {self._inner_width}, {self._inner_height}, autoSize={_js_bool(autosize)})
+            {self.id} = makeChart({self._inner_width}, {self._inner_height}, autoSize={_js_bool(autosize)})
             {self.id}.id = '{self.id}'
             {self.id}.wrapper.style.float = "{self._position}"
         ''')
@@ -820,7 +832,7 @@ class LWC(SeriesCommon):
             canvas.toBlob(function(blob) {{
                 const reader = new FileReader();
                 reader.onload = function(event) {{
-                    {self._js_api_code}(`return_~_{self.id}_~_${{event.target.result}}`)
+                    window.callbackFunction(`return_~_{self.id}_~_${{event.target.result}}`)
                 }};
                 reader.readAsDataURL(blob);
             }})
@@ -837,11 +849,16 @@ class LWC(SeriesCommon):
                 {self.id}.commandFunctions.unshift((event) => {{
                     if (event.{modifier_key + 'Key'} && event.code === '{key_code}') {{
                         event.preventDefault()
-                        {self.id}.callbackFunction(`{str(method)}_~_{self.id}_~_{key}`)
+                        window.callbackFunction(`{str(method)}_~_{self.id}_~_{key}`)
                         return true
                     }}
                     else return false
             }})''')
+
+    def create_table(self, width: Union[float, int], height: Union[float, int], headings: tuple, widths: tuple = None, alignments: tuple = None,
+                     position: str = 'left', draggable: bool = False, method: object = None):
+        self._methods[str(method)] = method
+        return Table(self, width, height, headings, widths, alignments, position, draggable, method)
 
     def create_subchart(self, volume_enabled: bool = True, position: Literal['left', 'right', 'top', 'bottom'] = 'left',
                         width: float = 0.5, height: float = 0.5, sync: Union[bool, str] = False, dynamic_loading: bool = False,
@@ -854,8 +871,7 @@ class LWC(SeriesCommon):
 class SubChart(LWC):
     def __init__(self, parent, volume_enabled, position, width, height, sync, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox):
         self._chart = parent._chart if isinstance(parent, SubChart) else parent
-        super().__init__(volume_enabled, width, height, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox,
-                         self._chart._js_api_code, _run_script=self._chart.run_script)
+        super().__init__(volume_enabled, width, height, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox, _run_script=self._chart.run_script)
         self._parent = parent
         self._position = position
         self._return_q = self._chart._return_q

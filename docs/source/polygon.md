@@ -8,7 +8,7 @@ To use data from Polygon, there are certain libraries (not listed as requirement
 * Live data requires the `websockets` library.
 ___
 ## `polygon`
-`polygon` is a [Common Method](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#common-methods), and can be accessed from within any chart type.
+`polygon` is a [Common Method](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html), and can be accessed from within any chart type.
 
 `chart.polygon.<method>`
 
@@ -107,7 +107,7 @@ This object requires the `requests` library for static data, and the `websockets
 
 All data is requested within the chart window through searching and selectors.
 
-As well as the parameters from the [Chart](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#chart) object, PolygonChart also has the parameters:
+As well as the parameters from the [Chart](https://lightweight-charts-python.readthedocs.io/en/latest/charts.html#chart) object, PolygonChart also has the parameters:
 
 * `api_key`: The user's Polygon.io API key.
 * `num_bars`: The target number of bars to be displayed on the chart

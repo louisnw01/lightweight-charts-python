@@ -5,7 +5,7 @@
 [![PyPi Release](https://img.shields.io/pypi/v/lightweight-charts?color=32a852&label=PyPi)](https://pypi.org/project/lightweight-charts/)
 [![Made with Python](https://img.shields.io/badge/Python-3.8+-c7a002?logo=python&logoColor=white)](https://python.org "Go to Python homepage")
 [![License](https://img.shields.io/github/license/louisnw01/lightweight-charts-python?color=9c2400)](https://github.com/louisnw01/lightweight-charts-python/blob/main/LICENSE)
-[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
+[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html)
 
 ![cover](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/cover.png)
 
@@ -24,9 +24,10 @@ ___
 1. Simple and easy to use.
 2. Blocking or non-blocking GUI.
 3. Streamlined for live data, with methods for updating directly from tick data.
-4. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#subchart).
+4. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html#create-subchart-subchart).
 5. The Toolbox, allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
-6. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html#callbacks) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, and more.
+6. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/callbacks.html) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, hotkeys, and more.
+7. Tables for watchlists, order entry, and trade management.
 7. Direct integration of market data through [Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API.
 
 __Supports:__ Jupyter Notebooks, PyQt, wxPython, Streamlit, and asyncio.
@@ -194,9 +195,7 @@ ___
 ### 6. Callbacks:
 
 ```python
-import asyncio
 import pandas as pd
-
 from lightweight_charts import Chart
 
 
@@ -204,49 +203,45 @@ def get_bar_data(symbol, timeframe):
     if symbol not in ('AAPL', 'GOOGL', 'TSLA'):
         print(f'No data for "{symbol}"')
         return pd.DataFrame()
-    return pd.read_csv(f'bar_data/{symbol}_{timeframe}.csv')
+    return pd.read_csv(f'../examples/6_callbacks/bar_data/{symbol}_{timeframe}.csv')
 
 
 class API:
     def __init__(self):
         self.chart = None  # Changes after each callback.
 
-    async def on_search(self, searched_string):  # Called when the user searches.
+    def on_search(self, searched_string):  # Called when the user searches.
         new_data = get_bar_data(searched_string, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
-        self.chart.topbar['corner'].set(searched_string)
+        self.chart.topbar['symbol'].set(searched_string)
         self.chart.set(new_data)
 
-    async def on_timeframe_selection(self):  # Called when the user changes the timeframe.
-        new_data = get_bar_data(self.chart.topbar['corner'].value, self.chart.topbar['timeframe'].value)
+    def on_timeframe_selection(self):  # Called when the user changes the timeframe.
+        new_data = get_bar_data(self.chart.topbar['symbol'].value, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
-        self.chart.set(new_data)
-            
-    async def on_horizontal_line_move(self, line_id, price):
+        self.chart.set(new_data, True)
+
+    def on_horizontal_line_move(self, line_id, price):
         print(f'Horizontal line moved to: {price}')
 
 
-async def main():
+if __name__ == '__main__':
     api = API()
 
     chart = Chart(api=api, topbar=True, searchbox=True, toolbox=True)
     chart.legend(True)
 
-    chart.topbar.textbox('corner', 'TSLA')
+    chart.topbar.textbox('symbol', 'TSLA')
     chart.topbar.switcher('timeframe', api.on_timeframe_selection, '1min', '5min', '30min', default='5min')
 
     df = get_bar_data('TSLA', '5min')
     chart.set(df)
-    
+
     chart.horizontal_line(200, interactive=True)
 
-    await chart.show_async(block=True)
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
+    chart.show(block=True)
 
 ```
 ![callbacks gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/6_callbacks/callbacks.gif)
@@ -254,7 +249,7 @@ ___
 
 <div align="center">
 
-[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/docs.html)
+[![Documentation](https://img.shields.io/badge/documentation-006ee3)](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html)
 
 Inquiries: [shaders_worker_0e@icloud.com](mailto:shaders_worker_0e@icloud.com)
 ___

@@ -11,7 +11,6 @@ function makeSearchBox(chart) {
     searchWindow.style.padding = '5px'
     searchWindow.style.zIndex = '1000'
     searchWindow.style.alignItems = 'center'
-    searchWindow.style.alignItems = 'center'
     searchWindow.style.backgroundColor = 'rgba(30, 30, 30, 0.9)'
     searchWindow.style.border = '2px solid #3C434C'
     searchWindow.style.borderRadius = '5px'
@@ -60,7 +59,7 @@ function makeSearchBox(chart) {
             else return false
         }
         else if (event.key === 'Enter') {
-            chart.callbackFunction(`on_search_~_${chart.id}_~_${sBox.value}`)
+            window.callbackFunction(`on_search_~_${chart.id}_~_${sBox.value}`)
             searchWindow.style.display = 'none'
             sBox.value = ''
             return true
@@ -145,7 +144,7 @@ function makeSwitcher(chart, items, activeItem, callbackName, activeBackgroundCo
             element.style.color = items[index] === item ? 'activeColor' : inactiveColor
         });
         activeItem = item;
-        chart.callbackFunction(`${callbackName}_~_${chart.id}_~_${item}`);
+        window.callbackFunction(`${callbackName}_~_${chart.id}_~_${item}`);
     }
     chart.topBar.appendChild(switcherElement)
     makeSeperator(chart.topBar)

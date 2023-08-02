@@ -1,6 +1,4 @@
-import asyncio
 import pandas as pd
-
 from lightweight_charts import Chart
 
 
@@ -15,24 +13,24 @@ class API:
     def __init__(self):
         self.chart: Chart = None  # Changes after each callback.
 
-    async def on_search(self, searched_string):  # Called when the user searches.
+    def on_search(self, searched_string):  # Called when the user searches.
         new_data = get_bar_data(searched_string, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
         self.chart.topbar['symbol'].set(searched_string)
         self.chart.set(new_data)
 
-    async def on_timeframe_selection(self):  # Called when the user changes the timeframe.
+    def on_timeframe_selection(self):  # Called when the user changes the timeframe.
         new_data = get_bar_data(self.chart.topbar['symbol'].value, self.chart.topbar['timeframe'].value)
         if new_data.empty:
             return
-        self.chart.set(new_data, render_drawings=True)
+        self.chart.set(new_data, True)
 
-    async def on_horizontal_line_move(self, line_id, price):
+    def on_horizontal_line_move(self, line_id, price):
         print(f'Horizontal line moved to: {price}')
 
 
-async def main():
+if __name__ == '__main__':
     api = API()
 
     chart = Chart(api=api, topbar=True, searchbox=True, toolbox=True)
@@ -46,8 +44,4 @@ async def main():
 
     chart.horizontal_line(200, interactive=True)
 
-    await chart.show_async(block=True)
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
+    chart.show(block=True)

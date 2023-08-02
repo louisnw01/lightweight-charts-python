@@ -1,4 +1,4 @@
-function makeChart(callbackFunction, innerWidth, innerHeight, autoSize=true) {
+function makeChart(innerWidth, innerHeight, autoSize=true) {
     let chart = {
         markers: [],
         horizontal_lines: [],
@@ -9,7 +9,6 @@ function makeChart(callbackFunction, innerWidth, innerHeight, autoSize=true) {
             width: innerWidth,
             height: innerHeight,
         },
-        callbackFunction: callbackFunction,
         candleData: [],
         commandFunctions: []
     }
@@ -64,6 +63,7 @@ function makeChart(callbackFunction, innerWidth, innerHeight, autoSize=true) {
     chart.wrapper.style.height = `${100*innerHeight}%`
     chart.wrapper.style.display = 'flex'
     chart.wrapper.style.flexDirection = 'column'
+    chart.wrapper.style.position = 'relative'
 
     chart.div.style.position = 'relative'
     chart.div.style.display = 'flex'
@@ -116,6 +116,12 @@ if (!window.HorizontalLine) {
             this.chart.series.removePriceLine(this.line)
             this.price = price
             this.priceLine.price = this.price
+            this.line = this.chart.series.createPriceLine(this.priceLine)
+        }
+
+        updateLabel(text) {
+            this.chart.series.removePriceLine(this.line)
+            this.priceLine.title = text
             this.line = this.chart.series.createPriceLine(this.priceLine)
         }
 

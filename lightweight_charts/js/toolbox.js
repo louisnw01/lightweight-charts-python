@@ -184,12 +184,12 @@ if (!window.ToolBox) {
                 trendLine.line.setData(data)
 
                 if (logical) {
-                    this.chart.chart.applyOptions({handleScroll: true})
+                    this.chart.chart.applyOptions({handleScroll: false})
                     setTimeout(() => {
                         this.chart.chart.timeScale().setVisibleLogicalRange(logical)
                     }, 1)
                     setTimeout(() => {
-                        this.chart.chart.applyOptions({handleScroll: false})
+                        this.chart.chart.applyOptions({handleScroll: true})
                     }, 50)
                 }
                 if (!ray) {
@@ -309,6 +309,10 @@ if (!window.ToolBox) {
                         document.body.style.cursor = this.chart.cursor
                         hoveringOver = null
                         contextMenu.listen(false)
+                        if (!mouseDown) {
+                            document.removeEventListener('mousedown', checkForClick)
+                            document.removeEventListener('mouseup', checkForRelease)
+                        }
                     }
                 })
                 this.chart.chart.subscribeCrosshairMove(hoverOver)
@@ -327,8 +331,6 @@ if (!window.ToolBox) {
 
                 this.chart.chart.unsubscribeCrosshairMove(hoverOver)
 
-                // let [x, y] = [event.clientX, event.clientY]
-                // if ('topBar' in this.chart) y = y - this.chart.topBar.offsetHeight
                 if ('price' in hoveringOver) {
                     originalPrice = hoveringOver.price
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerHorz)
@@ -352,7 +354,7 @@ if (!window.ToolBox) {
 
                 this.chart.chart.applyOptions({handleScroll: true})
                 if (hoveringOver && 'price' in hoveringOver && hoveringOver.id !== 'toolBox') {
-                    this.chart.callbackFunction(`on_horizontal_line_move_~_${this.chart.id}_~_${hoveringOver.id};;;${hoveringOver.price.toFixed(8)}`);
+                    window.callbackFunction(`on_horizontal_line_move_~_${this.chart.id}_~_${hoveringOver.id};;;${hoveringOver.price.toFixed(8)}`);
                 }
                 hoveringOver = null
                 document.removeEventListener('mousedown', checkForClick)
@@ -472,6 +474,8 @@ if (!window.ToolBox) {
                 let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from[0]).getTime() / this.interval) * this.interval), this.interval)
                 let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to[0]).getTime() / this.interval) * this.interval), this.interval)
                 let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.interval, this.chart, item.ray)
+                item.from = [data[0].time, data[0].value]
+                item.to = [data[data.length - 1].time, data[data.length-1].value]
                 item.line.setData(data)
             })
             //this.chart.chart.timeScale().setVisibleLogicalRange(logical)
@@ -508,7 +512,7 @@ if (!window.ToolBox) {
                 }
                 return value;
             });
-            this.chart.callbackFunction(`save_drawings_~_${this.chart.id}_~_${drawingsString}`)
+            window.callbackFunction(`save_drawings_~_${this.chart.id}_~_${drawingsString}`)
         }
 
         loadDrawings(drawings) {
@@ -537,6 +541,8 @@ if (!window.ToolBox) {
                     let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from[0]).getTime() / this.interval) * this.interval), this.interval)
                     let endDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.to[0]).getTime() / this.interval) * this.interval), this.interval)
                     let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.interval, this.chart, item.ray)
+                    item.from = [data[0].time, data[0].value]
+                    item.to = [data[data.length - 1].time, data[data.length-1].value]
                     item.line.setData(data)
                 }
             })
@@ -546,6 +552,5 @@ if (!window.ToolBox) {
             this.chart.chart.timeScale().setVisibleLogicalRange(logical)
         }
     }
-
     window.ToolBox = ToolBox
 }
