@@ -5,8 +5,7 @@ This page contains a reference to all chart objects that can be used within the 
 ___
 
 ## Chart
-`volume_enabled: bool` | `width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `maximize: bool` | `debug: bool` |
-`api: object` | `topbar: bool` | `searchbox: bool` | `toolbox: bool`
+`width: int` | `height: int` | `x: int` | `y: int` | `on_top: bool` | `maximize: bool` | `debug: bool` | `toolbox: bool`
 
 The main object used for the normal functionality of lightweight-charts-python, built on the pywebview library.
 
@@ -61,11 +60,13 @@ This method should be called after the chart window has loaded.
 ___
 
 ## QtChart
-`widget: QWidget` | `volume_enabled: bool`
+`widget: QWidget`
 
-The `QtChart` object allows the use of charts within a `QMainWindow` object, and has similar functionality to the `Chart` and `ChartAsync` objects for manipulating data, configuring and styling.
+The `QtChart` object allows the use of charts within a `QMainWindow` object, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
 
-Callbacks can be recieved through the Qt event loop.
+Either the `PyQt5` or `PySide6` libraries will work with this chart.
+
+Callbacks can be received through the Qt event loop.
 ___
 
 ### `get_webview`
@@ -107,11 +108,11 @@ app.exec_()
 ___
 
 ## WxChart
-`parent: wx.Panel` | `volume_enabled: bool`
+`parent: wx.Panel`
 
-The WxChart object allows the use of charts within a `wx.Frame` object, and has similar functionality to the `Chart` and `ChartAsync` objects for manipulating data, configuring and styling.
+The WxChart object allows the use of charts within a `wx.Frame` object, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
 
-Callbacks can be recieved through the Wx event loop.
+Callbacks can be received through the Wx event loop.
 ___
 
 ### `get_webview`
@@ -157,7 +158,6 @@ if __name__ == '__main__':
 ___
 
 ## StreamlitChart
-`parent: wx.Panel` | `volume_enabled: bool`
 
 The `StreamlitChart` object allows the use of charts within a Streamlit app, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
 

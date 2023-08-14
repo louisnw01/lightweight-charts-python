@@ -14,10 +14,8 @@ class CallbackAPI:
         self.emit_q, self.return_q = emit_queue, return_queue
 
     def callback(self, message: str):
-        messages = message.split('_~_')
-        name, chart_id = messages[:2]
-        args = messages[2:]
-        self.return_q.put(*args) if name == 'return' else self.emit_q.put((name, chart_id, *args))
+        name, args = message.split('_~_')
+        self.return_q.put(*args) if name == 'return' else self.emit_q.put((name, args.split(';;;')))
 
 
 class PyWV:
@@ -60,22 +58,21 @@ class PyWV:
 
 
 class Chart(LWC):
-    def __init__(self, volume_enabled: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
-                 on_top: bool = False, maximize: bool = False, debug: bool = False,
-                 api: object = None, topbar: bool = False, searchbox: bool = False, toolbox: bool = False,
-                 inner_width: float = 1.0, inner_height: float = 1.0, dynamic_loading: bool = False, scale_candles_only: bool = False):
-        super().__init__(volume_enabled, inner_width, inner_height, dynamic_loading, scale_candles_only, topbar, searchbox, toolbox, 'pywebview.api.callback')
+    def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None,
+                 on_top: bool = False, maximize: bool = False, debug: bool = False, toolbox: bool = False,
+                 inner_width: float = 1.0, inner_height: float = 1.0, scale_candles_only: bool = False):
+        super().__init__(inner_width, inner_height, scale_candles_only, toolbox, 'pywebview.api.callback')
         global chart, num_charts
 
         if chart:
             self._q, self._exit, self._start, self._process = chart._q, chart._exit, chart._start, chart._process
             self._emit_q, self._return_q = mp.Queue(), mp.Queue()
-            chart._charts[self.id] = self
-            self._api = chart._api
+            for key, val in self._handlers.items():
+                chart._handlers[key] = val
+            self._handlers = chart._handlers
             self._loaded = chart._loaded_list[num_charts]
             self._q.put(('create_window', (self._html, on_top, width, height, x, y)))
         else:
-            self._api = api
             self._q, self._emit_q, self._return_q = (mp.Queue() for _ in range(3))
             self._loaded_list = [mp.Event() for _ in range(10)]
             self._loaded = self._loaded_list[0]
@@ -117,20 +114,9 @@ class Chart(LWC):
                     self._exit.clear()
                     return
                 elif not self._emit_q.empty():
-                    name, chart_id, arg = self._emit_q.get()
-                    if self._api:
-                        self._api.chart = self._charts[chart_id]
-                    if self._api and name == 'save_drawings':
-                        func = self._api.chart.toolbox._save_drawings
-                    elif name in ('on_search', 'on_horizontal_line_move'):
-                        func = getattr(self._api, name)
-                    else:
-                        func = self._methods[name]
-                    if self._api and hasattr(self._api.chart, 'topbar') and (widget := self._api.chart.topbar._widget_with_method(name)):
-                        widget.value = arg
-                        await func() if asyncio.iscoroutinefunction(func) else func()
-                    else:
-                        await func(*arg.split(';;;')) if asyncio.iscoroutinefunction(func) else func(*arg.split(';;;'))
+                    name, args = self._emit_q.get()
+                    func = self._handlers[name]
+                    await func(*args) if asyncio.iscoroutinefunction(func) else func(*args)
                     continue
                 value = self.polygon._q.get()
                 func, args = value[0], value[1:]
@@ -148,12 +134,10 @@ class Chart(LWC):
         """
         Exits and destroys the chart window.\n
         """
-        if not self.loaded:
-            global num_charts, chart
-            chart = None
-            num_charts = 0
-        else:
-            self._q.put((self.i, 'exit'))
-            self._exit.wait()
+        global num_charts, chart
+        chart = None
+        num_charts = 0
+        self._q.put((self.i, 'exit'))
+        self._exit.wait()
         self._process.terminate()
         del self

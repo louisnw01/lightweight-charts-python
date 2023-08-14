@@ -1,8 +1,8 @@
 if (!window.Table) {
     class Table {
-        constructor(width, height, headings, widths, alignments, position, draggable = false, pythonMethod, chart) {
+        constructor(width, height, headings, widths, alignments, position, draggable = false, chart) {
             this.container = document.createElement('div')
-            this.pythonMethod = pythonMethod
+            this.callbackName = null
             this.chart = chart
 
             if (draggable) {
@@ -15,12 +15,12 @@ if (!window.Table) {
 
             this.container.style.zIndex = '2000'
             this.container.style.width = width <= 1 ? width * 100 + '%' : width + 'px'
-            this.container.style.height = height <= 1 ? height * 100 + '%' : height + 'px'
+            this.container.style.minHeight = height <= 1 ? height * 100 + '%' : height + 'px'
             this.container.style.display = 'flex'
             this.container.style.flexDirection = 'column'
             this.container.style.justifyContent = 'space-between'
 
-            this.container.style.backgroundColor = 'rgb(45, 45, 45)'
+            this.container.style.backgroundColor = '#121417'
             this.container.style.borderRadius = '5px'
             this.container.style.color = 'white'
             this.container.style.fontSize = '12px'
@@ -29,7 +29,8 @@ if (!window.Table) {
             this.table = document.createElement('table')
             this.table.style.width = '100%'
             this.table.style.borderCollapse = 'collapse'
-            this.table.style.border = '1px solid rgb(70, 70, 70)';
+            this.container.style.overflow = 'hidden'
+
             this.rows = {}
 
             this.headings = headings
@@ -43,6 +44,9 @@ if (!window.Table) {
                 let th = document.createElement('th')
                 th.textContent = this.headings[i]
                 th.style.width = this.widths[i]
+                th.style.letterSpacing = '0.03rem'
+                th.style.padding = '0.2rem 0px'
+                th.style.fontWeight = '500'
                 th.style.textAlign = 'center'
                 row.appendChild(th)
                 th.style.border = '1px solid rgb(70, 70, 70)'
@@ -93,10 +97,9 @@ if (!window.Table) {
             }
             row.addEventListener('mouseover', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
             row.addEventListener('mouseout', () => row.style.backgroundColor = 'transparent')
-            row.addEventListener('mousedown', () => {
-                row.style.backgroundColor = 'rgba(60, 60, 60)'
-                window.callbackFunction(`${this.pythonMethod}_~_${this.chart.id}_~_${id}`)
-            })
+            row.addEventListener('mousedown', () => row.style.backgroundColor = 'rgba(60, 60, 60)')
+
+            row.addEventListener('click', () => window.callbackFunction(`${this.callbackName}_~_${id}`))
             row.addEventListener('mouseup', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
 
             this.rows[id] = row
@@ -133,6 +136,11 @@ if (!window.Table) {
                 this.footer[i].style.flex = '1'
                 this.footer[i].style.textAlign = 'center'
             }
+        }
+        toJSON() {
+            // Exclude the chart attribute from serialization
+            const {chart, ...serialized} = this;
+            return serialized;
         }
     }
     window.Table = Table

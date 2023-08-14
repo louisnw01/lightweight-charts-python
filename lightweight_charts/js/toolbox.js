@@ -4,6 +4,7 @@ if (!window.ToolBox) {
             this.onTrendSelect = this.onTrendSelect.bind(this)
             this.onHorzSelect = this.onHorzSelect.bind(this)
             this.onRaySelect = this.onRaySelect.bind(this)
+            this.saveDrawings = this.saveDrawings.bind(this)
 
             this.chart = chart
             this.drawings = []
@@ -15,7 +16,8 @@ if (!window.ToolBox) {
             this.activeIconColor = 'rgb(240, 240, 240)'
             this.iconColor = 'lightgrey'
             this.backgroundColor = 'transparent'
-            this.hoverColor = 'rgba(60, 60, 60, 0.7)'
+            this.hoverColor = 'rgba(80, 86, 94, 0.7)'
+            this.clickBackgroundColor = 'rgba(90, 106, 104, 0.7)'
 
             this.elem = this.makeToolBox()
             this.subscribeHoverMove()
@@ -92,11 +94,15 @@ if (!window.ToolBox) {
 
             icon.elem.addEventListener('mouseenter', () => {
                 icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.hoverColor
-                document.body.style.cursor = 'pointer'
             })
             icon.elem.addEventListener('mouseleave', () => {
                 icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.backgroundColor
-                document.body.style.cursor = this.chart.cursor
+            })
+            icon.elem.addEventListener('mousedown', () => {
+                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.clickBackgroundColor
+            })
+            icon.elem.addEventListener('mouseup', () => {
+                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : 'transparent'
             })
             icon.elem.addEventListener('click', () => {
                 if (this.chart.activeIcon) {
@@ -118,6 +124,7 @@ if (!window.ToolBox) {
             })
             this.chart.commandFunctions.push((event) => {
                 if (event.altKey && event.code === keyCmd) {
+                    event.preventDefault()
                     if (this.chart.activeIcon) {
                         this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
                         group.setAttribute("fill", this.iconColor)
@@ -140,6 +147,7 @@ if (!window.ToolBox) {
         onTrendSelect(toggle, ray = false) {
             let trendLine = {
                 line: null,
+                color: 'rgb(15, 139, 237)',
                 markers: null,
                 data: null,
                 from: null,
@@ -160,17 +168,14 @@ if (!window.ToolBox) {
 
                 if (!this.makingDrawing) return
 
-                let logical
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
+                let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
                 let lastCandleTime = this.chart.candleData[this.chart.candleData.length - 1].time
                 currentTime = this.chart.chart.timeScale().coordinateToTime(param.point.x)
                 if (!currentTime) {
                     let barsToMove = param.logical - this.chart.chart.timeScale().coordinateToLogical(this.chart.chart.timeScale().timeToCoordinate(lastCandleTime))
-                    logical = barsToMove <= 0 ? null : this.chart.chart.timeScale().getVisibleLogicalRange()
                     currentTime = dateToChartTime(new Date(chartTimeToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.interval)), this.interval)
-                } else if (chartTimeToDate(lastCandleTime).getTime() <= chartTimeToDate(currentTime).getTime()) {
-                    logical = this.chart.chart.timeScale().getVisibleLogicalRange()
                 }
-
                 let currentPrice = this.chart.series.coordinateToPrice(param.point.y)
 
 
@@ -179,19 +184,11 @@ if (!window.ToolBox) {
                 trendLine.from = [data[0].time, data[0].value]
                 trendLine.to = [data[data.length - 1].time, data[data.length-1].value]
 
-                if (ray) logical = this.chart.chart.timeScale().getVisibleLogicalRange()
-
                 trendLine.line.setData(data)
 
-                if (logical) {
-                    this.chart.chart.applyOptions({handleScroll: false})
-                    setTimeout(() => {
-                        this.chart.chart.timeScale().setVisibleLogicalRange(logical)
-                    }, 1)
-                    setTimeout(() => {
-                        this.chart.chart.applyOptions({handleScroll: true})
-                    }, 50)
-                }
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
+                this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+
                 if (!ray) {
                     trendLine.markers = [
                         {time: firstTime, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
@@ -208,6 +205,7 @@ if (!window.ToolBox) {
                 if (!this.makingDrawing) {
                     this.makingDrawing = true
                     trendLine.line = this.chart.chart.addLineSeries({
+                        color: 'rgb(15, 139, 237)',
                         lineWidth: 2,
                         lastValueVisible: false,
                         priceLineVisible: false,
@@ -221,14 +219,11 @@ if (!window.ToolBox) {
                     })
                     firstPrice = this.chart.series.coordinateToPrice(param.point.y)
                     firstTime = !ray ? this.chart.chart.timeScale().coordinateToTime(param.point.x) : this.chart.candleData[this.chart.candleData.length - 1].time
-                    this.chart.chart.applyOptions({
-                        handleScroll: false
-                    })
+                    this.chart.chart.applyOptions({handleScroll: false})
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
-                } else {
-                    this.chart.chart.applyOptions({
-                        handleScroll: true
-                    })
+                }
+                else {
+                    this.chart.chart.applyOptions({handleScroll: true})
                     this.makingDrawing = false
                     trendLine.line.setMarkers([])
                     this.drawings.push(trendLine)
@@ -247,7 +242,7 @@ if (!window.ToolBox) {
         clickHandlerHorz = (param) => {
                 let price = this.chart.series.coordinateToPrice(param.point.y)
                 let lineStyle = LightweightCharts.LineStyle.Solid
-                let line = new HorizontalLine(this.chart, 'toolBox', price, null, 2, lineStyle, true)
+                let line = new HorizontalLine(this.chart, 'toolBox', price,'red', 2, lineStyle, true)
                 this.drawings.push(line)
                 this.chart.chart.unsubscribeClick(this.clickHandlerHorz)
                 document.body.style.cursor = 'default'
@@ -267,9 +262,16 @@ if (!window.ToolBox) {
         subscribeHoverMove() {
             let hoveringOver = null
             let x, y
+            let colorPicker = new ColorPicker(this.saveDrawings)
 
             let onClickDelete = () => this.deleteDrawing(contextMenu.drawing)
+            let onClickColor = (rect) => colorPicker.openMenu(rect, contextMenu.drawing)
             let contextMenu = new ContextMenu()
+            contextMenu.menuItem('Color Picker', onClickColor, () =>{
+                document.removeEventListener('click', colorPicker.closeMenu)
+                colorPicker.container.style.display = 'none'
+            })
+            contextMenu.separator()
             contextMenu.menuItem('Delete Drawing', onClickDelete)
 
             let hoverOver = (param) => {
@@ -325,9 +327,7 @@ if (!window.ToolBox) {
             let checkForClick = (event) => {
                 mouseDown = true
                 document.body.style.cursor = 'grabbing'
-                this.chart.chart.applyOptions({
-                    handleScroll: false
-                })
+                this.chart.chart.applyOptions({handleScroll: false})
 
                 this.chart.chart.unsubscribeCrosshairMove(hoverOver)
 
@@ -354,7 +354,7 @@ if (!window.ToolBox) {
 
                 this.chart.chart.applyOptions({handleScroll: true})
                 if (hoveringOver && 'price' in hoveringOver && hoveringOver.id !== 'toolBox') {
-                    window.callbackFunction(`on_horizontal_line_move_~_${this.chart.id}_~_${hoveringOver.id};;;${hoveringOver.price.toFixed(8)}`);
+                    window.callbackFunction(`${hoveringOver.id}_~_${hoveringOver.price.toFixed(8)}`);
                 }
                 hoveringOver = null
                 document.removeEventListener('mousedown', checkForClick)
@@ -390,14 +390,15 @@ if (!window.ToolBox) {
                 let endValue = hoveringOver.to[1] + priceDiff
                 let data = calculateTrendLine(startDate, startValue, endDate, endValue, this.interval, this.chart, hoveringOver.ray)
 
-                let logical
-                if (chartTimeToDate(data[data.length - 1].time).getTime() >= chartTimeToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime()) {
-                    logical = this.chart.chart.timeScale().getVisibleLogicalRange()
-                }
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
+                let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+
                 hoveringOver.from = [data[0].time, data[0].value]
                 hoveringOver.to = [data[data.length - 1].time, data[data.length - 1].value]
                 hoveringOver.line.setData(data)
-                if (logical) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
+                this.chart.chart.timeScale().setVisibleLogicalRange(logical)
 
                 if (!hoveringOver.ray) {
                     hoveringOver.markers = [
@@ -428,22 +429,23 @@ if (!window.ToolBox) {
                     firstPrice = hoveringOver.to[1]
                 }
 
-                let logical
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
+                let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+
                 let lastCandleTime = this.chart.candleData[this.chart.candleData.length - 1].time
                 if (!currentTime) {
                     let barsToMove = param.logical - this.chart.chart.timeScale().coordinateToLogical(this.chart.chart.timeScale().timeToCoordinate(lastCandleTime))
-                    logical = barsToMove <= 0 ? null : this.chart.chart.timeScale().getVisibleLogicalRange()
                     currentTime = dateToChartTime(new Date(chartTimeToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.interval)), this.interval)
-                } else if (chartTimeToDate(lastCandleTime).getTime() <= chartTimeToDate(currentTime).getTime()) {
-                    logical = this.chart.chart.timeScale().getVisibleLogicalRange()
                 }
-
                 let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart)
                 hoveringOver.line.setData(data)
 
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
+                this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+
                 hoveringOver.from = [data[0].time, data[0].value]
                 hoveringOver.to = [data[data.length - 1].time, data[data.length - 1].value]
-                if (logical) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+
 
                 hoveringOver.markers = [
                     {time: firstTime, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
@@ -468,7 +470,6 @@ if (!window.ToolBox) {
         }
 
         renderDrawings() {
-            //let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
             this.drawings.forEach((item) => {
                 if ('price' in item) return
                 let startDate = dateToChartTime(new Date(Math.round(chartTimeToDate(item.from[0]).getTime() / this.interval) * this.interval), this.interval)
@@ -478,7 +479,6 @@ if (!window.ToolBox) {
                 item.to = [data[data.length - 1].time, data[data.length-1].value]
                 item.line.setData(data)
             })
-            //this.chart.chart.timeScale().setVisibleLogicalRange(logical)
         }
 
         deleteDrawing(drawing) {
@@ -486,10 +486,9 @@ if (!window.ToolBox) {
                 this.chart.series.removePriceLine(drawing.line)
             }
             else {
-                let logical
-                if (drawing.ray) logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
                 this.chart.chart.removeSeries(drawing.line);
-                if (drawing.ray) this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
             }
             this.drawings.splice(this.drawings.indexOf(drawing), 1)
             this.saveDrawings()
@@ -512,22 +511,22 @@ if (!window.ToolBox) {
                 }
                 return value;
             });
-            window.callbackFunction(`save_drawings_~_${this.chart.id}_~_${drawingsString}`)
+            window.callbackFunction(`save_drawings${this.chart.id}_~_${drawingsString}`)
         }
 
         loadDrawings(drawings) {
             this.drawings = drawings
-            this.chart.chart.applyOptions({
-                handleScroll: false
-            })
-            let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+            this.chart.chart.applyOptions({handleScroll: false})
+            this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
             this.drawings.forEach((item) => {
+                let idx = this.drawings.indexOf(item)
                 if ('price' in item) {
-                    this.drawings[this.drawings.indexOf(item)] = new HorizontalLine(this.chart, 'toolBox', item.priceLine.price, item.priceLine.color, 2, item.priceLine.lineStyle, item.priceLine.axisLabelVisible)
+                    this.drawings[idx] = new HorizontalLine(this.chart, 'toolBox', item.priceLine.price, item.priceLine.color, 2, item.priceLine.lineStyle, item.priceLine.axisLabelVisible)
                 }
                 else {
-                    this.drawings[this.drawings.indexOf(item)].line = this.chart.chart.addLineSeries({
+                    this.drawings[idx].line = this.chart.chart.addLineSeries({
                         lineWidth: 2,
+                        color: this.drawings[idx].color,
                         lastValueVisible: false,
                         priceLineVisible: false,
                         crosshairMarkerVisible: false,
@@ -546,11 +545,140 @@ if (!window.ToolBox) {
                     item.line.setData(data)
                 }
             })
-            this.chart.chart.applyOptions({
-                handleScroll: true
-            })
-            this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+            this.chart.chart.applyOptions({handleScroll: true})
+            this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
         }
     }
     window.ToolBox = ToolBox
+}
+
+if (!window.ColorPicker) {
+    class ColorPicker {
+        constructor(saveDrawings) {
+            this.saveDrawings = saveDrawings
+
+            this.container = document.createElement('div')
+            this.container.style.maxWidth = '170px'
+            this.container.style.backgroundColor = '#191B1E'
+            this.container.style.position = 'absolute'
+            this.container.style.zIndex = '10000'
+            this.container.style.display = 'none'
+            this.container.style.flexDirection = 'column'
+            this.container.style.alignItems = 'center'
+            this.container.style.border = '2px solid #3C434C'
+            this.container.style.borderRadius = '8px'
+            this.container.style.cursor = 'default'
+
+            let colorPicker = document.createElement('div')
+            colorPicker.style.margin = '10px'
+            colorPicker.style.display = 'flex'
+            colorPicker.style.flexWrap = 'wrap'
+
+            let colors = [
+                '#EBB0B0','#E9CEA1','#E5DF80','#ADEB97','#A3C3EA','#D8BDED',
+                '#E15F5D','#E1B45F','#E2D947','#4BE940','#639AE1','#D7A0E8',
+                '#E42C2A','#E49D30','#E7D827','#3CFF0A','#3275E4','#B06CE3',
+                '#F3000D','#EE9A14','#F1DA13','#2DFC0F','#1562EE','#BB00EF',
+                '#B50911','#E3860E','#D2BD11','#48DE0E','#1455B4','#6E009F',
+                '#7C1713','#B76B12','#8D7A13','#479C12','#165579','#51007E',
+            ]
+
+            colors.forEach((color) => colorPicker.appendChild(this.makeColorBox(color)))
+
+            let separator = document.createElement('div')
+            separator.style.backgroundColor = '#3C434C'
+            separator.style.height = '1px'
+            separator.style.width = '130px'
+
+            let opacity = document.createElement('div')
+            opacity.style.margin = '10px'
+
+            let opacityText = document.createElement('div')
+            opacityText.style.color = 'lightgray'
+            opacityText.style.fontSize = '12px'
+            opacityText.innerText = 'Opacity'
+
+            let opacityValue = document.createElement('div')
+            opacityValue.style.color = 'lightgray'
+            opacityValue.style.fontSize = '12px'
+
+            let opacitySlider = document.createElement('input')
+            opacitySlider.type = 'range'
+            opacitySlider.value = this.opacity*100
+            opacityValue.innerText = opacitySlider.value+'%'
+            opacitySlider.oninput = () => {
+                opacityValue.innerText = opacitySlider.value+'%'
+                this.opacity = opacitySlider.value/100
+                this.updateColor()
+            }
+
+            opacity.appendChild(opacityText)
+            opacity.appendChild(opacitySlider)
+            opacity.appendChild(opacityValue)
+
+            this.container.appendChild(colorPicker)
+            this.container.appendChild(separator)
+            this.container.appendChild(opacity)
+            document.getElementById('wrapper').appendChild(this.container)
+
+        }
+        makeColorBox(color) {
+            let box = document.createElement('div')
+            box.style.width = '18px'
+            box.style.height = '18px'
+            box.style.borderRadius = '3px'
+            box.style.margin = '3px'
+            box.style.boxSizing = 'border-box'
+            box.style.backgroundColor = color
+
+            box.addEventListener('mouseover', (event) => box.style.border = '2px solid lightgray')
+            box.addEventListener('mouseout', (event) => box.style.border = 'none')
+
+            let rgbValues = this.extractRGB(color)
+
+            box.addEventListener('click', (event) => {
+                this.rgbValues = rgbValues
+                this.updateColor()
+            })
+            return box
+        }
+        extractRGB = (anyColor) => {
+            let dummyElem = document.createElement('div');
+            dummyElem.style.color = anyColor;
+            document.body.appendChild(dummyElem);
+            let computedColor = getComputedStyle(dummyElem).color;
+            document.body.removeChild(dummyElem);
+            let colorValues = computedColor.match(/\d+/g).map(Number);
+            let isRgba = computedColor.includes('rgba');
+            let opacity = isRgba ? parseFloat(computedColor.split(',')[3]) : 1
+            return [colorValues[0], colorValues[1], colorValues[2], opacity]
+        }
+        updateColor() {
+            let oColor = `rgba(${this.rgbValues[0]}, ${this.rgbValues[1]}, ${this.rgbValues[2]}, ${this.opacity})`
+            if ('price' in this.drawing) this.drawing.updateColor(oColor)
+            else {
+                this.drawing.color = oColor
+                this.drawing.line.applyOptions({color: oColor})
+            }
+            this.saveDrawings()
+        }
+        openMenu(rect, drawing) {
+            this.drawing = drawing
+            this.rgbValues = this.extractRGB('price' in drawing ? drawing.priceLine.color : drawing.color)
+            this.opacity = parseFloat(this.rgbValues[3])
+            this.container.style.top = (rect.top-30)+'px'
+            this.container.style.left = rect.right+'px'
+            this.container.style.display = 'flex'
+            setTimeout(() => document.addEventListener('mousedown', (event) => {
+                if (!this.container.contains(event.target)) {
+                    this.closeMenu()
+                }
+            }), 10)
+        }
+        closeMenu(event) {
+            document.removeEventListener('click', this.closeMenu)
+            this.container.style.display = 'none'
+        }
+    }
+    window.ColorPicker = ColorPicker
 }

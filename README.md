@@ -21,16 +21,14 @@ pip install lightweight-charts
 ___
 
 ## Features
-1. Simple and easy to use.
-2. Blocking or non-blocking GUI.
-3. Streamlined for live data, with methods for updating directly from tick data.
-4. Multi-Pane Charts using the [`SubChart`](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html#create-subchart-subchart).
-5. The Toolbox, allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
-6. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/callbacks.html) allowing for timeframe (1min, 5min, 30min etc.) selectors, searching, hotkeys, and more.
-7. Tables for watchlists, order entry, and trade management.
-7. Direct integration of market data through [Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API.
+1. Streamlined for live data, with methods for updating directly from tick data.
+2. Multi-pane charts using [Subcharts](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html#create-subchart-subchart).
+3. The [Toolbox](https://lightweight-charts-python.readthedocs.io/en/latest/toolbox.html), allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
+4. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/callbacks.html) allowing for timeframe selectors (1min, 5min, 30min etc.), searching, hotkeys, and more.
+5. [Tables](https://lightweight-charts-python.readthedocs.io/en/latest/tables.html) for watchlists, order entry, and trade management.
+6. Direct integration of market data through [Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API.
 
-__Supports:__ Jupyter Notebooks, PyQt, wxPython, Streamlit, and asyncio.
+__Supports:__ Jupyter Notebooks, PyQt5, PySide6, wxPython, Streamlit, and asyncio.
 
 PartTimeLarry: [Interactive Brokers API and TradingView Charts in Python](https://www.youtube.com/watch?v=TlhDI3PforA)
 ___
@@ -46,7 +44,7 @@ if __name__ == '__main__':
     
     chart = Chart()
     
-    # Columns: | time | open | high | low | close | volume (if volume is enabled) |
+    # Columns: time | open | high | low | close | volume 
     df = pd.read_csv('ohlcv.csv')
     chart.set(df)
     
@@ -102,10 +100,10 @@ if __name__ == '__main__':
     
     df1 = pd.read_csv('ohlc.csv')
     
-    # Columns: | time | price | volume (if volume is enabled) |
+    # Columns: time | price 
     df2 = pd.read_csv('ticks.csv')
     
-    chart = Chart(volume_enabled=False)
+    chart = Chart()
     
     chart.set(df1)
     
@@ -114,7 +112,7 @@ if __name__ == '__main__':
     for i, tick in df2.iterrows():
         chart.update_from_tick(tick)
             
-        sleep(0.3)
+        sleep(0.03)
 
 ```
 ![tick data gif](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/3_tick_data/tick_data.gif)
@@ -127,29 +125,25 @@ import pandas as pd
 from lightweight_charts import Chart
 
 
-def calculate_sma(data: pd.DataFrame, period: int = 50):
-   def avg(d: pd.DataFrame):
-      return d['close'].mean()
-
-   result = []
-   for i in range(period - 1, len(data)):
-      val = avg(data.iloc[i - period + 1:i])
-      result.append({'time': data.iloc[i]['date'], f'SMA {period}': val})
-   return pd.DataFrame(result)
+def calculate_sma(df, period: int = 50):
+    return pd.DataFrame({
+        'time': df['date'],
+        f'SMA {period}': df['close'].rolling(window=period).mean()
+    }).dropna()
 
 
 if __name__ == '__main__':
-   chart = Chart()
-   chart.legend(visible=True)
-   
-   df = pd.read_csv('ohlcv.csv')
-   chart.set(df)
+    chart = Chart()
+    chart.legend(visible=True)
 
-   line = chart.create_line()
-   sma_data = calculate_sma(df, period=50)
-   line.set(sma_data, name='SMA 50')
+    df = pd.read_csv('ohlcv.csv')
+    chart.set(df)
 
-   chart.show(block=True)
+    line = chart.create_line('SMA 50')
+    sma_data = calculate_sma(df, period=50)
+    line.set(sma_data)
+
+    chart.show(block=True)
 
 ```
 ![line indicators image](https://raw.githubusercontent.com/louisnw01/lightweight-charts-python/main/examples/4_line_indicators/line_indicators.png)
@@ -164,7 +158,7 @@ from lightweight_charts import Chart
 
 if __name__ == '__main__':
     
-    chart = Chart(debug=True)
+    chart = Chart()
 
     df = pd.read_csv('ohlcv.csv')
 
@@ -203,43 +197,42 @@ def get_bar_data(symbol, timeframe):
     if symbol not in ('AAPL', 'GOOGL', 'TSLA'):
         print(f'No data for "{symbol}"')
         return pd.DataFrame()
-    return pd.read_csv(f'../examples/6_callbacks/bar_data/{symbol}_{timeframe}.csv')
+    return pd.read_csv(f'bar_data/{symbol}_{timeframe}.csv')
 
 
-class API:
-    def __init__(self):
-        self.chart = None  # Changes after each callback.
+def on_search(chart, searched_string):  # Called when the user searches.
+    new_data = get_bar_data(searched_string, chart.topbar['timeframe'].value)
+    if new_data.empty:
+        return
+    chart.topbar['symbol'].set(searched_string)
+    chart.set(new_data)
 
-    def on_search(self, searched_string):  # Called when the user searches.
-        new_data = get_bar_data(searched_string, self.chart.topbar['timeframe'].value)
-        if new_data.empty:
-            return
-        self.chart.topbar['symbol'].set(searched_string)
-        self.chart.set(new_data)
 
-    def on_timeframe_selection(self):  # Called when the user changes the timeframe.
-        new_data = get_bar_data(self.chart.topbar['symbol'].value, self.chart.topbar['timeframe'].value)
-        if new_data.empty:
-            return
-        self.chart.set(new_data, True)
+def on_timeframe_selection(chart):  # Called when the user changes the timeframe.
+    new_data = get_bar_data(chart.topbar['symbol'].value, chart.topbar['timeframe'].value)
+    if new_data.empty:
+        return
+    chart.set(new_data, True)
 
-    def on_horizontal_line_move(self, line_id, price):
-        print(f'Horizontal line moved to: {price}')
+
+def on_horizontal_line_move(chart, line):
+    print(f'Horizontal line moved to: {line.price}')
 
 
 if __name__ == '__main__':
-    api = API()
-
-    chart = Chart(api=api, topbar=True, searchbox=True, toolbox=True)
+    chart = Chart(toolbox=True)
     chart.legend(True)
 
+    chart.events.search += on_search
+
     chart.topbar.textbox('symbol', 'TSLA')
-    chart.topbar.switcher('timeframe', api.on_timeframe_selection, '1min', '5min', '30min', default='5min')
+    chart.topbar.switcher('timeframe', ('1min', '5min', '30min'), default='5min',
+                          func=on_timeframe_selection)
 
     df = get_bar_data('TSLA', '5min')
     chart.set(df)
 
-    chart.horizontal_line(200, interactive=True)
+    chart.horizontal_line(200, func=on_horizontal_line_move)
 
     chart.show(block=True)
 

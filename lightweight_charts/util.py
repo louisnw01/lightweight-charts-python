@@ -1,43 +1,20 @@
-import re
+import asyncio
 from random import choices
-from string import ascii_lowercase
 from typing import Literal
 
 
-class MissingColumn(KeyError):
-    def __init__(self, message):
-        super().__init__(message)
-        self.msg = message
-
-    def __str__(self):
-        return f'{self.msg}'
-
-
-class ColorError(ValueError):
-    def __init__(self, message):
-        super().__init__(message)
-        self.msg = message
-
-    def __str__(self):
-        return f'{self.msg}'
-
-
 class IDGen(list):
+    ascii = 'abcdefghijklmnopqrstuvwxyz'
+
     def generate(self):
-        var = ''.join(choices(ascii_lowercase, k=8))
+        var = ''.join(choices(self.ascii, k=8))
         if var not in self:
             self.append(var)
             return f'window.{var}'
         self.generate()
 
 
-def _valid_color(string):
-    if string[:3] == 'rgb' or string[:4] == 'rgba' or string[0] == '#':
-        return True
-    raise ColorError('Colors must be in the format of either rgb, rgba or hex.')
-
-
-def _js_bool(b: bool): return 'true' if b is True else 'false' if b is False else None
+def jbool(b: bool): return 'true' if b is True else 'false' if b is False else None
 
 
 LINE_STYLE = Literal['solid', 'dotted', 'dashed', 'large_dashed', 'sparse_dotted']
@@ -51,24 +28,24 @@ CROSSHAIR_MODE = Literal['normal', 'magnet']
 PRICE_SCALE_MODE = Literal['normal', 'logarithmic', 'percentage', 'index100']
 
 
-def _line_style(line: LINE_STYLE):
+def line_style(line: LINE_STYLE):
     js = 'LightweightCharts.LineStyle.'
     return js+line[:line.index('_')].title() + line[line.index('_') + 1:].title() if '_' in line else js+line.title()
 
 
-def _crosshair_mode(mode: CROSSHAIR_MODE):
+def crosshair_mode(mode: CROSSHAIR_MODE):
     return f'LightweightCharts.CrosshairMode.{mode.title()}' if mode else None
 
 
-def _price_scale_mode(mode: PRICE_SCALE_MODE):
+def price_scale_mode(mode: PRICE_SCALE_MODE):
     return f"LightweightCharts.PriceScaleMode.{'IndexedTo100' if mode == 'index100' else mode.title() if mode else None}"
 
 
-def _marker_shape(shape: MARKER_SHAPE):
+def marker_shape(shape: MARKER_SHAPE):
     return shape[:shape.index('_')]+shape[shape.index('_')+1:].title() if '_' in shape else shape.title()
 
 
-def _marker_position(p: MARKER_POSITION):
+def marker_position(p: MARKER_POSITION):
     return {
         'above': 'aboveBar',
         'below': 'belowBar',
@@ -77,17 +54,59 @@ def _marker_position(p: MARKER_POSITION):
     }[p]
 
 
-def _convert_timeframe(timeframe):
-    spans = {
-        'min': 'minute',
-        'H': 'hour',
-        'D': 'day',
-        'W': 'week',
-        'M': 'month',
-    }
-    try:
-        multiplier = re.findall(r'\d+', timeframe)[0]
-    except IndexError:
-        return 1, spans[timeframe]
-    timespan = spans[timeframe.replace(multiplier, '')]
-    return multiplier, timespan
+class Emitter:
+    def __init__(self):
+        self._callable = None
+
+    def __iadd__(self, other):
+        self._callable = other
+        return self
+
+    def _emit(self, *args):
+        self._callable(*args) if self._callable else None
+
+class JSEmitter:
+    def __init__(self, chart, name, on_iadd, wrapper=None):
+        self._on_iadd = on_iadd
+        self._chart = chart
+        self._name = name
+        self._wrapper = wrapper
+
+    def __iadd__(self, other):
+        def final_wrapper(*arg):
+            other(self._chart, *arg) if not self._wrapper else self._wrapper(other, self._chart, *arg)
+        async def final_async_wrapper(*arg):
+            await other(self._chart, *arg) if not self._wrapper else await self._wrapper(other, self._chart, *arg)
+
+        self._chart._handlers[self._name] = final_async_wrapper if asyncio.iscoroutinefunction(other) else final_wrapper
+        self._on_iadd(other)
+        return self
+
+
+class Events:
+    def __init__(self, chart):
+        self.new_bar = Emitter()
+        from lightweight_charts.abstract import JS
+        self.search = JSEmitter(chart, f'search{chart.id}',
+            lambda o: chart.run_script(f'''
+            {JS['callback'] if not chart._callbacks_enabled else ''}
+            makeSpinner({chart.id})
+            {chart.id}.search = makeSearchBox({chart.id})
+            ''')
+        )
+        self.range_change = JSEmitter(chart, f'range_change{chart.id}',
+            lambda o: chart.run_script(f'''
+            let checkLogicalRange = (logical) => {{
+                {chart.id}.chart.timeScale().unsubscribeVisibleLogicalRangeChange(checkLogicalRange)
+                
+                let barsInfo = {chart.id}.series.barsInLogicalRange(logical)
+                if (barsInfo) window.callbackFunction(`range_change{chart.id}_~_${{barsInfo.barsBefore}};;;${{barsInfo.barsAfter}}`)
+                    
+                setTimeout(() => {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange), 50)
+            }}
+            {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange)
+            '''),
+            wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg])
+        )
+
+

@@ -43,31 +43,29 @@ If `cumulative_volume` is used, the volume data given will be added onto the lat
 ___
 
 ## `create_line` (Line)
-`color: str` | `width: int` | `price_line: bool` | `price_label: bool` | `-> Line`
+`name: str` | `color: str` | `style: LINE_STYLE`| `width: int` | `price_line: bool` | `price_label: bool` | `-> Line`
 
 Creates and returns a `Line` object, representing a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to:
 [`title`](#title), [`marker`](#marker), [`horizontal_line`](#horizontal-line) [`hide_data`](#hide-data), [`show_data`](#show-data) and[`price_line`](#price-line).
 
 Its instance should only be accessed from this method.
 
-
 ### `set`
-`data: pd.DataFrame` `name: str`
+`data: pd.DataFrame`
 
 Sets the data for the line.
 
-When not using the `name` parameter, the columns should be named: `time | value` (Not case sensitive).
+When a name has not been set upon declaration, the columns should be named: `time | value` (Not case sensitive).
 
 Otherwise, the method will use the column named after the string given in `name`. This name will also be used within the legend of the chart. For example:
 ```python
-line = chart.create_line()
+line = chart.create_line('SMA 50')
 
 # DataFrame with columns: date | SMA 50
 df = pd.read_csv('sma50.csv')
 
-line.set(df, name='SMA 50')
+line.set(df)
 ```
-
 
 ### `update`
 `series: pd.Series`
@@ -75,7 +73,6 @@ line.set(df, name='SMA 50')
 Updates the data for the line.
 
 This should be given as a Series object, with labels akin to the `line.set()` function.
-
 
 ### `delete`
 Irreversibly deletes the line.
@@ -263,8 +260,8 @@ ___
 Shows the hidden candles on the chart.
 ___
 
-## `add_hotkey`
-`modifier: 'ctrl'/'shift'/'alt'/'meta'` | `key: str/int/tuple` | `method: object`
+## `hotkey`
+`modifier: 'ctrl'/'shift'/'alt'/'meta'` | `key: str/int/tuple` | `func: callable`
 
 Adds a global hotkey to the chart window, which will execute the method or function given.
 
@@ -273,26 +270,29 @@ When using a number in `key`, it should be given as an integer. If multiple key 
 ```python
 def place_buy_order(key):
     print(f'Buy {key} shares.')
-    
-    
+
+
 def place_sell_order(key):
     print(f'Sell all shares, because I pressed {key}.')
 
 
-chart.add_hotkey('shift', (1, 2, 3), place_buy_order)
-chart.add_hotkey('shift', 'X', place_sell_order)
+if __name__ == '__main__':
+    chart = Chart()
+    chart.hotkey('shift', (1, 2, 3), place_buy_order)
+    chart.hotkey('shift', 'X', place_sell_order)
+    chart.show(block=True)
 ```
 
 ___
 
 ## `create_table`
-`width: int/float` | `height: int/float` | `headings: tuple[str]` | `widths: tuple[float]` | `alignments: tuple[str]` | `position: 'left'/'right'/'top'/'bottom'` | `draggable: bool` | `method: object` 
+`width: int/float` | `height: int/float` | `headings: tuple[str]` | `widths: tuple[float]` | `alignments: tuple[str]` | `position: 'left'/'right'/'top'/'bottom'` | `draggable: bool` | `func: callable` | `-> Table` 
 
 Creates and returns a [`Table`](https://lightweight-charts-python.readthedocs.io/en/latest/tables.html) object.
 ___
 
 ## `create_subchart` (SubChart)
-`volume_enabled: bool` | `position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/str` | `-> SubChart`
+`position: 'left'/'right'/'top'/'bottom'`, `width: float` | `height: float` | `sync: bool/str` | `scale_candles_only: bool`|`toolbox: bool` | `-> SubChart`
 
 Creates and returns a `SubChart` object, placing it adjacent to the previous `Chart` or `SubChart`. This allows for the use of multiple chart panels within the same `Chart` window. Its instance should only be accessed by using this method.
 
@@ -335,7 +335,6 @@ if __name__ == '__main__':
 
 ```
 
-
 ### Synced Line Chart Example:
 
 ```python
@@ -346,17 +345,16 @@ if __name__ == '__main__':
     chart = Chart(inner_width=1, inner_height=0.8)
     chart.time_scale(visible=False)
 
-    chart2 = chart.create_subchart(width=1, height=0.2, sync=True, volume_enabled=False)
+    chart2 = chart.create_subchart(width=1, height=0.2, sync=True)
+    line = chart2.create_line()
     
     df = pd.read_csv('ohlcv.csv')
     df2 = pd.read_csv('rsi.csv')
 
     chart.set(df)
-    line = chart2.create_line()
     line.set(df2)
 
     chart.show(block=True)
-
 ```
 
 

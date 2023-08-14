@@ -1,11 +1,9 @@
 # Table
-`width: int/float` | `height: int/float` | `headings: tuple[str]` | `widths: tuple[float]` | `alignments: tuple[str]` | `position: 'left'/'right'/'top'/'bottom'` | `draggable: bool` | `method: object` 
+`width: int/float` | `height: int/float` | `headings: tuple[str]` | `widths: tuple[float]` | `alignments: tuple[str]` | `position: 'left'/'right'/'top'/'bottom'` | `draggable: bool` | `func: callable` 
 
 Tables are panes that can be used to gain further functionality from charts. They are intended to be used for watchlists, order management, or position management. It should be accessed from the `create_table` common method.
 
-The `Table` and `Row` objects inherit from dictionaries, and can be manipulated as such.
-
-
+The `Table` and `Row` objects act as dictionaries, and can be manipulated as such.
 
 `width`/`height`: Either given as a percentage (a `float` between 0 and 1) or as an integer representing pixel size.
 
@@ -15,7 +13,7 @@ The `Table` and `Row` objects inherit from dictionaries, and can be manipulated 
 
 `draggable`: If `True`, then the window can be dragged to any position within the window.
 
-`method`: If given this will be called when a row is clicked.
+`func`: If given this will be called when a row is clicked, returning the `Row` object in question.
 ___
 
 ## `new_row` (Row)
@@ -25,11 +23,22 @@ Creates a new row within the table, and returns a `Row` object.
 
 if `id` is passed it should be unique to all other rows. Otherwise, the `id` will be randomly generated.
 
+Rows can be passed a string (header) item or a tuple to set multiple headings:
+
+```python
+row['Symbol'] = 'AAPL'
+row['Symbol', 'Action'] = 'AAPL', 'BUY'
+```
 
 ### `background_color`
 `column: str` | `color: str`
 
-Sets the background color of the Row cell at the given column.
+Sets the background color of the row cell.
+
+### `text_color`
+`column: str` | `color: str`
+
+Sets the foreground color of the row cell.
 
 ### `delete`
 Deletes the row.
@@ -77,10 +86,7 @@ ___
 import pandas as pd
 from lightweight_charts import Chart
 
-def on_row_click(row_id):
-    row = table.get(row_id)
-    print(row)
-
+def on_row_click(row):
     row['PL'] = round(row['PL']+1, 2)
     row.background_color('PL', 'green' if row['PL'] > 0 else 'red')
 
@@ -97,7 +103,7 @@ if __name__ == '__main__':
                   headings=('Ticker', 'Quantity', 'Status', '%', 'PL'),
                   widths=(0.2, 0.1, 0.2, 0.2, 0.3),
                   alignments=('center', 'center', 'right', 'right', 'right'),
-                  position='left', method=on_row_click)
+                  position='left', func=on_row_click)
 
     table.format('PL', f'£ {table.VALUE}')
     table.format('%', f'{table.VALUE} %')

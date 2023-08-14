@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import datetime as dt
+import re
 import threading
 import queue
 import json
@@ -8,7 +9,6 @@ import ssl
 from typing import Literal, Union, List
 import pandas as pd
 
-from lightweight_charts.util import _convert_timeframe
 from lightweight_charts import Chart
 
 try:
@@ -19,6 +19,22 @@ try:
     import websockets
 except ImportError:
     websockets = None
+
+
+def convert_timeframe(timeframe):
+    spans = {
+        'min': 'minute',
+        'H': 'hour',
+        'D': 'day',
+        'W': 'week',
+        'M': 'month',
+    }
+    try:
+        multiplier = re.findall(r'\d+', timeframe)[0]
+    except IndexError:
+        return 1, spans[timeframe]
+    timespan = spans[timeframe.replace(multiplier, '')]
+    return multiplier, timespan
 
 
 class PolygonAPI:
@@ -136,7 +152,7 @@ class PolygonAPI:
 
         self._ws_q.put(('_unsubscribe', chart))
         end_date = dt.datetime.now().strftime('%Y-%m-%d') if end_date == 'now' else end_date
-        mult, span = _convert_timeframe(timeframe)
+        mult, span = convert_timeframe(timeframe)
 
         query_url = f"https://api.polygon.io/v2/aggs/ticker/{ticker.replace('-', '')}/range/{mult}/{span}/{start_date}/{end_date}?limit={limit}&apiKey={self._key}"
         response = requests.get(query_url, headers={'User-Agent': 'lightweight_charts/1.0'})
@@ -250,8 +266,11 @@ class PolygonAPI:
             if sec_type == 'forex':
                 data['bp'] = data.pop('b')
                 data['ap'] = data.pop('a')
-            self._lasts[key]['price'] = (data['bp']+data['ap'])/2 if sec_type != 'indices' else data['val']
-            self._lasts[key]['volume'] = 0
+            if sec_type == 'indices':
+                self._lasts[key]['price'] = data['val']
+            else:
+                self._lasts[key]['price'] = (data['bp']+data['ap'])/2
+                self._lasts[key]['volume'] = 0
         elif data['ev'] in ('A', 'CA', 'XA'):
             self._lasts[key]['volume'] = data['v']
             if not self._lasts[key].get('time'):
@@ -305,8 +324,7 @@ class PolygonChart(Chart):
                  security_options: tuple = ('Stock', 'Option', 'Index', 'Forex', 'Crypto'),
                  toolbox: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
                  on_top: bool = False, maximize: bool = False, debug: bool = False):
-        super().__init__(volume_enabled=True, width=width, height=height, x=x, y=y, on_top=on_top, maximize=maximize, debug=debug,
-                         api=self, topbar=True, searchbox=True, toolbox=toolbox)
+        super().__init__(width=width, height=height, x=x, y=y, on_top=on_top, maximize=maximize, debug=debug, toolbox=toolbox)
         self.chart = self
         self.num_bars = num_bars
         self.end_date = end_date
@@ -316,26 +334,18 @@ class PolygonChart(Chart):
 
         self.topbar.active_background_color = 'rgb(91, 98, 246)'
         self.topbar.textbox('symbol')
-        self.topbar.switcher('timeframe', self._on_timeframe_selection, *timeframe_options)
-        self.topbar.switcher('security', self._on_security_selection, *security_options)
+        self.topbar.switcher('timeframe', timeframe_options, func=self._on_timeframe_selection)
+        self.topbar.switcher('security', security_options, func=self._on_security_selection)
         self.legend(True)
         self.grid(False, False)
         self.crosshair(vert_visible=False, horz_visible=False)
+        self.events.search += self.on_search
         self.run_script(f'''
         {self.id}.search.box.style.backgroundColor = 'rgba(91, 98, 246, 0.5)'
         {self.id}.spinner.style.borderTop = '4px solid rgba(91, 98, 246, 0.8)'
 
         {self.id}.search.window.style.display = "flex"
         {self.id}.search.box.focus()
-        
-        //let polyLogo = document.createElement('div')
-        //polyLogo.innerHTML = '<svg><g transform="scale(0.9)"><path d="M17.9821362,6 L24,12.1195009 L22.9236698,13.5060353 L17.9524621,27 L14.9907916,17.5798557 L12,12.0454987 L17.9821362,6 Z M21.437,15.304 L18.3670383,19.1065035 L18.367,23.637 L21.437,15.304 Z M18.203,7.335 L15.763,17.462 L17.595,23.287 L17.5955435,18.8249858 L22.963,12.176 L18.203,7.335 Z M17.297,7.799 L12.9564162,12.1857947 L15.228,16.389 L17.297,7.799 Z" fill="#FFFFFF"></path></g></svg>'
-        //polyLogo.style.position = 'absolute'
-        //polyLogo.style.width = '28px'
-        //polyLogo.style.zIndex = 10000
-        //polyLogo.style.right = '18px'
-        //polyLogo.style.top = '-1px'
-        //{self.id}.wrapper.appendChild(polyLogo)
         ''')
 
     def _polygon(self, symbol):
@@ -343,7 +353,7 @@ class PolygonChart(Chart):
         self.set(pd.DataFrame(), True)
         self.crosshair(vert_visible=False, horz_visible=False)
 
-        mult, span = _convert_timeframe(self.topbar['timeframe'].value)
+        mult, span = convert_timeframe(self.topbar['timeframe'].value)
         delta = dt.timedelta(**{span + 's': int(mult)})
         short_delta = (delta < dt.timedelta(days=7))
         start_date = dt.datetime.now() if self.end_date == 'now' else dt.datetime.strptime(self.end_date, '%Y-%m-%d')
@@ -367,18 +377,11 @@ class PolygonChart(Chart):
         self.crosshair(vert_visible=True, horz_visible=True) if success else None
         return success
 
-    async def on_search(self, searched_string): self.topbar['symbol'].set(searched_string if self._polygon(searched_string) else '')
+    async def on_search(self, chart, searched_string):
+        self.topbar['symbol'].set(searched_string if self._polygon(searched_string) else '')
 
-    async def _on_timeframe_selection(self):
+    async def _on_timeframe_selection(self, chart):
         self._polygon(self.topbar['symbol'].value) if self.topbar['symbol'].value else None
 
-    async def _on_security_selection(self):
-        sec_type = self.topbar['security'].value
-        self.volume_enabled = False if sec_type == 'Index' else True
-
-        precision = 5 if sec_type == 'Forex' else 2
-        min_move = 1 / (10 ** precision)  # 2 -> 0.1, 5 -> 0.00005 etc.
-        self.run_script(f'''
-        {self.chart.id}.series.applyOptions({{
-            priceFormat: {{precision: {precision}, minMove: {min_move}}}
-        }})''')
+    async def _on_security_selection(self, chart):
+        self.precision(5 if self.topbar['security'].value == 'Forex' else 2)

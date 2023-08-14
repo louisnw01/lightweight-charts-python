@@ -10,7 +10,8 @@ function makeChart(innerWidth, innerHeight, autoSize=true) {
             height: innerHeight,
         },
         candleData: [],
-        commandFunctions: []
+        commandFunctions: [],
+        precision: 2,
     }
     chart.chart = LightweightCharts.createChart(chart.div, {
         width: window.innerWidth*innerWidth,
@@ -125,6 +126,12 @@ if (!window.HorizontalLine) {
             this.line = this.chart.series.createPriceLine(this.priceLine)
         }
 
+        updateColor(color) {
+            this.chart.series.removePriceLine(this.line)
+            this.priceLine.color = color
+            this.line = this.chart.series.createPriceLine(this.priceLine)
+        }
+
         deleteLine() {
             this.chart.series.removePriceLine(this.line)
             this.chart.horizontal_lines.splice(this.chart.horizontal_lines.indexOf(this))
@@ -135,16 +142,17 @@ if (!window.HorizontalLine) {
     window.HorizontalLine = HorizontalLine
 
     class Legend {
-        constructor(chart, ohlcEnabled = true, percentEnabled = true, linesEnabled = true,
+        constructor(chart, ohlcEnabled, percentEnabled, linesEnabled,
                     color = 'rgb(191, 195, 203)', fontSize = '11', fontFamily = 'Monaco') {
             this.div = document.createElement('div')
             this.div.style.position = 'absolute'
             this.div.style.zIndex = '3000'
+            this.div.style.pointerEvents = 'none'
             this.div.style.top = '10px'
             this.div.style.left = '10px'
             this.div.style.display = 'flex'
             this.div.style.flexDirection = 'column'
-            this.div.style.width = `${(chart.scale.width * 100) - 8}vw`
+            this.div.style.maxWidth = `${(chart.scale.width * 100) - 8}vw`
             this.div.style.color = color
             this.div.style.fontSize = fontSize + 'px'
             this.div.style.fontFamily = fontFamily
@@ -158,7 +166,16 @@ if (!window.HorizontalLine) {
             this.linesEnabled = linesEnabled
             this.makeLines(chart)
 
-            let legendItemFormat = (num) => num.toFixed(2).toString().padStart(8, ' ')
+            let legendItemFormat = (num, decimal) => num.toFixed(decimal).toString().padStart(8, ' ')
+
+            let shorthandFormat = (num) => {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toString().padStart(8, ' ');
+            }
 
             chart.chart.subscribeCrosshairMove((param) => {
                 if (param.time) {
@@ -166,22 +183,23 @@ if (!window.HorizontalLine) {
                     let finalString = '<span style="line-height: 1.8;">'
                     if (data) {
                         this.candle.style.color = ''
-                        let ohlc = `O ${legendItemFormat(data.open)} 
-                                | H ${legendItemFormat(data.high)} 
-                                | L ${legendItemFormat(data.low)}
-                                | C ${legendItemFormat(data.close)} `
+                        let ohlc = `O ${legendItemFormat(data.open, chart.precision)} 
+                                | H ${legendItemFormat(data.high, chart.precision)} 
+                                | L ${legendItemFormat(data.low, chart.precision)}
+                                | C ${legendItemFormat(data.close, chart.precision)} `
                         let percentMove = ((data.close - data.open) / data.open) * 100
                         let percent = `| ${percentMove >= 0 ? '+' : ''}${percentMove.toFixed(2)} %`
-
                         finalString += ohlcEnabled ? ohlc : ''
                         finalString += percentEnabled ? percent : ''
 
+                        let volumeData = param.seriesData.get(chart.volumeSeries)
+                        if (volumeData) finalString += ohlcEnabled ? `<br>V ${shorthandFormat(volumeData.value)}` : ''
                     }
                     this.candle.innerHTML = finalString + '</span>'
                     this.lines.forEach((line) => {
                         if (!param.seriesData.get(line.line.series)) return
-                        let price = legendItemFormat(param.seriesData.get(line.line.series).value)
-                        line.div.innerHTML = `<span style="color: ${line.line.color};">▨</span>    ${line.line.name} : ${price}`
+                        let price = legendItemFormat(param.seriesData.get(line.line.series).value, line.line.precision)
+                        line.div.innerHTML = `<span style="color: ${line.solid};">▨</span>    ${line.line.name} : ${price}`
                     })
 
                 } else {
@@ -215,6 +233,7 @@ if (!window.HorizontalLine) {
             let toggle = document.createElement('div')
             toggle.style.borderRadius = '4px'
             toggle.style.marginLeft = '10px'
+            toggle.style.pointerEvents = 'auto'
 
 
             let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -258,6 +277,7 @@ if (!window.HorizontalLine) {
                 row: row,
                 toggle: toggle,
                 line: line,
+                solid: line.color.startsWith('rgba') ? line.color.replace(/[^,]+(?=\))/, '1') : line.color
             }
         }
     }
@@ -382,16 +402,20 @@ if (!window.ContextMenu) {
             this.menu.style.position = 'absolute'
             this.menu.style.zIndex = '10000'
             this.menu.style.background = 'rgb(50, 50, 50)'
-            this.menu.style.color = 'lightgrey'
+            this.menu.style.color = '#ececed'
             this.menu.style.display = 'none'
             this.menu.style.borderRadius = '5px'
             this.menu.style.padding = '3px 3px'
-            this.menu.style.fontSize = '14px'
+            this.menu.style.fontSize = '13px'
             this.menu.style.cursor = 'default'
             document.body.appendChild(this.menu)
+            this.hoverItem = null
 
             let closeMenu = (event) => {
-                if (!this.menu.contains(event.target)) this.menu.style.display = 'none';
+                if (!this.menu.contains(event.target)) {
+                    this.menu.style.display = 'none';
+                    this.listen(false)
+                }
             }
 
             this.onRightClick = (event) => {
@@ -406,16 +430,44 @@ if (!window.ContextMenu) {
         listen(active) {
             active ? document.addEventListener('contextmenu', this.onRightClick) : document.removeEventListener('contextmenu', this.onRightClick)
         }
-        menuItem(text, action) {
+        menuItem(text, action, hover=false) {
+            let item = document.createElement('div')
+            item.style.display = 'flex'
+            item.style.alignItems = 'center'
+            item.style.justifyContent = 'space-between'
+            item.style.padding = '0px 10px'
+            item.style.margin = '3px 0px'
+            item.style.borderRadius = '3px'
+            this.menu.appendChild(item)
+
             let elem = document.createElement('div')
             elem.innerText = text
-            elem.style.padding = '0px 10px'
-            elem.style.borderRadius = '3px'
-            this.menu.appendChild(elem)
-            elem.addEventListener('mouseover', (event) => elem.style.backgroundColor = 'rgba(0, 122, 255, 0.3)')
-            elem.addEventListener('mouseout', (event) => elem.style.backgroundColor = 'transparent')
-            elem.addEventListener('click', (event) => {action(); this.menu.style.display = 'none'})
+            item.appendChild(elem)
+
+            if (hover) {
+                let arrow = document.createElement('div')
+                arrow.innerHTML = `<svg width="15px" height="10px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.82054 20.7313C8.21107 21.1218 8.84423 21.1218 9.23476 20.7313L15.8792 14.0868C17.0505 12.9155 17.0508 11.0167 15.88 9.84497L9.3097 3.26958C8.91918 2.87905 8.28601 2.87905 7.89549 3.26958C7.50497 3.6601 7.50497 4.29327 7.89549 4.68379L14.4675 11.2558C14.8581 11.6464 14.8581 12.2795 14.4675 12.67L7.82054 19.317C7.43002 19.7076 7.43002 20.3407 7.82054 20.7313Z" fill="#fff"/></svg>`
+                item.appendChild(arrow)
+            }
+
+            elem.addEventListener('mouseover', (event) => {
+                item.style.backgroundColor = 'rgba(0, 122, 255, 0.3)'
+                if (this.hoverItem && this.hoverItem.closeAction) this.hoverItem.closeAction()
+                this.hoverItem = {elem: elem, action: action, closeAction: hover}
+            })
+            elem.addEventListener('mouseout', (event) => item.style.backgroundColor = 'transparent')
+            if (!hover) elem.addEventListener('click', (event) => {action(event); this.menu.style.display = 'none'})
+            else elem.addEventListener('mouseover', () => action(item.getBoundingClientRect()))
         }
+        separator() {
+            let separator = document.createElement('div')
+            separator.style.width = '90%'
+            separator.style.height = '1px'
+            separator.style.margin = '4px 0px'
+            separator.style.backgroundColor = '#3C434C'
+            this.menu.appendChild(separator)
+        }
+
     }
     window.ContextMenu = ContextMenu
 }

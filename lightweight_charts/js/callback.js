@@ -1,3 +1,123 @@
+if (!window.TopBar) {
+    class TopBar {
+        constructor(chart, hoverBackgroundColor, clickBackgroundColor, activeBackgroundColor, textColor, activeTextColor) {
+            this.makeSwitcher = this.makeSwitcher.bind(this)
+            this.hoverBackgroundColor = hoverBackgroundColor
+            this.clickBackgroundColor = clickBackgroundColor
+            this.activeBackgroundColor = activeBackgroundColor
+            this.textColor = textColor
+            this.activeTextColor = activeTextColor
+
+            this.topBar = document.createElement('div')
+            this.topBar.style.backgroundColor = '#0c0d0f'
+            this.topBar.style.borderBottom = '2px solid #3C434C'
+            this.topBar.style.display = 'flex'
+            this.topBar.style.alignItems = 'center'
+            chart.wrapper.prepend(this.topBar)
+        }
+        makeSwitcher(items, activeItem, callbackName) {
+            let switcherElement = document.createElement('div');
+            switcherElement.style.margin = '4px 12px'
+            let widget = {
+                elem: switcherElement,
+                callbackName: callbackName,
+            }
+            let intervalElements = items.map((item)=> {
+                let itemEl = document.createElement('button');
+                itemEl.style.border = 'none'
+                itemEl.style.padding = '2px 5px'
+                itemEl.style.margin = '0px 2px'
+                itemEl.style.fontSize = '13px'
+                itemEl.style.borderRadius = '4px'
+                itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : 'transparent'
+                itemEl.style.color = item === activeItem ? this.activeTextColor : this.textColor
+                itemEl.innerText = item;
+                document.body.appendChild(itemEl)
+                itemEl.style.minWidth = itemEl.clientWidth + 1 + 'px'
+                document.body.removeChild(itemEl)
+
+                itemEl.addEventListener('mouseenter', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : this.hoverBackgroundColor)
+                itemEl.addEventListener('mouseleave', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : 'transparent')
+                itemEl.addEventListener('mousedown', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : this.clickBackgroundColor)
+                itemEl.addEventListener('mouseup', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : this.hoverBackgroundColor)
+                itemEl.addEventListener('click', () => onItemClicked(item))
+
+                switcherElement.appendChild(itemEl);
+                return itemEl;
+            });
+
+            let onItemClicked = (item)=> {
+                if (item === activeItem) return
+                intervalElements.forEach((element, index) => {
+                    element.style.backgroundColor = items[index] === item ? this.activeBackgroundColor : 'transparent'
+                    element.style.color = items[index] === item ? this.activeTextColor : this.textColor
+                    element.style.fontWeight = items[index] === item ? '500' : 'normal'
+                })
+                activeItem = item;
+                window.callbackFunction(`${widget.callbackName}_~_${item}`);
+            }
+
+            this.topBar.appendChild(switcherElement)
+            this.makeSeparator(this.topBar)
+            return widget
+        }
+        makeTextBoxWidget(text) {
+            let textBox = document.createElement('div')
+            textBox.style.margin = '0px 18px'
+            textBox.style.fontSize = '16px'
+            textBox.style.color = 'rgb(220, 220, 220)'
+            textBox.innerText = text
+            this.topBar.append(textBox)
+            this.makeSeparator(this.topBar)
+            return textBox
+        }
+        makeButton(defaultText, callbackName) {
+            let button = document.createElement('button')
+            button.style.border = 'none'
+            button.style.padding = '2px 5px'
+            button.style.margin = '4px 18px'
+            button.style.fontSize = '13px'
+            button.style.backgroundColor = 'transparent'
+            button.style.color = this.textColor
+            button.style.borderRadius = '4px'
+            button.innerText = defaultText;
+            document.body.appendChild(button)
+            button.style.minWidth = button.clientWidth+1+'px'
+            document.body.removeChild(button)
+
+            let widget = {
+                elem: button,
+                callbackName: callbackName
+            }
+
+            button.addEventListener('mouseenter', () => button.style.backgroundColor = this.hoverBackgroundColor)
+            button.addEventListener('mouseleave', () => button.style.backgroundColor = 'transparent')
+            button.addEventListener('click', () => window.callbackFunction(`${widget.callbackName}_~_${button.innerText}`));
+            button.addEventListener('mousedown', () => {
+                button.style.backgroundColor = this.activeBackgroundColor
+                button.style.color = this.activeTextColor
+                button.style.fontWeight = '500'
+            })
+            button.addEventListener('mouseup', () => {
+                button.style.backgroundColor = this.hoverBackgroundColor
+                button.style.color = this.textColor
+                button.style.fontWeight = 'normal'
+            })
+            this.topBar.appendChild(button)
+            return widget
+        }
+
+        makeSeparator() {
+            let seperator = document.createElement('div')
+            seperator.style.width = '1px'
+            seperator.style.height = '20px'
+            seperator.style.backgroundColor = '#3C434C'
+            this.topBar.appendChild(seperator)
+        }
+    }
+    window.TopBar = TopBar
+}
+
 function makeSearchBox(chart) {
     let searchWindow = document.createElement('div')
     searchWindow.style.position = 'absolute'
@@ -37,19 +157,13 @@ function makeSearchBox(chart) {
 
     let yPrice = null
     chart.chart.subscribeCrosshairMove((param) => {
-        if (param.point){
-            yPrice = param.point.y;
-        }
-    });
+        if (param.point) yPrice = param.point.y;
+    })
     let selectedChart = false
-    chart.wrapper.addEventListener('mouseover', (event) => {
-        selectedChart = true
-    })
-    chart.wrapper.addEventListener('mouseout', (event) => {
-        selectedChart = false
-    })
+    chart.wrapper.addEventListener('mouseover', (event) => selectedChart = true)
+    chart.wrapper.addEventListener('mouseout', (event) => selectedChart = false)
     chart.commandFunctions.push((event) => {
-        if (!selectedChart) return
+        if (!selectedChart) return false
         if (searchWindow.style.display === 'none') {
             if (/^[a-zA-Z0-9]$/.test(event.key)) {
                 searchWindow.style.display = 'flex';
@@ -58,22 +172,15 @@ function makeSearchBox(chart) {
             }
             else return false
         }
-        else if (event.key === 'Enter') {
-            window.callbackFunction(`on_search_~_${chart.id}_~_${sBox.value}`)
-            searchWindow.style.display = 'none'
-            sBox.value = ''
-            return true
-        }
-        else if (event.key === 'Escape') {
+        else if (event.key === 'Enter' || event.key === 'Escape') {
+            if (event.key === 'Enter') window.callbackFunction(`search${chart.id}_~_${sBox.value}`)
             searchWindow.style.display = 'none'
             sBox.value = ''
             return true
         }
         else return false
     })
-    sBox.addEventListener('input', function() {
-        sBox.value = sBox.value.toUpperCase();
-    });
+    sBox.addEventListener('input', () => sBox.value = sBox.value.toUpperCase())
     return {
         window: searchWindow,
         box: sBox,
@@ -104,77 +211,4 @@ function makeSpinner(chart) {
     animateSpinner();
 }
 
-function makeSwitcher(chart, items, activeItem, callbackName, activeBackgroundColor, activeColor, inactiveColor, hoverColor) {
-    let switcherElement = document.createElement('div');
-    switcherElement.style.margin = '4px 14px'
-    switcherElement.style.zIndex = '1000'
 
-    let intervalElements = items.map(function(item) {
-        let itemEl = document.createElement('button');
-        itemEl.style.cursor = 'pointer'
-        itemEl.style.padding = '2px 5px'
-        itemEl.style.margin = '0px 4px'
-        itemEl.style.fontSize = '13px'
-        itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : 'transparent'
-        itemEl.style.color = item === activeItem ? activeColor : inactiveColor
-        itemEl.style.border = 'none'
-        itemEl.style.borderRadius = '4px'
-
-        itemEl.addEventListener('mouseenter', function() {
-            itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : hoverColor
-            itemEl.style.color = activeColor
-        })
-        itemEl.addEventListener('mouseleave', function() {
-            itemEl.style.backgroundColor = item === activeItem ? activeBackgroundColor : 'transparent'
-            itemEl.style.color = item === activeItem ? activeColor : inactiveColor
-        })
-        itemEl.innerText = item;
-        itemEl.addEventListener('click', function() {
-            onItemClicked(item);
-        });
-        switcherElement.appendChild(itemEl);
-        return itemEl;
-    });
-    function onItemClicked(item) {
-        if (item === activeItem) {
-            return;
-        }
-        intervalElements.forEach(function(element, index) {
-            element.style.backgroundColor = items[index] === item ? activeBackgroundColor : 'transparent'
-            element.style.color = items[index] === item ? 'activeColor' : inactiveColor
-        });
-        activeItem = item;
-        window.callbackFunction(`${callbackName}_~_${chart.id}_~_${item}`);
-    }
-    chart.topBar.appendChild(switcherElement)
-    makeSeperator(chart.topBar)
-    return switcherElement;
-}
-
-function makeTextBoxWidget(chart, text) {
-    let textBox = document.createElement('div')
-    textBox.style.margin = '0px 18px'
-    textBox.style.fontSize = '16px'
-    textBox.style.color = 'rgb(220, 220, 220)'
-    textBox.innerText = text
-    chart.topBar.append(textBox)
-    makeSeperator(chart.topBar)
-    return textBox
-}
-
-function makeTopBar(chart) {
-    chart.topBar = document.createElement('div')
-    chart.topBar.style.backgroundColor = '#191B1E'
-    chart.topBar.style.borderBottom = '2px solid #3C434C'
-    chart.topBar.style.display = 'flex'
-    chart.topBar.style.alignItems = 'center'
-    chart.wrapper.prepend(chart.topBar)
-}
-
-function makeSeperator(topBar) {
-    let seperator = document.createElement('div')
-    seperator.style.width = '1px'
-    seperator.style.height = '20px'
-    seperator.style.backgroundColor = '#3C434C'
-    topBar.appendChild(seperator)
-    }
