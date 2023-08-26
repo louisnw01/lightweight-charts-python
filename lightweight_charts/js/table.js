@@ -1,9 +1,8 @@
 if (!window.Table) {
     class Table {
-        constructor(width, height, headings, widths, alignments, position, draggable = false, chart) {
+        constructor(width, height, headings, widths, alignments, position, draggable = false) {
             this.container = document.createElement('div')
             this.callbackName = null
-            this.chart = chart
 
             if (draggable) {
                 this.container.style.position = 'absolute'
@@ -15,7 +14,7 @@ if (!window.Table) {
 
             this.container.style.zIndex = '2000'
             this.container.style.width = width <= 1 ? width * 100 + '%' : width + 'px'
-            this.container.style.minHeight = height <= 1 ? height * 100 + '%' : height + 'px'
+            this.container.style.height = height <= 1 ? height * 100 + '%' : height + 'px'
             this.container.style.display = 'flex'
             this.container.style.flexDirection = 'column'
             this.container.style.justifyContent = 'space-between'
@@ -52,7 +51,10 @@ if (!window.Table) {
                 th.style.border = '1px solid rgb(70, 70, 70)'
             }
 
-            this.container.appendChild(this.table)
+            let overflowWrapper = document.createElement('div')
+            overflowWrapper.style.overflow = 'auto'
+            overflowWrapper.appendChild(this.table)
+            this.container.appendChild(overflowWrapper)
             document.getElementById('wrapper').appendChild(this.container)
 
             if (!draggable) return
@@ -136,11 +138,6 @@ if (!window.Table) {
                 this.footer[i].style.flex = '1'
                 this.footer[i].style.textAlign = 'center'
             }
-        }
-        toJSON() {
-            // Exclude the chart attribute from serialization
-            const {chart, ...serialized} = this;
-            return serialized;
         }
     }
     window.Table = Table

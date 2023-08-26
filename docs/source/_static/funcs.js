@@ -11,10 +11,11 @@ if (!window.Chart) {
                 width: innerWidth,
                 height: innerHeight,
             }
+            this.container = document.getElementById('wrapper')
             this.commandFunctions = []
             this.chart = LightweightCharts.createChart(this.div, {
-                width: window.innerWidth * innerWidth,
-                height: window.innerHeight * innerHeight,
+                width: this.container.clientWidth * innerWidth,
+                height: this.container.clientHeight * innerHeight,
                 layout: {
                     textColor: '#d1d4dc',
                     background: {
@@ -47,6 +48,7 @@ if (!window.Chart) {
             this.wrapper.style.display = 'flex'
             this.wrapper.style.flexDirection = 'column'
             this.wrapper.style.position = 'relative'
+            this.wrapper.style.display = 'flex'
             this.wrapper.style.float = position
 
             this.div.style.position = 'relative'
@@ -64,7 +66,7 @@ if (!window.Chart) {
         }
         reSize() {
             let topBarOffset = 'topBar' in this ? this.topBar.offsetHeight : 0
-            this.chart.resize(window.innerWidth * this.scale.width, (window.innerHeight * this.scale.height) - topBarOffset)
+            this.chart.resize(this.container.clientWidth * this.scale.width, (this.container.clientHeight * this.scale.height) - topBarOffset)
         }
         makeCandlestickSeries() {
             this.markers = []

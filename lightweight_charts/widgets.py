@@ -1,97 +1,85 @@
 import asyncio
 
+from .util import parse_event_message
+from lightweight_charts import abstract
+
 try:
     import wx.html2
 except ImportError:
     wx = None
+
 try:
     from PyQt5.QtWebEngineWidgets import QWebEngineView
     from PyQt5.QtWebChannel import QWebChannel
-    from PyQt5.QtCore import QObject, pyqtSlot
-
-    class Bridge(QObject):
-        def __init__(self, chart):
-            super().__init__()
-            self.chart = chart
-
-        @pyqtSlot(str)
-        def callback(self, message):
-            _widget_message(self.chart, message)
+    from PyQt5.QtCore import QObject, pyqtSlot as Slot
 except ImportError:
     try:
         from PySide6.QtWebEngineWidgets import QWebEngineView
         from PySide6.QtWebChannel import QWebChannel
         from PySide6.QtCore import QObject, Slot
-
-        class Bridge(QObject):
-            def __init__(self, chart):
-                super().__init__()
-                self.chart = chart
-
-            @Slot(str)
-            def callback(self, message):
-                _widget_message(self.chart, message)
     except ImportError:
         QWebEngineView = None
+
+if QWebEngineView:
+    class Bridge(QObject):
+        def __init__(self, chart):
+            super().__init__()
+            self.chart = chart
+
+        @Slot(str)
+        def callback(self, message):
+            emit_callback(self.chart, message)
+
 try:
     from streamlit.components.v1 import html
 except ImportError:
     html = None
+
 try:
     from IPython.display import HTML, display
 except ImportError:
     HTML = None
 
-from lightweight_charts.abstract import LWC, JS
 
-
-def _widget_message(chart, string):
-    name, args = string.split('_~_')
-    args = args.split(';;;')
-    func = chart._handlers[name]
+def emit_callback(window, string):
+    func, args = parse_event_message(window, string)
     asyncio.create_task(func(*args)) if asyncio.iscoroutinefunction(func) else func(*args)
 
 
-class WxChart(LWC):
+class WxChart(abstract.AbstractChart):
     def __init__(self, parent, inner_width: float = 1.0, inner_height: float = 1.0,
                  scale_candles_only: bool = False, toolbox: bool = False):
         if wx is None:
             raise ModuleNotFoundError('wx.html2 was not found, and must be installed to use WxChart.')
         self.webview: wx.html2.WebView = wx.html2.WebView.New(parent)
+        super().__init__(abstract.Window(self.webview.RunScript, 'window.wx_msg.postMessage.bind(window.wx_msg)'),
+                         inner_width, inner_height, scale_candles_only, toolbox)
 
-        super().__init__(inner_width=inner_width, inner_height=inner_height,
-                         scale_candles_only=scale_candles_only, toolbox=toolbox,
-                         _js_api_code='window.wx_msg.postMessage.bind(window.wx_msg)')
-        self._script_func = self.webview.RunScript
-
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(500, self._on_js_load))
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: _widget_message(self, e.GetString()))
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(500, self.win.on_js_load))
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self, e.GetString()))
         self.webview.AddScriptMessageHandler('wx_msg')
-        self.webview.SetPage(self._html, '')
-        self.webview.AddUserScript(JS['toolbox']) if toolbox else None
+        self.webview.SetPage(abstract.TEMPLATE, '')
+        self.webview.AddUserScript(abstract.JS['toolbox']) if toolbox else None
 
     def get_webview(self): return self.webview
 
 
-class QtChart(LWC):
+class QtChart(abstract.AbstractChart):
     def __init__(self, widget=None, inner_width: float = 1.0, inner_height: float = 1.0,
                  scale_candles_only: bool = False, toolbox: bool = False):
         if QWebEngineView is None:
             raise ModuleNotFoundError('QWebEngineView was not found, and must be installed to use QtChart.')
         self.webview = QWebEngineView(widget)
-
-        super().__init__(inner_width=inner_width, inner_height=inner_height,
-                         scale_candles_only=scale_candles_only, toolbox=toolbox,
-                         _js_api_code='window.pythonObject.callback')
-        self._script_func = self.webview.page().runJavaScript
+        super().__init__(abstract.Window(self.webview.page().runJavaScript, 'window.pythonObject.callback'),
+                         inner_width, inner_height, scale_candles_only, toolbox)
 
         self.web_channel = QWebChannel()
         self.bridge = Bridge(self)
         self.web_channel.registerObject('bridge', self.bridge)
         self.webview.page().setWebChannel(self.web_channel)
-        self.webview.loadFinished.connect(self._on_js_load)
+        self.webview.loadFinished.connect(self.win.on_js_load)
         self._html = f'''
-        {self._html[:85]}
+        {abstract.TEMPLATE[:85]}
         <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
         <script>
         var bridge = new QWebChannel(qt.webChannelTransport, function(channel) {{
@@ -99,32 +87,33 @@ class QtChart(LWC):
             window.pythonObject = pythonObject
         }});
         </script>
-        {self._html[85:]}
+        {abstract.TEMPLATE[85:]}
         '''
         self.webview.page().setHtml(self._html)
 
     def get_webview(self): return self.webview
 
 
-class StaticLWC(LWC):
+class StaticLWC(abstract.AbstractChart):
     def __init__(self, width=None, height=None, inner_width=1, inner_height=1,
                  scale_candles_only: bool = False, toolbox=False, autosize=True):
-        super().__init__(inner_width, inner_height, scale_candles_only=scale_candles_only, toolbox=toolbox, autosize=autosize)
+        self._html = abstract.TEMPLATE.replace('</script>\n</body>\n</html>', '')
+        super().__init__(abstract.Window(run_script=self.run_script), inner_width, inner_height,
+                         scale_candles_only, toolbox, autosize)
         self.width = width
         self.height = height
-        self._html = self._html.replace('</script>\n</body>\n</html>', '')
 
     def run_script(self, script, run_last=False):
         if run_last:
-            self._final_scripts.append(script)
+            self.win.final_scripts.append(script)
         else:
             self._html += '\n' + script
 
     def load(self):
-        if self.loaded:
+        if self.win.loaded:
             return
-        self.loaded = True
-        for script in self._final_scripts:
+        self.win.loaded = True
+        for script in self.win.final_scripts:
             self._html += '\n' + script
         self._load()
 
@@ -143,8 +132,7 @@ class StreamlitChart(StaticLWC):
 
 class JupyterChart(StaticLWC):
     def __init__(self, width: int = 800, height=350, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox: bool = False):
-        super().__init__(width, height, inner_width, inner_height, scale_candles_only, toolbox, autosize=False)
-        self._position = ""
+        super().__init__(width, height, inner_width, inner_height, scale_candles_only, toolbox, False)
 
         self.run_script(f'''
             for (var i = 0; i < document.getElementsByClassName("tv-lightweight-charts").length; i++) {{

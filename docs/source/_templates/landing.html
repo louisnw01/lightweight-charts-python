@@ -1,0 +1,301 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="index" title="Index" href="genindex.html"/>
+    <link rel="search" title="Search" href="search.html"/>
+    <link rel="next" title="Topbar &amp; Events" href="events.html"/>
+    <link rel="prev" title="lightweight-charts-python" href="index.html"/>
+
+    <!-- Generated with Sphinx 7.2.3 and Furo 2023.08.19 -->
+    <title>Getting Started - lightweight-charts-python 1.0.16 documentation</title>
+    <link rel="stylesheet" type="text/css" href=_static/pygments.css?v=045299b1"/>
+    <link rel="stylesheet" type="text/css" href=_static/styles/furo.css?v=135e06be"/>
+    <link rel="stylesheet" type="text/css" href=_static/copybutton.css?v=76b2166b"/>
+    <link rel="stylesheet" type="text/css" href=_static/styles/furo-extensions.css?v=36a5483c"/>
+    <link rel="stylesheet" type="text/css" href=_static/splash.css?v=a3b9b0a1"/>
+
+
+    <style>
+        body {
+            --color-code-background: #ffffff;
+            --color-code-foreground: black;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        @media not print {
+            body[data-theme="dark"] {
+                --color-code-background: #1d2331;
+                --color-code-foreground: #d4d2c8;
+                --color-background-primary: #121417;
+                --color-background-secondary: #181b1e;
+
+            }
+
+            @media (prefers-color-scheme: dark) {
+                body:not([data-theme="light"]) {
+                    --color-code-background: #1d2331;
+                    --color-code-foreground: #d4d2c8;
+                    --color-background-primary: #121417;
+                    --color-background-secondary: #181b1e;
+
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+</script>
+
+
+<div class="splash-page-container">
+
+    <div class="splash-head">
+
+        <div class="theme-button">
+            <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                <symbol id="svg-sun" viewBox="0 0 24 24">
+                    <title>Light mode</title>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </symbol>
+                <symbol id="svg-moon" viewBox="0 0 24 24">
+                    <title>Dark mode</title>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/>
+                    </svg>
+                </symbol>
+                <symbol id="svg-sun-half" viewBox="0 0 24 24">
+                    <title>Auto light/dark mode</title>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M13 12h5"/>
+                        <path d="M13 15h4"/>
+                        <path d="M13 18h1"/>
+                        <path d="M13 9h4"/>
+                        <path d="M13 6h1"/>
+                    </svg>
+                </symbol>
+            </svg>
+
+            <button class="theme-toggle">
+                <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+                <svg class="theme-icon-when-auto">
+                    <use href="#svg-sun-half"></use>
+                </svg>
+                <svg class="theme-icon-when-dark">
+                    <use href="#svg-moon"></use>
+                </svg>
+                <svg class="theme-icon-when-light">
+                    <use href="#svg-sun"></use>
+                </svg>
+            </button>
+        </div>
+
+
+
+
+
+        <h1 style="font-family: 'Maison Neue',sans-serif">Lightweight Charts Python</h1>
+
+
+        <b style="font-family: 'Maison Neue Italic',sans-serif">TradingView charts, wrapped for Python.</b>
+
+
+<nav class="top-nav">
+            <ul>
+                <li><a href="tutorials/getting_started.html">Getting Started</a></li>
+                <li><a href="examples/events.html">Examples</a></li>
+                <li><a href="reference/index.html">Documentation</a></li>
+            </ul>
+
+        </nav>
+
+    </div>
+
+
+<!--    <hr class="docutils"/>-->
+
+    <div class="highlight-text notranslate" style=" align-self: center;">
+        <div class="highlight" style="text-align: center; padding-right: 25px;">
+            <pre><span></span>pip install lightweight-charts</pre>
+        </div>
+    </div>
+
+
+    <script src="_static/pkg.js"></script>
+    <script src="_static/funcs.js"></script>
+    <script src="_static/callback.js"></script>
+    <script src="_static/toolbox.js"></script>
+
+    <div id="main-content">
+
+
+        <div class="highlight-python notranslate"
+             style="border: 2px solid var(--color-foreground-muted); border-radius: 8px; overflow: hidden;">
+            <div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span
+                    class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">lightweight_charts</span> <span class="kn">import</span> <span class="n">Chart</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span
+                        class="s1">'__main__'</span><span class="p">:</span>
+
+    <span class="n">chart</span> <span class="o">=</span> <span class="n">Chart</span><span class="p">(</span><span
+                        class="n">toolbox</span><span class="o">=</span><span class="kc">True</span><span
+                        class="p">)</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span
+                        class="p">(</span><span class="s1">'ohlcv.csv'</span><span class="p">)</span>
+    <span class="n">chart</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span
+                        class="n">df</span><span class="p">)</span>
+
+    <span class="n">chart</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span
+                        class="n">block</span><span class="o">=</span><span class="kc">True</span><span
+                        class="p">)</span>
+
+</pre>
+            </div>
+        </div>
+
+
+        <svg id="curved-arrow" fill="var(--color-foreground-primary)" version="1.1" xmlns="http://www.w3.org/2000/svg"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             viewBox="0 0 415.262 415.261"
+             xml:space="preserve">
+<g>
+	<path d="M414.937,374.984c-7.956-24.479-20.196-47.736-30.601-70.992c-1.224-3.06-6.12-3.06-7.956-1.224
+		c-10.403,11.016-22.031,22.032-28.764,35.496h-0.612c-74.664,5.508-146.88-58.141-198.288-104.652
+		c-59.364-53.244-113.22-118.116-134.64-195.84c-1.224-9.792-2.448-20.196-2.448-30.6c0-4.896-6.732-4.896-7.344,0
+		c0,1.836,0,3.672,0,5.508C1.836,12.68,0,14.516,0,17.576c0.612,6.732,2.448,13.464,3.672,20.196
+		C8.568,203.624,173.808,363.356,335.376,373.76c-5.508,9.792-10.403,20.195-16.523,29.988c-3.061,4.283,1.836,8.567,6.12,7.955
+		c30.6-4.283,58.14-18.972,86.292-29.987C413.712,381.104,416.16,378.656,414.937,374.984z M332.928,399.464
+		c3.673-7.956,6.12-15.912,10.404-23.868c1.225-3.061-0.612-5.508-2.448-6.12c0-1.836-1.224-3.061-3.06-3.672
+		c-146.268-24.48-264.996-124.236-309.06-259.489c28.764,53.244,72.828,99.756,116.28,138.924
+		c31.824,28.765,65.484,54.468,102.204,75.888c28.764,16.524,64.872,31.824,97.92,21.421l0,0c-1.836,4.896,5.508,7.344,7.956,3.672
+		c7.956-10.404,15.912-20.196,24.48-29.376c8.567,18.972,17.748,37.943,24.479,57.527
+		C379.44,382.94,356.796,393.956,332.928,399.464z"/>
+</g>
+</svg>
+
+        <div id="wrapper"></div>
+
+
+        <script>
+
+
+            window.addEventListener('DOMContentLoaded', () => {
+
+                let chart = new Chart(document.getElementById('wrapper'), 1, 1, 'left', true)
+                chart.makeCandlestickSeries()
+                let toolbox = new ToolBox(chart)
+
+                chart.chart.applyOptions({
+                    grid: {
+                        vertLines: {
+                            visible: false,
+
+                        },
+                        horzLines: {
+                            visible: false,
+                        },
+                    }
+                })
+
+                fetch("_static/ohlcv.json")
+                    .then(response => response.json())
+                    .then(data => {
+                        chart.candleData = data.candleData
+                        chart.volumeSeries.setData(data.volume)
+                        chart.series.setData(chart.candleData)
+                        chart.reSize()
+                    })
+
+                document.querySelector('.theme-toggle').addEventListener('click', () => {
+                    let theme = localStorage.getItem('theme')
+                    let color = theme === 'dark' ? '#000' : theme === 'light' ? '#fff' : '#000'
+                    chart.chart.applyOptions({
+                        layout: {
+                            textColor: color === '#000' ? '#fff' : '#000',
+                            background: {
+                                color: color,
+                                type: LightweightCharts.ColorType.Solid,
+                            },
+                        }
+                    })
+                })
+            })
+        </script>
+
+
+    </div>
+
+
+
+             <div style="transform: scale(0.7); align-self: center"><script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button"
+            data-slug="7wzcr2p9vxM" data-color="#FFDD00" data-emoji="" data-font="Cookie"
+            data-text="Support the library!" data-outline-color="#000000" data-font-color="#000000"
+            data-coffee-color="#ffffff"></script></div>
+
+    <footer>
+        <div class="bottom-of-page" style="margin: 0">
+            <div class="left-details">
+                <div class="copyright">
+                    Copyright &#169; 2023, louisnw
+                </div>
+            </div>
+
+
+            <div class="right-details">
+                <div class="icons">
+
+
+
+                    <a class="muted-link " href="https://github.com/louisnw01/lightweight-charts-python"
+                       aria-label="GitHub">
+                        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                  d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                        </svg>
+                    </a>
+
+                </div>
+            </div>
+        </div>
+
+    </footer>
+</div>
+
+<script src="_static/documentation_options.js?v=588f6264"></script>
+<script src="_static/doctools.js?v=888ff710"></script>
+<script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+<script src="_static/scripts/furo.js?v=32e29ea5"></script>
+<script src="_static/clipboard.min.js?v=a7894cd8"></script>
+<script src="_static/copybutton.js?v=f281be69"></script>
+<script defer="defer" src="https://unpkg.com/@popperjs/core@2"></script>
+<script defer="defer" src="https://unpkg.com/tippy.js@6"></script>
+<script defer="defer" src="_static/tippy/tutorials/getting_started.8daa58e2-f7c9-4b37-adde-0459512b1058.js"></script>
+</body>
+</html>

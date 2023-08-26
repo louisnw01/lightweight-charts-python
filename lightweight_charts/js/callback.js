@@ -14,6 +14,9 @@ if (!window.TopBar) {
             this.topBar.style.display = 'flex'
             this.topBar.style.alignItems = 'center'
             chart.wrapper.prepend(this.topBar)
+            chart.topBar = this.topBar
+            this.reSize = () => chart.reSize()
+            this.reSize()
         }
         makeSwitcher(items, activeItem, callbackName) {
             let switcherElement = document.createElement('div');
@@ -45,6 +48,7 @@ if (!window.TopBar) {
                 switcherElement.appendChild(itemEl);
                 return itemEl;
             });
+            widget.intervalElements = intervalElements
 
             let onItemClicked = (item)=> {
                 if (item === activeItem) return
@@ -59,6 +63,7 @@ if (!window.TopBar) {
 
             this.topBar.appendChild(switcherElement)
             this.makeSeparator(this.topBar)
+            this.reSize()
             return widget
         }
         makeTextBoxWidget(text) {
@@ -69,9 +74,10 @@ if (!window.TopBar) {
             textBox.innerText = text
             this.topBar.append(textBox)
             this.makeSeparator(this.topBar)
+            this.reSize()
             return textBox
         }
-        makeButton(defaultText, callbackName) {
+        makeButton(defaultText, callbackName, separator) {
             let button = document.createElement('button')
             button.style.border = 'none'
             button.style.padding = '2px 5px'
@@ -103,7 +109,9 @@ if (!window.TopBar) {
                 button.style.color = this.textColor
                 button.style.fontWeight = 'normal'
             })
+            if (separator) this.makeSeparator()
             this.topBar.appendChild(button)
+            this.reSize()
             return widget
         }
 
@@ -159,11 +167,10 @@ function makeSearchBox(chart) {
     chart.chart.subscribeCrosshairMove((param) => {
         if (param.point) yPrice = param.point.y;
     })
-    let selectedChart = false
-    chart.wrapper.addEventListener('mouseover', (event) => selectedChart = true)
-    chart.wrapper.addEventListener('mouseout', (event) => selectedChart = false)
+    window.selectedChart = chart
+    chart.wrapper.addEventListener('mouseover', (event) => window.selectedChart = chart)
     chart.commandFunctions.push((event) => {
-        if (!selectedChart) return false
+        if (selectedChart !== chart) return false
         if (searchWindow.style.display === 'none') {
             if (/^[a-zA-Z0-9]$/.test(event.key)) {
                 searchWindow.style.display = 'flex';
