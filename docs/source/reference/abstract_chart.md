@@ -67,7 +67,7 @@ ___
 
 
 
-```{py:function} lines() -> List[Line]
+```{py:method} lines() -> List[Line]
 
 Returns a list of all lines for the chart.
 
@@ -76,7 +76,7 @@ ___
 
 
 
-```{py:function} trend_line(start_time: str | datetime, start_value: NUM, end_time: str | datetime, end_value: NUM, color: COLOR, width: int) -> Line
+```{py:method} trend_line(start_time: str | datetime, start_value: NUM, end_time: str | datetime, end_value: NUM, color: COLOR, width: int) -> Line
 
 Creates a trend line, drawn from the first point (`start_time`, `start_value`) to the last point (`end_time`, `end_value`).
 
@@ -85,7 +85,7 @@ ___
 
 
 
-```{py:function} ray_line(start_time: str | datetime, value: NUM, color: COLOR, width: int) -> Line
+```{py:method} ray_line(start_time: str | datetime, value: NUM, color: COLOR, width: int) -> Line
 
 Creates a ray line, drawn from the first point (`start_time`, `value`) and onwards.
 
@@ -94,7 +94,39 @@ ___
 
 
 
-```{py:function} marker(time: datetime, position: MARKER_POSITION, shape: MARKER_SHAPE, color: COLOR, text: str) -> str
+```{py:method} vertical_span(start_time: TIME, end_time: TIME = None, color: COLOR = 'rgba(252, 219, 3, 0.2)')
+
+Creates and returns a `VerticalSpan` object.
+
+If `end_time` is not given, then a single vertical line will be placed at `start_time`.
+
+This should be used after calling [`set`](#AbstractChart.set).
+```
+___
+
+
+
+```{py:method} set_visible_range(self, start_time: TIME, end_time: TIME)
+
+Sets the visible range of the chart.
+```
+___
+
+
+
+```{py:method} resize(self, width: float = None, height: float = None)
+
+Resizes the chart within the window.
+
+Dimensions should be given as a float between or equal to 0 and 1.
+
+Both `width` and `height` do not need to be provided if only one axis is to be changed.
+```
+___
+
+
+
+```{py:method} marker(time: datetime, position: MARKER_POSITION, shape: MARKER_SHAPE, color: COLOR, text: str) -> str
 
 Adds a marker to the chart, and returns its id.
 
@@ -107,7 +139,7 @@ ___
 
 
 
-```{py:function} remove_marker(marker_id: str)
+```{py:method} remove_marker(marker_id: str)
 
 Removes the marker with the given id.
 
@@ -116,7 +148,7 @@ ___
 
 
 
-```{py:function} horizontal_line(price: NUM, color: COLOR, width: int, style: LINE_STYLE, text: str, axis_label_visible: bool, func: callable= None) -> HorizontalLine
+```{py:method} horizontal_line(price: NUM, color: COLOR, width: int, style: LINE_STYLE, text: str, axis_label_visible: bool, func: callable= None) -> HorizontalLine
 
 Places a horizontal line at the given price, and returns a [`HorizontalLine`] object.
 
@@ -127,7 +159,7 @@ ___
 
 
 
-```{py:function} remove_horizontal_line(price: NUM)
+```{py:method} remove_horizontal_line(price: NUM)
 
 Removes a horizontal line at the given price.
 ```
@@ -135,7 +167,7 @@ ___
 
 
 
-```{py:function} clear_markers()
+```{py:method} clear_markers()
 
 Clears the markers displayed on the data.
 ```
@@ -143,7 +175,7 @@ ___
 
 
 
-```{py:function} clear_horizontal_lines
+```{py:method} clear_horizontal_lines()
 
 Clears the horizontal lines displayed on the data.
 ```
@@ -151,7 +183,7 @@ ___
 
 
 
-```{py:function} precision(precision: int)
+```{py:method} precision(precision: int)
 
 Sets the precision of the chart based on the given number of decimal places.
 
@@ -160,7 +192,7 @@ ___
 
 
 
-```{py:function} price_scale(mode: PRICE_SCALE_MODE, align_labels: bool, border_visible: bool, border_color: COLOR, text_color: COLOR, entire_text_only: bool, ticks_visible: bool, scale_margin_top: float, scale_margin_bottom: float)
+```{py:method} price_scale(mode: PRICE_SCALE_MODE, align_labels: bool, border_visible: bool, border_color: COLOR, text_color: COLOR, entire_text_only: bool, ticks_visible: bool, scale_margin_top: float, scale_margin_bottom: float)
 
 Price scale options for the chart.
 ```
@@ -168,7 +200,7 @@ ___
 
 
 
-```{py:function} time_scale(right_offset: int, min_bar_spacing: float, visible: bool, time_visible: bool, seconds_visible: bool, border_visible: bool, border_color: COLOR)
+```{py:method} time_scale(right_offset: int, min_bar_spacing: float, visible: bool, time_visible: bool, seconds_visible: bool, border_visible: bool, border_color: COLOR)
 
 Timescale options for the chart.
 ```
@@ -176,7 +208,7 @@ ___
 
 
 
-```{py:function} layout(background_color: COLOR, text_color: COLOR, font_size: int, font_family: str)
+```{py:method} layout(background_color: COLOR, text_color: COLOR, font_size: int, font_family: str)
 
 Global layout options for the chart.
 ```
@@ -184,7 +216,7 @@ ___
 
 
 
-```{py:function} grid(vert_enabled: bool, horz_enabled: bool, color: COLOR, style: LINE_STYLE)
+```{py:method} grid(vert_enabled: bool, horz_enabled: bool, color: COLOR, style: LINE_STYLE)
 
 Grid options for the chart.
 ```
@@ -192,7 +224,7 @@ ___
 
 
 
-```{py:function} candle_style(up_color: COLOR, down_color: COLOR, wick_enabled: bool, border_enabled: bool, border_up_color: COLOR, border_down_color: COLOR, wick_up_color: COLOR, wick_down_color: COLOR)
+```{py:method} candle_style(up_color: COLOR, down_color: COLOR, wick_enabled: bool, border_enabled: bool, border_up_color: COLOR, border_down_color: COLOR, wick_up_color: COLOR, wick_down_color: COLOR)
 
 Candle styling for each of the candle's parts (border, wick).
 ```
@@ -200,7 +232,7 @@ ___
 
 
 
-```{py:function} volume_config(scale_margin_top: float, scale_margin_bottom: float, up_color: COLOR, down_color: COLOR)
+```{py:method} volume_config(scale_margin_top: float, scale_margin_bottom: float, up_color: COLOR, down_color: COLOR)
 
 Volume config options.
 
@@ -211,7 +243,7 @@ ___
 
 
 
-```{py:function} crosshair(mode, vert_visible: bool, vert_width: int, vert_color: COLOR, vert_style: LINE_STYLE, vert_label_background_color: COLOR, horz_visible: bool, horz_width: int, horz_color: COLOR, horz_style: LINE_STYLE, horz_label_background_color: COLOR)
+```{py:method} crosshair(mode, vert_visible: bool, vert_width: int, vert_color: COLOR, vert_style: LINE_STYLE, vert_label_background_color: COLOR, horz_visible: bool, horz_width: int, horz_color: COLOR, horz_style: LINE_STYLE, horz_label_background_color: COLOR)
 
 Crosshair formatting for its vertical and horizontal axes.
 ```
@@ -219,7 +251,7 @@ ___
 
 
 
-```{py:function} watermark(text: str, font_size: int, color: COLOR)
+```{py:method} watermark(text: str, font_size: int, color: COLOR)
 
 Overlays a watermark on top of the chart.
 ```
@@ -227,7 +259,7 @@ ___
 
 
 
-```{py:function} legend(visible: bool, ohlc: bool, percent: bool, lines: bool, color: COLOR, font_size: int, font_family: str)
+```{py:method} legend(visible: bool, ohlc: bool, percent: bool, lines: bool, color: COLOR, font_size: int, font_family: str)
 
 Configures the legend of the chart.
 ```
@@ -235,7 +267,7 @@ ___
 
 
 
-```{py:function} spinner(visible: bool)
+```{py:method} spinner(visible: bool)
 
 Shows a loading spinner on the chart, which can be used to visualise the loading of large datasets, API calls, etc.
 
@@ -246,7 +278,7 @@ ___
 
 
 
-```{py:function} price_line(label_visible: bool, line_visible: bool, title: str)
+```{py:method} price_line(label_visible: bool, line_visible: bool, title: str)
 
 Configures the visibility of the last value price line and its label.
 ```
@@ -254,7 +286,7 @@ ___
 
 
 
-```{py:function} fit()
+```{py:method} fit()
 
 Attempts to fit all data displayed on the chart within the viewport (`fitContent()`).
 ```
@@ -262,7 +294,7 @@ ___
 
 
 
-```{py:function} show_data()
+```{py:method} show_data()
 
 Shows the hidden candles on the chart.
 ```
@@ -270,7 +302,7 @@ ___
 
 
 
-```{py:function} hide_data()
+```{py:method} hide_data()
 
 Hides the candles on the chart.
 ```
@@ -278,7 +310,7 @@ ___
 
 
 
-```{py:function} hotkey(modifier: 'ctrl' | 'alt' | 'shift' | 'meta', key: 'str' | 'int' | 'tuple', func: callable)
+```{py:method} hotkey(modifier: 'ctrl' | 'alt' | 'shift' | 'meta', key: 'str' | 'int' | 'tuple', func: callable)
 
 Adds a global hotkey to the chart window, which will execute the method or function given.
 
@@ -288,7 +320,7 @@ ___
 
 
 
-```{py:function} create_table(width: NUM, height: NUM, headings: Tuple[str], widths: Tuple[float], alignments: Tuple[str], position: FLOAT, draggable: bool, func: callable) -> Table
+```{py:method} create_table(width: NUM, height: NUM, headings: Tuple[str], widths: Tuple[float], alignments: Tuple[str], position: FLOAT, draggable: bool, func: callable) -> Table
 
 Creates and returns a [`Table`](https://lightweight-charts-python.readthedocs.io/en/latest/tables.html) object.
 
@@ -297,7 +329,7 @@ ___
 
 
 
-````{py:function} create_subchart(position: FLOAT, width: float, height: float, sync: bool | str, scale_candles_only: bool, toolbox: bool) -> AbstractChart 
+````{py:method} create_subchart(position: FLOAT, width: float, height: float, sync: bool | str, scale_candles_only: bool, toolbox: bool) -> AbstractChart 
 
 Creates and returns a Chart object, placing it adjacent to the previous Chart. This allows for the use of multiple chart panels within the same window.
 
@@ -316,6 +348,7 @@ Creates and returns a Chart object, placing it adjacent to the previous Chart. T
 
 Charts are arranged horizontally from left to right. When the available space is no longer sufficient, the subsequent Chart will be positioned on a new row, starting from the left side.
 
+[Subchart examples](../examples/subchart.md)
 
 ````
 `````

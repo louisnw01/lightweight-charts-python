@@ -10,6 +10,8 @@ pip install lightweight-charts
 
 Pywebview's installation can differ depending on OS. Please refer to their [documentation](https://pywebview.flowrl.com/guide/installation.html#installation).
 
+When using Docker or WSL, you may need to update your language tags; see [this](https://github.com/louisnw01/lightweight-charts-python/issues/63#issuecomment-1670473651) issue.
+
 ___
 
 ## A simple static chart

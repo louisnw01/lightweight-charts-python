@@ -12,7 +12,7 @@ ___
 
 
 
-```{py:function} set(data: pd.DataFrame) 
+```{py:method} set(data: pd.DataFrame) 
 
 Sets the data for the line.
 
@@ -25,7 +25,7 @@ ___
 
 
 
-```{py:function} update(series: pd.Series)
+```{py:method} update(series: pd.Series)
 
 Updates the data for the line.
 
@@ -36,7 +36,7 @@ This should be given as a Series object, with labels akin to the `line.set()` fu
 
 ___
 
-```{py:function} line.delete()
+```{py:method} line.delete()
 
 Irreversibly deletes the line.
 

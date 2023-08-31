@@ -91,17 +91,13 @@ class Window:
         return Table(self, width, height, headings, widths, alignments, position, draggable, func)
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
-                        sync: str = None, scale_candles_only: bool = False, toolbox: bool = False
+                        sync_id: str = None, scale_candles_only: bool = False, toolbox: bool = False
                         ) -> 'AbstractChart':
         subchart = AbstractChart(self, width, height, scale_candles_only, toolbox, position=position)
-        if not sync:
+        if not sync_id:
             return subchart
-        sync_id = sync
         self.run_script(f'''
-        syncCrosshairs({subchart.id}.chart, {sync_id}.chart)
-        {sync_id}.chart.timeScale().subscribeVisibleLogicalRangeChange((timeRange) => {{
-            {subchart.id}.chart.timeScale().setVisibleLogicalRange(timeRange)
-        }})
+        syncCharts({subchart.id}, {sync_id})
         {subchart.id}.chart.timeScale().setVisibleLogicalRange(
             {sync_id}.chart.timeScale().getVisibleLogicalRange()
         )
@@ -313,6 +309,40 @@ class HorizontalLine(Pane):
         del self
 
 
+class VerticalSpan(Pane):
+    def __init__(self, chart: 'AbstractChart', start_time: TIME, end_time: TIME = None,
+                 color: str = 'rgba(252, 219, 3, 0.2)'):
+        super().__init__(chart.win)
+        self._chart = chart
+        start_date, end_date = pd.to_datetime(start_time), pd.to_datetime(end_time)
+        self.run_script(f'''
+        {self.id} = {chart.id}.chart.addHistogramSeries({{
+                color: '{color}',
+                priceFormat: {{type: 'volume'}},
+                priceScaleId: 'vertical_line',
+                lastValueVisible: false,
+                priceLineVisible: false,
+        }})
+        {self.id}.priceScale('').applyOptions({{
+            scaleMargins: {{top: 0, bottom: 0}}
+        }})
+        ''')
+        if end_date is None:
+            self.run_script(f'{self.id}.setData([{{time: {start_date.timestamp()}, value: 1}}])')
+        else:
+            self.run_script(f'''
+            {self.id}.setData(calculateTrendLine(
+            {start_date.timestamp()}, 1, {end_date.timestamp()}, 1,
+            {chart._interval.total_seconds() * 1000}, {chart.id}))
+            ''')
+
+    def delete(self):
+        """
+        Irreversibly deletes the vertical span.
+        """
+        self.run_script(f'{self._chart.id}.chart.removeSeries({self.id}.series); delete {self.id}')
+
+
 class Line(SeriesCommon):
     def __init__(self, chart, name, color, style, width, price_line, price_label, crosshair_marker=True):
         super().__init__(chart)
@@ -345,7 +375,7 @@ class Line(SeriesCommon):
             {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
         }}''')
 
-    def set(self, df: pd.DataFrame):
+    def set(self, df: pd.DataFrame = None):
         """
         Sets the line data.\n
         :param df: If the name parameter is not used, the columns should be named: date/time, value.
@@ -373,15 +403,13 @@ class Line(SeriesCommon):
         self.run_script(f'{self.id}.series.update({series.to_dict()})')
 
     def _set_trend(self, start_time, start_value, end_time, end_value, ray=False):
-        def time_format(time_val):
-            time_val = pd.to_datetime(time_val).timestamp()
-            return f"'{time_val}'" if isinstance(time_val, str) else time_val
-
         self.run_script(f'''
         {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: false}})
         {self.id}.series.setData(
-            calculateTrendLine({time_format(start_time)}, {start_value}, {time_format(end_time)}, {end_value},
-                                {self._chart._interval.total_seconds() * 1000}, {self._chart.id}, {jbool(ray)}))
+            calculateTrendLine({pd.to_datetime(start_time).timestamp()}, {start_value},
+                                {pd.to_datetime(end_time).timestamp()}, {end_value},
+                                {self._chart._interval.total_seconds() * 1000},
+                                {self._chart.id}, {jbool(ray)}))
         {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: true}})
         ''')
 
@@ -399,7 +427,6 @@ class Line(SeriesCommon):
             }}
             delete {self.id}
         ''')
-        del self
 
 
 class Candlestick(SeriesCommon):
@@ -556,20 +583,22 @@ class Candlestick(SeriesCommon):
 
 
 class AbstractChart(Candlestick, Pane):
-    def __init__(self, window: Window, inner_width: float = 1.0, inner_height: float = 1.0,
+    def __init__(self, window: Window, width: float = 1.0, height: float = 1.0,
                  scale_candles_only: bool = False, toolbox: bool = False,
                  autosize: bool = True, position: FLOAT = 'left'):
         Pane.__init__(self, window)
 
         self._lines = []
         self._scale_candles_only = scale_candles_only
+        self._width = width
+        self._height = height
         self.events: Events = Events(self)
 
         from lightweight_charts.polygon import PolygonAPI
         self.polygon: PolygonAPI = PolygonAPI(self)
 
         self.run_script(
-            f'{self.id} = new Chart("{self.id}", {inner_width}, {inner_height}, "{position}", {jbool(autosize)})')
+            f'{self.id} = new Chart("{self.id}", {width}, {height}, "{position}", {jbool(autosize)})')
 
         Candlestick.__init__(self, self)
 
@@ -613,6 +642,37 @@ class AbstractChart(Candlestick, Pane):
         line = Line(self, '', color, 'solid', width, False, False, False)
         line._set_trend(start_time, value, start_time, value, ray=True)
         return line
+
+    def vertical_span(self, start_time: TIME, end_time: TIME = None, color: str = 'rgba(252, 219, 3, 0.2)'):
+        """
+        Creates a vertical line or span across the chart.
+        :param start_time: Start time of the span.
+        :param end_time: End time of the span (can be omitted for a single vertical line).
+        :param color: CSS color.
+        :return:
+        """
+        return VerticalSpan(self, start_time, end_time, color)
+
+    def set_visible_range(self, start_time: TIME, end_time: TIME):
+        self.run_script(f'''
+        {self.id}.chart.timeScale().setVisibleRange({{
+            from: {pd.to_datetime(start_time).timestamp()},
+            to: {pd.to_datetime(end_time).timestamp()}
+        }})
+        ''')
+
+    def resize(self, width: float = None, height: float = None):
+        """
+        Resizes the chart within the window.
+        Dimensions should be given as a float between 0 and 1.
+        """
+        self._width = width if width is not None else self._width
+        self._height = height if height is not None else self._height
+        self.run_script(f'''
+        {self.id}.scale.width = {self._width}
+        {self.id}.scale.height = {self._height}
+        {self.id}.reSize()
+        ''')
 
     def time_scale(self, right_offset: int = 0, min_bar_spacing: float = 0.5,
                    visible: bool = True, time_visible: bool = True, seconds_visible: bool = False,

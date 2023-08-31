@@ -63,7 +63,7 @@ if (!window.Chart) {
             window.addEventListener('resize', () => this.reSize())
         }
         reSize() {
-            let topBarOffset = 'topBar' in this ? this.topBar.offsetHeight : 0
+            let topBarOffset = 'topBar' in this && this.scale.height !== 0 ? this.topBar.offsetHeight : 0
             this.chart.resize(window.innerWidth * this.scale.width, (window.innerHeight * this.scale.height) - topBarOffset)
         }
         makeCandlestickSeries() {
@@ -80,7 +80,7 @@ if (!window.Chart) {
             this.volumeSeries = this.chart.addHistogramSeries({
                 color: '#26a69a',
                 priceFormat: {type: 'volume'},
-                priceScaleId: '',
+                priceScaleId: 'volume_scale',
             })
             this.series.priceScale().applyOptions({
                 scaleMargins: {top: 0.2, bottom: 0.2},
@@ -219,6 +219,12 @@ if (!window.Chart) {
             });
         }
 
+        toJSON() {
+            // Exclude the chart attribute from serialization
+            const {lines, ...serialized} = this;
+            return serialized;
+        }
+
         makeLines(chart) {
             this.lines = []
             if (this.linesEnabled) chart.lines.forEach(line => this.lines.push(this.makeLineRow(line)))
@@ -291,6 +297,10 @@ if (!window.Chart) {
 
     window.Legend = Legend
 }
+function syncCharts(childChart, parentChart) {
+    syncCrosshairs(childChart.chart, parentChart.chart)
+    syncRanges(childChart, parentChart)
+}
 function syncCrosshairs(childChart, parentChart) {
     function crosshairHandler (e, thisChart, otherChart, otherHandler) {
         thisChart.applyOptions({crosshair: { horzLine: {
@@ -327,6 +337,20 @@ function syncCrosshairs(childChart, parentChart) {
     }
     parentChart.subscribeCrosshairMove(parentCrosshairHandler)
     childChart.subscribeCrosshairMove(childCrosshairHandler)
+}
+function syncRanges(childChart, parentChart) {
+    let setChildRange = (timeRange) => childChart.chart.timeScale().setVisibleLogicalRange(timeRange)
+    let setParentRange = (timeRange) => parentChart.chart.timeScale().setVisibleLogicalRange(timeRange)
+
+    parentChart.wrapper.addEventListener('mouseover', (event) => {
+        childChart.chart.timeScale().unsubscribeVisibleLogicalRangeChange(setParentRange)
+        parentChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setChildRange)
+    })
+    childChart.wrapper.addEventListener('mouseover', (event) => {
+        parentChart.chart.timeScale().unsubscribeVisibleLogicalRangeChange(setChildRange)
+        childChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setParentRange)
+    })
+    parentChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setChildRange)
 }
 
 function stampToDate(stampOrBusiness) {

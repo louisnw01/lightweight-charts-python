@@ -5,12 +5,12 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='lightweight_charts',
-    version='1.0.17',
+    version='1.0.17.1',
     packages=find_packages(),
     python_requires='>=3.8',
     install_requires=[
         'pandas',
-        'pywebview',
+        'pywebview>=4.3',
     ],
     package_data={
         'lightweight_charts': ['js/*.js'],

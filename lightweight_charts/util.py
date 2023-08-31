@@ -67,7 +67,7 @@ def price_scale_mode(mode: PRICE_SCALE_MODE):
 
 
 def marker_shape(shape: MARKER_SHAPE):
-    return shape[:shape.index('_')]+shape[shape.index('_')+1:].title() if '_' in shape else shape.title()
+    return shape[:shape.index('_')]+shape[shape.index('_')+1:].title() if '_' in shape else shape
 
 
 def marker_position(p: MARKER_POSITION):

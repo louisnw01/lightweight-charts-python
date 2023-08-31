@@ -17,15 +17,14 @@ lightweight-charts-python aims to provide a simple and pythonic way to access an
 ```
 pip install lightweight-charts
 ```
-* White screen? Having issues with pywebview? Click [here](https://github.com/louisnw01/lightweight-charts-python/issues?q=label%3A%22pywebview+issue%22+).
 ___
 
 ## Features
 1. Streamlined for live data, with methods for updating directly from tick data.
-2. Multi-pane charts using [Subcharts](https://lightweight-charts-python.readthedocs.io/en/latest/common_methods.html#create-subchart-subchart).
-3. The [Toolbox](https://lightweight-charts-python.readthedocs.io/en/latest/toolbox.html), allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
-4. [Callbacks](https://lightweight-charts-python.readthedocs.io/en/latest/callbacks.html) allowing for timeframe selectors (1min, 5min, 30min etc.), searching, hotkeys, and more.
-5. [Tables](https://lightweight-charts-python.readthedocs.io/en/latest/tables.html) for watchlists, order entry, and trade management.
+2. Multi-pane charts using [Subcharts](https://lightweight-charts-python.readthedocs.io/en/latest/reference/abstract_chart.html#AbstractChart.create_subchart).
+3. The [Toolbox](https://lightweight-charts-python.readthedocs.io/en/latest/reference/toolbox.html), allowing for trendlines, rays and horizontal lines to be drawn directly onto charts.
+4. [Events](https://lightweight-charts-python.readthedocs.io/en/latest/tutorials/events.html) allowing for timeframe selectors (1min, 5min, 30min etc.), searching, hotkeys, and more.
+5. [Tables](https://lightweight-charts-python.readthedocs.io/en/latest/reference/tables.html) for watchlists, order entry, and trade management.
 6. Direct integration of market data through [Polygon.io's](https://polygon.io/?utm_source=affiliate&utm_campaign=pythonlwcharts) market data API.
 
 __Supports:__ Jupyter Notebooks, PyQt5, PySide6, wxPython, Streamlit, and asyncio.

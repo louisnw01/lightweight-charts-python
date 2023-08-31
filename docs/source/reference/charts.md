@@ -6,9 +6,11 @@ They inherit from [AbstractChart](#AbstractChart).
 
 ___
 
-`````{py:class} Chart(width: int, height: int, x: int, y: int, on_top: bool, maximize: bool, debug: bool, toolbox: bool, inner_width: float, inner_height: float, scale_candles_only: bool)
+`````{py:class} Chart(width: int, height: int, x: int, y: int, screen: int, on_top: bool, maximize: bool, debug: bool, toolbox: bool, inner_width: float, inner_height: float, scale_candles_only: bool)
 
 The main object used for the normal functionality of lightweight-charts-python, built on the pywebview library.
+
+The `screen` parameter defines which monitor the chart window will open on, given as an index (primary monitor = 0).
 
 ```{important}
 The `Chart` object should be defined within an `if __name__ == '__main__'` block.
