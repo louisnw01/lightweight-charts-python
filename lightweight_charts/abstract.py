@@ -155,7 +155,7 @@ class SeriesCommon(Pane):
         return series
 
     def _single_datetime_format(self, arg):
-        if not pd.api.types.is_datetime64_any_dtype(arg):
+        if isinstance(arg, str) or not pd.api.types.is_datetime64_any_dtype(arg):
             arg = pd.to_datetime(arg)
         interval_seconds = self._interval.total_seconds()
         arg = interval_seconds * (arg.timestamp() // interval_seconds)
