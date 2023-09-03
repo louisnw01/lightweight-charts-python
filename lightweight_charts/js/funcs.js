@@ -5,6 +5,7 @@ if (!window.Chart) {
             this.reSize = this.reSize.bind(this)
             this.id = chartId
             this.lines = []
+            this.interval = null
             this.wrapper = document.createElement('div')
             this.div = document.createElement('div')
             this.scale = {
@@ -140,6 +141,12 @@ if (!window.Chart) {
             this.chart.series.removePriceLine(this.line)
             this.color = color
             this.priceLine.color = this.color
+            this.line = this.chart.series.createPriceLine(this.priceLine)
+        }
+
+        updateStyle(style) {
+            this.chart.series.removePriceLine(this.line)
+            this.priceLine.lineStyle = style
             this.line = this.chart.series.createPriceLine(this.priceLine)
         }
 
@@ -297,6 +304,7 @@ if (!window.Chart) {
 
     window.Legend = Legend
 }
+
 function syncCharts(childChart, parentChart) {
     syncCrosshairs(childChart.chart, parentChart.chart)
     syncRanges(childChart, parentChart)
@@ -462,26 +470,28 @@ if (!window.ContextMenu) {
 
             let elem = document.createElement('span')
             elem.innerText = text
+            elem.style.pointerEvents = 'none'
             item.appendChild(elem)
 
             if (hover) {
                 let arrow = document.createElement('span')
                 arrow.innerText = `►`
                 arrow.style.fontSize = '8px'
+                arrow.style.pointerEvents = 'none'
                 item.appendChild(arrow)
             }
 
-            elem.addEventListener('mouseover', (event) => {
+            item.addEventListener('mouseover', (event) => {
                 item.style.backgroundColor = 'rgba(0, 122, 255, 0.3)'
                 if (this.hoverItem && this.hoverItem.closeAction) this.hoverItem.closeAction()
                 this.hoverItem = {elem: elem, action: action, closeAction: hover}
             })
-            elem.addEventListener('mouseout', (event) => item.style.backgroundColor = 'transparent')
-            if (!hover) elem.addEventListener('click', (event) => {action(event); this.menu.style.display = 'none'})
+            item.addEventListener('mouseout', (event) => item.style.backgroundColor = 'transparent')
+            if (!hover) item.addEventListener('click', (event) => {action(event); this.menu.style.display = 'none'})
             else {
                 let timeout
-                elem.addEventListener('mouseover', () => timeout = setTimeout(() => action(item.getBoundingClientRect()), 100))
-                elem.addEventListener('mouseout', () => clearTimeout(timeout))
+                item.addEventListener('mouseover', () => timeout = setTimeout(() => action(item.getBoundingClientRect()), 100))
+                item.addEventListener('mouseout', () => clearTimeout(timeout))
             }
         }
         separator() {

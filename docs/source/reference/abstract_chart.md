@@ -76,7 +76,7 @@ ___
 
 
 
-```{py:method} trend_line(start_time: str | datetime, start_value: NUM, end_time: str | datetime, end_value: NUM, color: COLOR, width: int) -> Line
+```{py:method} trend_line(start_time: str | datetime, start_value: NUM, end_time: str | datetime, end_value: NUM, color: COLOR, width: int, style: LINE_STYLE) -> Line
 
 Creates a trend line, drawn from the first point (`start_time`, `start_value`) to the last point (`end_time`, `end_value`).
 
@@ -85,7 +85,7 @@ ___
 
 
 
-```{py:method} ray_line(start_time: str | datetime, value: NUM, color: COLOR, width: int) -> Line
+```{py:method} ray_line(start_time: str | datetime, value: NUM, color: COLOR, width: int, style: LINE_STYLE) -> Line
 
 Creates a ray line, drawn from the first point (`start_time`, `value`) and onwards.
 
@@ -94,11 +94,13 @@ ___
 
 
 
-```{py:method} vertical_span(start_time: TIME, end_time: TIME = None, color: COLOR = 'rgba(252, 219, 3, 0.2)')
+```{py:method} vertical_span(start_time: TIME | list | tuple, end_time: TIME = None, color: COLOR = 'rgba(252, 219, 3, 0.2)')
 
 Creates and returns a `VerticalSpan` object.
 
 If `end_time` is not given, then a single vertical line will be placed at `start_time`.
+
+If a list/tuple is passed to `start_time`, vertical lines will be placed at each time.
 
 This should be used after calling [`set`](#AbstractChart.set).
 ```

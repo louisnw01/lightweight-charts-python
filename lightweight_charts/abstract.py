@@ -121,7 +121,7 @@ class SeriesCommon(Pane):
             return
         self._interval = common_interval.index[0]
         self.run_script(
-            f'if ({self.id}.toolBox) {self.id}.toolBox.interval = {self._interval.total_seconds() * 1000}'
+            f'if ({self.id}.toolBox) {self.id}.interval = {self._interval.total_seconds() * 1000}'
         )
 
     @staticmethod
@@ -163,7 +163,7 @@ class SeriesCommon(Pane):
 
     def marker(self, time: datetime = None, position: MARKER_POSITION = 'below',
                shape: MARKER_SHAPE = 'arrow_up', color: str = '#2196F3', text: str = ''
-                ) -> str:
+               ) -> str:
         """
         Creates a new marker.\n
         :param time: Time location of the marker. If no time is given, it will be placed at the last bar.
@@ -310,11 +310,11 @@ class HorizontalLine(Pane):
 
 
 class VerticalSpan(Pane):
-    def __init__(self, chart: 'AbstractChart', start_time: TIME, end_time: TIME = None,
+    def __init__(self, chart: 'AbstractChart', start_time: Union[TIME, tuple, list], end_time: TIME = None,
                  color: str = 'rgba(252, 219, 3, 0.2)'):
         super().__init__(chart.win)
         self._chart = chart
-        start_date, end_date = pd.to_datetime(start_time), pd.to_datetime(end_time)
+        start_time, end_time = pd.to_datetime(start_time), pd.to_datetime(end_time)
         self.run_script(f'''
         {self.id} = {chart.id}.chart.addHistogramSeries({{
                 color: '{color}',
@@ -327,12 +327,16 @@ class VerticalSpan(Pane):
             scaleMargins: {{top: 0, bottom: 0}}
         }})
         ''')
-        if end_date is None:
-            self.run_script(f'{self.id}.setData([{{time: {start_date.timestamp()}, value: 1}}])')
+        if end_time is None:
+            if isinstance(start_time, pd.DatetimeIndex):
+                data = [{'time': time.timestamp(), 'value': 1} for time in start_time]
+            else:
+                data = [{'time': start_time.timestamp(), 'value': 1}]
+            self.run_script(f'{self.id}.setData({data})')
         else:
             self.run_script(f'''
             {self.id}.setData(calculateTrendLine(
-            {start_date.timestamp()}, 1, {end_date.timestamp()}, 1,
+            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1,
             {chart._interval.total_seconds() * 1000}, {chart.id}))
             ''')
 
@@ -340,7 +344,7 @@ class VerticalSpan(Pane):
         """
         Irreversibly deletes the vertical span.
         """
-        self.run_script(f'{self._chart.id}.chart.removeSeries({self.id}.series); delete {self.id}')
+        self.run_script(f'{self._chart.id}.chart.removeSeries({self.id})')
 
 
 class Line(SeriesCommon):
@@ -370,6 +374,10 @@ class Line(SeriesCommon):
             color: '{color}',
             precision: 2,
             }}
+        ''')
+
+    def _push_to_legend(self):
+        self.run_script(f'''
         {self._chart.id}.lines.push({self.id})
         if ('legend' in {self._chart.id}) {{
             {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
@@ -621,6 +629,7 @@ class AbstractChart(Candlestick, Pane):
         Creates and returns a Line object.)\n
         """
         self._lines.append(Line(self, name, color, style, width, price_line, price_label))
+        self._lines[-1]._push_to_legend()
         return self._lines[-1]
 
     def lines(self) -> List[Line]:
@@ -630,26 +639,24 @@ class AbstractChart(Candlestick, Pane):
         return self._lines.copy()
 
     def trend_line(self, start_time: TIME, start_value: NUM, end_time: TIME, end_value: NUM,
-                   color: str = '#1E80F0', width: int = 2
+                   color: str = '#1E80F0', width: int = 2, style: LINE_STYLE = 'solid'
                    ) -> Line:
-        line = Line(self, '', color, 'solid', width, False, False, False)
+        line = Line(self, '', color, style, width, False, False, False)
         line._set_trend(start_time, start_value, end_time, end_value)
         return line
 
     def ray_line(self, start_time: TIME, value: NUM,
-                 color: str = '#1E80F0', width: int = 2
+                 color: str = '#1E80F0', width: int = 2, style: LINE_STYLE = 'solid'
                  ) -> Line:
-        line = Line(self, '', color, 'solid', width, False, False, False)
+        line = Line(self, '', color, style, width, False, False, False)
         line._set_trend(start_time, value, start_time, value, ray=True)
         return line
 
-    def vertical_span(self, start_time: TIME, end_time: TIME = None, color: str = 'rgba(252, 219, 3, 0.2)'):
+    def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None, color: str = 'rgba(252, 219, 3, 0.2)'):
         """
-        Creates a vertical line or span across the chart.
-        :param start_time: Start time of the span.
-        :param end_time: End time of the span (can be omitted for a single vertical line).
-        :param color: CSS color.
-        :return:
+        Creates a vertical line or span across the chart.\n
+        Start time and end time can be used together, or end_time can be
+        omitted and a single time or a list of times can be passed to start_time.
         """
         return VerticalSpan(self, start_time, end_time, color)
 

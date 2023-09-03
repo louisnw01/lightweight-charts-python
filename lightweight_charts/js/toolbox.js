@@ -11,7 +11,6 @@ if (!window.ToolBox) {
             this.chart.cursor = 'default'
             this.makingDrawing = false
 
-            this.interval = 24 * 60 * 60 * 1000
             this.activeBackgroundColor = 'rgba(0, 122, 255, 0.7)'
             this.activeIconColor = 'rgb(240, 240, 240)'
             this.iconColor = 'lightgrey'
@@ -174,13 +173,13 @@ if (!window.ToolBox) {
                 currentTime = this.chart.chart.timeScale().coordinateToTime(param.point.x)
                 if (!currentTime) {
                     let barsToMove = param.logical - this.chart.chart.timeScale().coordinateToLogical(this.chart.chart.timeScale().timeToCoordinate(lastCandleTime))
-                    currentTime = dateToStamp(new Date(stampToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.interval)))
+                    currentTime = dateToStamp(new Date(stampToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.chart.interval)))
                 }
                 let currentPrice = this.chart.series.coordinateToPrice(param.point.y)
 
 
                 if (!currentTime) return this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
-                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart, ray)
+                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.chart.interval, this.chart, ray)
                 trendLine.from = [data[0].time, data[0].value]
                 trendLine.to = [data[data.length - 1].time, data[data.length-1].value]
 
@@ -263,13 +262,19 @@ if (!window.ToolBox) {
             let hoveringOver = null
             let x, y
             let colorPicker = new ColorPicker(this.saveDrawings)
+            let stylePicker = new StylePicker(this.saveDrawings)
 
             let onClickDelete = () => this.deleteDrawing(contextMenu.drawing)
             let onClickColor = (rect) => colorPicker.openMenu(rect, contextMenu.drawing)
+            let onClickStyle = (rect) => stylePicker.openMenu(rect, contextMenu.drawing)
             let contextMenu = new ContextMenu()
             contextMenu.menuItem('Color Picker', onClickColor, () =>{
                 document.removeEventListener('click', colorPicker.closeMenu)
                 colorPicker.container.style.display = 'none'
+            })
+            contextMenu.menuItem('Style', onClickStyle, () => {
+                document.removeEventListener('click', stylePicker.closeMenu)
+                stylePicker.container.style.display = 'none'
             })
             contextMenu.separator()
             contextMenu.menuItem('Delete Drawing', onClickDelete)
@@ -390,10 +395,10 @@ if (!window.ToolBox) {
                     endBar = endBarIndex === -1 ? null : this.chart.candleData[endBarIndex + barsToMove]
                 }
 
-                let endDate = endBar ? endBar.time : dateToStamp(new Date(stampToDate(hoveringOver.to[0]).getTime() + (barsToMove * this.interval)))
+                let endDate = endBar ? endBar.time : dateToStamp(new Date(stampToDate(hoveringOver.to[0]).getTime() + (barsToMove * this.chart.interval)))
                 let startValue = hoveringOver.from[1] + priceDiff
                 let endValue = hoveringOver.to[1] + priceDiff
-                let data = calculateTrendLine(startDate, startValue, endDate, endValue, this.interval, this.chart, hoveringOver.ray)
+                let data = calculateTrendLine(startDate, startValue, endDate, endValue, this.chart.interval, this.chart, hoveringOver.ray)
 
 
                 let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
@@ -439,9 +444,9 @@ if (!window.ToolBox) {
                 let lastCandleTime = this.chart.candleData[this.chart.candleData.length - 1].time
                 if (!currentTime) {
                     let barsToMove = param.logical - this.chart.chart.timeScale().coordinateToLogical(this.chart.chart.timeScale().timeToCoordinate(lastCandleTime))
-                    currentTime = dateToStamp(new Date(stampToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.interval)))
+                    currentTime = dateToStamp(new Date(stampToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.chart.interval)))
                 }
-                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.interval, this.chart)
+                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.chart.interval, this.chart)
                 hoveringOver.line.setData(data)
 
                 this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
@@ -476,9 +481,9 @@ if (!window.ToolBox) {
         renderDrawings() {
             this.drawings.forEach((item) => {
                 if ('price' in item) return
-                let startDate = dateToStamp(new Date(Math.round(stampToDate(item.from[0]).getTime() / this.interval) * this.interval))
-                let endDate = dateToStamp(new Date(Math.round(stampToDate(item.to[0]).getTime() / this.interval) * this.interval))
-                let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.interval, this.chart, item.ray)
+                let startDate = dateToStamp(new Date(Math.round(stampToDate(item.from[0]).getTime() / this.chart.interval) * this.chart.interval))
+                let endDate = dateToStamp(new Date(Math.round(stampToDate(item.to[0]).getTime() / this.chart.interval) * this.chart.interval))
+                let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.chart.interval, this.chart, item.ray)
                 item.from = [data[0].time, data[0].value]
                 item.to = [data[data.length - 1].time, data[data.length-1].value]
                 item.line.setData(data)
@@ -541,9 +546,9 @@ if (!window.ToolBox) {
                             },
                         }),
                     })
-                    let startDate = dateToStamp(new Date(Math.round(stampToDate(item.from[0]).getTime() / this.interval) * this.interval))
-                    let endDate = dateToStamp(new Date(Math.round(stampToDate(item.to[0]).getTime() / this.interval) * this.interval))
-                    let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.interval, this.chart, item.ray)
+                    let startDate = dateToStamp(new Date(Math.round(stampToDate(item.from[0]).getTime() / this.chart.interval) * this.chart.interval))
+                    let endDate = dateToStamp(new Date(Math.round(stampToDate(item.to[0]).getTime() / this.chart.interval) * this.chart.interval))
+                    let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.chart.interval, this.chart, item.ray)
                     item.from = [data[0].time, data[0].value]
                     item.to = [data[data.length - 1].time, data[data.length-1].value]
                     item.line.setData(data)
@@ -554,9 +559,7 @@ if (!window.ToolBox) {
         }
     }
     window.ToolBox = ToolBox
-}
 
-if (!window.ColorPicker) {
     class ColorPicker {
         constructor(saveDrawings) {
             this.saveDrawings = saveDrawings
@@ -673,6 +676,79 @@ if (!window.ColorPicker) {
             this.container.style.top = (rect.top-30)+'px'
             this.container.style.left = rect.right+'px'
             this.container.style.display = 'flex'
+            setTimeout(() => document.addEventListener('mousedown', (event) => {
+                if (!this.container.contains(event.target)) {
+                    this.closeMenu()
+                }
+            }), 10)
+        }
+        closeMenu(event) {
+            document.removeEventListener('click', this.closeMenu)
+            this.container.style.display = 'none'
+        }
+    }
+    window.ColorPicker = ColorPicker
+    class StylePicker {
+        constructor(saveDrawings) {
+            this.saveDrawings = saveDrawings
+
+            this.container = document.createElement('div')
+            this.container.style.position = 'absolute'
+            this.container.style.zIndex = '10000'
+            this.container.style.background = 'rgb(50, 50, 50)'
+            this.container.style.color = '#ececed'
+            this.container.style.display = 'none'
+            this.container.style.borderRadius = '5px'
+            this.container.style.padding = '3px 3px'
+            this.container.style.fontSize = '13px'
+            this.container.style.cursor = 'default'
+
+            let styles = [
+                {name: 'Solid', var: LightweightCharts.LineStyle.Solid},
+                {name: 'Dotted', var: LightweightCharts.LineStyle.Dotted},
+                {name: 'Dashed', var: LightweightCharts.LineStyle.Dashed},
+                {name: 'Large Dashed', var: LightweightCharts.LineStyle.LargeDashed},
+                {name: 'Sparse Dotted', var: LightweightCharts.LineStyle.SparseDotted},
+            ]
+            styles.forEach((style) => {
+                this.container.appendChild(this.makeTextBox(style.name, style.var))
+            })
+
+            document.getElementById('wrapper').appendChild(this.container)
+
+        }
+        makeTextBox(text, style) {
+            let item = document.createElement('span')
+            item.style.display = 'flex'
+            item.style.alignItems = 'center'
+            item.style.justifyContent = 'space-between'
+            item.style.padding = '2px 10px'
+            item.style.margin = '1px 0px'
+            item.style.borderRadius = '3px'
+            item.innerText = text
+
+            item.addEventListener('mouseover', (event) => item.style.backgroundColor = 'rgba(0, 122, 255, 0.3)')
+            item.addEventListener('mouseout', (event) => item.style.backgroundColor = 'transparent')
+
+            item.addEventListener('click', (event) => {
+                this.style = style
+                this.updateStyle()
+            })
+            return item
+        }
+
+        updateStyle() {
+            if ('price' in this.drawing) this.drawing.updateStyle(this.style)
+            else {
+                this.drawing.line.applyOptions({lineStyle: this.style})
+            }
+            this.saveDrawings()
+        }
+        openMenu(rect, drawing) {
+            this.drawing = drawing
+            this.container.style.top = (rect.top-30)+'px'
+            this.container.style.left = rect.right+'px'
+            this.container.style.display = 'block'
             setTimeout(() => document.addEventListener('mousedown', (event) => {
                 if (!this.container.contains(event.target)) {
                     this.closeMenu()

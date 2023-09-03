@@ -15,7 +15,7 @@ The following hotkeys can also be used when the Toolbox is enabled:
 | `alt R`             |  Ray Line  |
 | `⌘ Z` or `ctrl Z`  |  Undo |
 
-Right-clicking on a drawing will open a context menu, allowing for color selection and deletion.
+Right-clicking on a drawing will open a context menu, allowing for color selection, style selection and deletion.
 ___
 
 
