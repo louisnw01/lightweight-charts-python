@@ -43,15 +43,13 @@ if (!window.Chart) {
                 },
                 handleScroll: {vertTouchDrag: true},
             })
-            this.wrapper.style.width = `${100 * innerWidth}%`
-            this.wrapper.style.height = `${100 * innerHeight}%`
             this.wrapper.style.display = 'flex'
             this.wrapper.style.flexDirection = 'column'
             this.wrapper.style.position = 'relative'
             this.wrapper.style.float = position
-
             this.div.style.position = 'relative'
             this.div.style.display = 'flex'
+            this.reSize()
             this.wrapper.appendChild(this.div)
             document.getElementById('wrapper').append(this.wrapper)
 
@@ -66,6 +64,8 @@ if (!window.Chart) {
         reSize() {
             let topBarOffset = 'topBar' in this && this.scale.height !== 0 ? this.topBar.offsetHeight : 0
             this.chart.resize(window.innerWidth * this.scale.width, (window.innerHeight * this.scale.height) - topBarOffset)
+            this.wrapper.style.width = `${100 * this.scale.width}%`
+            this.wrapper.style.height = `${100 * this.scale.height}%`
         }
         makeCandlestickSeries() {
             this.markers = []

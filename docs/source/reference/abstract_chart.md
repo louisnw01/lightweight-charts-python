@@ -59,7 +59,19 @@ ___
 
 Creates and returns a Line object, representing a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to:
 
-[`marker`](#marker), [`horizontal_line`](#AbstractChart.horizontal_line) [`hide_data`](#hide_data), [`show_data`](#show_data) and[`price_line`](#price_line).
+[`marker`](#marker), [`horizontal_line`](#AbstractChart.horizontal_line), [`hide_data`](#hide_data), [`show_data`](#show_data) and [`price_line`](#price_line).
+
+Its instance should only be accessed from this method.
+```
+___
+
+
+
+```{py:method} create_histogram(name: str, color: COLOR, price_line: bool, price_label: bool, scale_margin_top: float, scale_margin_bottom: float) -> Histogram
+
+Creates and returns a Histogram object, representing a `HistogramSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the object also has access to:
+
+[`horizontal_line`](#AbstractChart.horizontal_line), [`hide_data`](#hide_data), [`show_data`](#show_data) and [`price_line`](#price_line).
 
 Its instance should only be accessed from this method.
 ```
@@ -76,7 +88,7 @@ ___
 
 
 
-```{py:method} trend_line(start_time: str | datetime, start_value: NUM, end_time: str | datetime, end_value: NUM, color: COLOR, width: int, style: LINE_STYLE) -> Line
+```{py:method} trend_line(start_time: str | datetime, start_value: NUM, end_time: str | datetime, end_value: NUM, color: COLOR, width: int, style: LINE_STYLE, round: bool) -> Line
 
 Creates a trend line, drawn from the first point (`start_time`, `start_value`) to the last point (`end_time`, `end_value`).
 
@@ -85,7 +97,7 @@ ___
 
 
 
-```{py:method} ray_line(start_time: str | datetime, value: NUM, color: COLOR, width: int, style: LINE_STYLE) -> Line
+```{py:method} ray_line(start_time: str | datetime, value: NUM, color: COLOR, width: int, style: LINE_STYLE, round: bool) -> Line
 
 Creates a ray line, drawn from the first point (`start_time`, `value`) and onwards.
 

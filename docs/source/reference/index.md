@@ -4,6 +4,7 @@
 :hidden:
 abstract_chart
 line
+histogram
 horizontal_line
 charts
 events

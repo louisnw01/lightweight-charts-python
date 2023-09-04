@@ -10,7 +10,7 @@ from .topbar import TopBar
 from .util import (
     IDGen, jbool, Pane, Events, TIME, NUM, FLOAT,
     LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, PRICE_SCALE_MODE,
-    line_style, marker_position, marker_shape, crosshair_mode, price_scale_mode,
+    line_style, marker_position, marker_shape, crosshair_mode, price_scale_mode, js_data,
 )
 
 JS = {}
@@ -106,11 +106,15 @@ class Window:
 
 
 class SeriesCommon(Pane):
-    def __init__(self, chart: 'AbstractChart'):
+    def __init__(self, chart: 'AbstractChart', name: str = None):
         super().__init__(chart.win)
         self._chart = chart
-        self._interval = pd.Timedelta(seconds=1)
+        if hasattr(chart, '_interval'):
+            self._interval = chart._interval
+        else:
+            self._interval = pd.Timedelta(seconds=1)
         self._last_bar = None
+        self.name = name
         self.num_decimals = 2
 
     def _set_interval(self, df: pd.DataFrame):
@@ -155,11 +159,32 @@ class SeriesCommon(Pane):
         return series
 
     def _single_datetime_format(self, arg):
-        if isinstance(arg, str) or not pd.api.types.is_datetime64_any_dtype(arg):
+        if isinstance(arg, (str, int, float)) or not pd.api.types.is_datetime64_any_dtype(arg):
             arg = pd.to_datetime(arg)
         interval_seconds = self._interval.total_seconds()
         arg = interval_seconds * (arg.timestamp() // interval_seconds)
         return arg
+
+    def set(self, df: pd.DataFrame = None, format_cols: bool = True):
+        if df is None or df.empty:
+            self.run_script(f'{self.id}.series.setData([])')
+            return
+        if format_cols:
+            df = self._df_datetime_format(df, exclude_lowercase=self.name)
+        if self.name:
+            if self.name not in df:
+                raise NameError(f'No column named "{self.name}".')
+            df = df.rename(columns={self.name: 'value'})
+        self._last_bar = df.iloc[-1]
+        self.run_script(f'{self.id}.series.setData({js_data(df)})')
+
+    def update(self, series: pd.Series):
+        series = self._series_datetime_format(series, exclude_lowercase=self.name)
+        if self.name in series.index:
+            series.rename({self.name: 'value'}, inplace=True)
+        self._last_bar = series
+        self.run_script(f'{self.id}.series.update({js_data(series)})')
+
 
     def marker(self, time: datetime = None, position: MARKER_POSITION = 'below',
                shape: MARKER_SHAPE = 'arrow_up', color: str = '#2196F3', text: str = ''
@@ -349,9 +374,8 @@ class VerticalSpan(Pane):
 
 class Line(SeriesCommon):
     def __init__(self, chart, name, color, style, width, price_line, price_label, crosshair_marker=True):
-        super().__init__(chart)
+        super().__init__(chart, name)
         self.color = color
-        self.name = name
         self.run_script(f'''
         {self.id} = {{
             series: {chart.id}.chart.addLineSeries({{
@@ -374,7 +398,7 @@ class Line(SeriesCommon):
             color: '{color}',
             precision: 2,
             }}
-        ''')
+        null''')
 
     def _push_to_legend(self):
         self.run_script(f'''
@@ -383,39 +407,18 @@ class Line(SeriesCommon):
             {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
         }}''')
 
-    def set(self, df: pd.DataFrame = None):
-        """
-        Sets the line data.\n
-        :param df: If the name parameter is not used, the columns should be named: date/time, value.
-        """
-        if df is None or df.empty:
-            self.run_script(f'{self.id}.series.setData([])')
-            return
-        df = self._df_datetime_format(df, exclude_lowercase=self.name)
-        if self.name:
-            if self.name not in df:
-                raise NameError(f'No column named "{self.name}".')
-            df = df.rename(columns={self.name: 'value'})
-        self._last_bar = df.iloc[-1]
-        self.run_script(f'{self.id}.series.setData({df.to_dict("records")})')
+    def _set_trend(self, start_time, start_value, end_time, end_value, ray=False, round=False):
+        if round:
+            start_time = self._single_datetime_format(start_time)
+            end_time = self._single_datetime_format(end_time)
+        else:
+            start_time, end_time = pd.to_datetime((start_time, end_time)).astype('int64') // 10 ** 9
 
-    def update(self, series: pd.Series):
-        """
-        Updates the line data.\n
-        :param series: labels: date/time, value
-        """
-        series = self._series_datetime_format(series, exclude_lowercase=self.name)
-        if self.name in series.index:
-            series.rename({self.name: 'value'}, inplace=True)
-        self._last_bar = series
-        self.run_script(f'{self.id}.series.update({series.to_dict()})')
-
-    def _set_trend(self, start_time, start_value, end_time, end_value, ray=False):
         self.run_script(f'''
         {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: false}})
         {self.id}.series.setData(
-            calculateTrendLine({pd.to_datetime(start_time).timestamp()}, {start_value},
-                                {pd.to_datetime(end_time).timestamp()}, {end_value},
+            calculateTrendLine({start_time}, {start_value},
+                                {end_time}, {end_value},
                                 {self._chart._interval.total_seconds() * 1000},
                                 {self._chart.id}, {jbool(ray)}))
         {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: true}})
@@ -435,6 +438,44 @@ class Line(SeriesCommon):
             }}
             delete {self.id}
         ''')
+
+
+class Histogram(SeriesCommon):
+    def __init__(self, chart, name, color, price_line, price_label, scale_margin_top, scale_margin_bottom):
+        super().__init__(chart, name)
+        self.color = color
+        self.run_script(f'''
+        {self.id} = {{
+            series: {chart.id}.chart.addHistogramSeries({{
+                color: '{color}',
+                lastValueVisible: {jbool(price_label)},
+                priceLineVisible: {jbool(price_line)},
+                priceScaleId: '{self.id}'
+            }}),
+            markers: [],
+            horizontal_lines: [],
+            name: '{name}',
+            color: '{color}',
+            precision: 2,
+            }}
+        {self.id}.series.priceScale().applyOptions({{
+            scaleMargins: {{top:{scale_margin_top}, bottom: {scale_margin_bottom}}}
+        }})''')
+
+    def delete(self):
+        """
+        Irreversibly deletes the histogram.
+        """
+        self.run_script(f'''
+            {self._chart.id}.chart.removeSeries({self.id}.series)
+            delete {self.id}
+        ''')
+
+    def scale(self, scale_margin_top: float = 0.0, scale_margin_bottom: float = 0.0):
+        self.run_script(f'''
+        {self.id}.series.priceScale().applyOptions({{
+            scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}}
+        }})''')
 
 
 class Candlestick(SeriesCommon):
@@ -462,8 +503,7 @@ class Candlestick(SeriesCommon):
         self.candle_data = df.copy()
         self._last_bar = df.iloc[-1]
 
-        bars = df.to_dict(orient='records')
-        self.run_script(f'{self.id}.candleData = {bars}; {self.id}.series.setData({self.id}.candleData)')
+        self.run_script(f'{self.id}.candleData = {js_data(df)}; {self.id}.series.setData({self.id}.candleData)')
         toolbox_action = 'clearDrawings' if not render_drawings else 'renderDrawings'
         self.run_script(f"if ('toolBox' in {self._chart.id}) {self._chart.id}.toolBox.{toolbox_action}()")
         if 'volume' not in df:
@@ -471,11 +511,12 @@ class Candlestick(SeriesCommon):
         volume = df.drop(columns=['open', 'high', 'low', 'close']).rename(columns={'volume': 'value'})
         volume['color'] = self._volume_down_color
         volume.loc[df['close'] > df['open'], 'color'] = self._volume_up_color
-        self.run_script(f'{self.id}.volumeSeries.setData({volume.to_dict(orient="records")})')
+        self.run_script(f'{self.id}.volumeSeries.setData({js_data(volume)})')
 
-        # for line in self._lines:
-        #     if line.name in df.columns:
-        #         line.set()
+        for line in self._lines:
+            if line.name not in df.columns:
+                continue
+            line.set(df[['time', line.name]], format_cols=False)
 
     def update(self, series: pd.Series, _from_tick=False):
         """
@@ -489,10 +530,9 @@ class Candlestick(SeriesCommon):
             self.candle_data = pd.concat([self.candle_data, series.to_frame().T], ignore_index=True)
             self._chart.events.new_bar._emit(self)
         self._last_bar = series
-
-        bar = series.to_dict()
+        bar = js_data(series)
         self.run_script(f'''
-            if (stampToDate(lastBar({self.id}.candleData).time).getTime() === stampToDate({bar['time']}).getTime()) {{
+            if (stampToDate(lastBar({self.id}.candleData).time).getTime() === stampToDate({series['time']}).getTime()) {{
                 {self.id}.candleData[{self.id}.candleData.length-1] = {bar}
             }}
             else {self.id}.candleData.push({bar})
@@ -502,7 +542,7 @@ class Candlestick(SeriesCommon):
             return
         volume = series.drop(['open', 'high', 'low', 'close']).rename({'volume': 'value'})
         volume['color'] = self._volume_up_color if series['close'] > series['open'] else self._volume_down_color
-        self.run_script(f'{self.id}.volumeSeries.update({volume.to_dict()})')
+        self.run_script(f'{self.id}.volumeSeries.update({js_data(volume)})')
 
     def update_from_tick(self, series: pd.Series, cumulative_volume: bool = False):
         """
@@ -626,11 +666,21 @@ class AbstractChart(Candlestick, Pane):
             price_line: bool = True, price_label: bool = True
     ) -> Line:
         """
-        Creates and returns a Line object.)\n
+        Creates and returns a Line object.
         """
         self._lines.append(Line(self, name, color, style, width, price_line, price_label))
         self._lines[-1]._push_to_legend()
         return self._lines[-1]
+
+    def create_histogram(
+            self, name: str = '', color: str = 'rgba(214, 237, 255, 0.6)',
+            price_line: bool = True, price_label: bool = True,
+            scale_margin_top: float = 0.0, scale_margin_bottom: float = 0.0
+    ) -> Histogram:
+        """
+        Creates and returns a Histogram object.
+        """
+        return Histogram(self, name, color, price_line, price_label, scale_margin_top, scale_margin_bottom)
 
     def lines(self) -> List[Line]:
         """
@@ -639,20 +689,23 @@ class AbstractChart(Candlestick, Pane):
         return self._lines.copy()
 
     def trend_line(self, start_time: TIME, start_value: NUM, end_time: TIME, end_value: NUM,
-                   color: str = '#1E80F0', width: int = 2, style: LINE_STYLE = 'solid'
+                   round: bool = False, color: str = '#1E80F0', width: int = 2,
+                   style: LINE_STYLE = 'solid',
                    ) -> Line:
         line = Line(self, '', color, style, width, False, False, False)
-        line._set_trend(start_time, start_value, end_time, end_value)
+        line._set_trend(start_time, start_value, end_time, end_value, round=round)
         return line
 
-    def ray_line(self, start_time: TIME, value: NUM,
-                 color: str = '#1E80F0', width: int = 2, style: LINE_STYLE = 'solid'
+    def ray_line(self, start_time: TIME, value: NUM, round: bool = False,
+                 color: str = '#1E80F0', width: int = 2,
+                 style: LINE_STYLE = 'solid'
                  ) -> Line:
         line = Line(self, '', color, style, width, False, False, False)
-        line._set_trend(start_time, value, start_time, value, ray=True)
+        line._set_trend(start_time, value, start_time, value, ray=True, round=round)
         return line
 
-    def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None, color: str = 'rgba(252, 219, 3, 0.2)'):
+    def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None,
+                      color: str = 'rgba(252, 219, 3, 0.2)'):
         """
         Creates a vertical line or span across the chart.\n
         Start time and end time can be used together, or end_time can be

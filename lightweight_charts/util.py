@@ -33,6 +33,11 @@ def parse_event_message(window, string):
     return func, args
 
 
+def js_data(data: Union[pd.DataFrame, pd.Series]):
+    orient = 'columns' if isinstance(data, pd.Series) else 'records'
+    return data.to_json(orient=orient, default_handler=lambda x: 'null' if pd.isna(x) else x)
+
+
 def jbool(b: bool): return 'true' if b is True else 'false' if b is False else None
 
 
