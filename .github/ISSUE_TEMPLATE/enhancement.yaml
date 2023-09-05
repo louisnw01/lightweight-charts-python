@@ -1,0 +1,36 @@
+name: New Feature
+description: Request a new feature for the library
+labels: ["enhancement"]
+
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Description
+      description: >
+        Please provide a detailed description of the requested feature. What would it do? What problem would it solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-behaviour
+    attributes:
+      label: Code example
+      description: >
+        Please provide a code example of how the new feature should behave (where applicable).
+      placeholder: >
+        chart.rotate(degrees=180) # flip the chart upside down
+      render: python
+    validations:
+      required: false
+
+  - type: textarea
+    id: method-of-implementation
+    attributes:
+      label: Method of implementation
+      description: >
+        Please provide a description of the logic of this feature/how this feature could be implemented. python/psudocode is welcome!.
+      placeholder: >
+        Use the `transform` CSS style to the chart, given the number of degrees provided to `rotate`.
+    validations:
+      required: false

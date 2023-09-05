@@ -1,0 +1,25 @@
+name: General Question
+description: Ask a question/get help with the library
+
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: >
+        Please check previous issues before submitting. Please use screenshots if they help!
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-behaviour
+    attributes:
+      label: Code example
+      description: >
+        Please provide any code relevant to your question.
+      placeholder: >
+        from lightweight_charts import Chart...
+      render: python
+    validations:
+      required: false
+

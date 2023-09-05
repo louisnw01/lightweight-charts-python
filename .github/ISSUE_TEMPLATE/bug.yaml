@@ -1,0 +1,49 @@
+name: Bug Report
+description: Report a bug/problem with the library
+title: "[BUG] "
+labels: ["bug"]
+
+body:
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: >
+        Please describe or show a code example of the expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behaviour
+      description: >
+        Please provide a description of the current behaviour. If this is a bug which produces no errors in Python, but causes unexpected output within the webview, please provide a screenshot of the web console using `Chart(debug=True)`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Reproducible Example
+      description: >
+        Please provide a minimal reproducible example, using generic (`ohlcv.csv`) data where applicable which demonstrates the current behaviour. The code should be complete and not require any further adjustments.
+      placeholder: >
+        from lightweight_charts import Chart...
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        examples:
+          - **OS**: macOS 13.2
+          - **Library**: 1.0.16.2
+      value: |
+        - OS:
+        - Library:
+      render: markdown
+    validations:
+      required: true
