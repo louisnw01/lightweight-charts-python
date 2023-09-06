@@ -36,6 +36,13 @@ class SwitcherWidget(Widget):
         self.run_script(f'{self.id} = {topbar.id}.makeSwitcher({list(options)}, "{default}", "{self.id}")')
 
 
+class MenuWidget(Widget):
+    def __init__(self, topbar, options, default, separator, func):
+        super().__init__(topbar, value=default, func=func)
+        self.run_script(
+            f'{self.id} = {topbar.id}.makeMenu({list(options)}, "{default}", {jbool(separator)}, "{self.id}")')
+
+
 class ButtonWidget(Widget):
     def __init__(self, topbar, button, separator, func):
         super().__init__(topbar, value=button, func=func)
@@ -80,6 +87,10 @@ class TopBar(Pane):
     def switcher(self, name, options: tuple, default: str = None, func: callable = None):
         self._create()
         self._widgets[name] = SwitcherWidget(self, options, default if default else options[0], func)
+
+    def menu(self, name, options: tuple, default: str = None, separator: bool = True, func: callable = None):
+        self._create()
+        self._widgets[name] = MenuWidget(self, options, default if default else options[0], separator, func)
 
     def textbox(self, name: str, initial_text: str = ''):
         self._create()

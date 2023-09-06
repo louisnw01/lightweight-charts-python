@@ -66,6 +66,15 @@ if (!window.Chart) {
             this.chart.resize(window.innerWidth * this.scale.width, (window.innerHeight * this.scale.height) - topBarOffset)
             this.wrapper.style.width = `${100 * this.scale.width}%`
             this.wrapper.style.height = `${100 * this.scale.height}%`
+            if (this.legend) {
+                if (this.scale.height === 0 || this.scale.width === 0) {
+                    this.legend.div.style.display = 'none'
+                }
+                else {
+                    this.legend.div.style.display = 'flex'
+                }
+            }
+
         }
         makeCandlestickSeries() {
             this.markers = []

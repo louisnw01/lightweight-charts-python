@@ -32,6 +32,18 @@ ___
 
 
 
+```{py:method} menu(name: str, options: tuple: default: str, separator: bool, func: callable)
+
+* `name`: the name of the menu which can be used to access it from the `topbar` dictionary.
+* `options`: The options for each menu item.
+* `default`: The initial menu option set.
+* `separator`: places a separator line to the right of the menu.
+
+```
+___
+
+
+
 ```{py:method} textbox(name: str, initial_text: str)
 
 * `name`: the name of the text box which can be used to access it from the `topbar` dictionary.

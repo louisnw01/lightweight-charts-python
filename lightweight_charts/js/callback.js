@@ -77,7 +77,47 @@ if (!window.TopBar) {
             this.reSize()
             return textBox
         }
-        makeButton(defaultText, callbackName, separator) {
+
+        makeMenu(items, activeItem, separator, callbackName) {
+            let menu = document.createElement('div')
+            menu.style.position = 'absolute'
+            menu.style.display = 'none'
+            menu.style.zIndex = '100000'
+            menu.style.backgroundColor = '#0c0d0f'
+            menu.style.borderRadius = '2px'
+            menu.style.border = '2px solid #3C434C'
+            menu.style.borderTop = 'none'
+            menu.style.alignItems = 'flex-start'
+
+            let menuOpen = false
+            items.forEach(text => {
+                let button = this.makeButton(text, null, false, false)
+                button.elem.addEventListener('click', () => {
+                    widget.elem.innerText = button.elem.innerText+' ↓'
+                    window.callbackFunction(`${callbackName}_~_${button.elem.innerText}`)
+                    menu.style.display = 'none'
+                    menuOpen = false
+                });
+                button.elem.style.margin = '4px 4px'
+                button.elem.style.padding = '2px 2px'
+                menu.appendChild(button.elem)
+            })
+            let widget = this.makeButton(activeItem+' ↓', null, separator)
+            widget.elem.addEventListener('click', () => {
+                menuOpen = !menuOpen
+                if (!menuOpen) return menu.style.display = 'none'
+                let rect = widget.elem.getBoundingClientRect()
+                menu.style.display = 'flex'
+                menu.style.flexDirection = 'column'
+
+                let center = rect.x+(rect.width/2)
+                menu.style.left = center-(menu.clientWidth/2)+'px'
+                menu.style.top = rect.y+rect.height+'px'
+            })
+            document.body.appendChild(menu)
+        }
+
+        makeButton(defaultText, callbackName, separator, append=true) {
             let button = document.createElement('button')
             button.style.border = 'none'
             button.style.padding = '2px 5px'
@@ -98,7 +138,9 @@ if (!window.TopBar) {
 
             button.addEventListener('mouseenter', () => button.style.backgroundColor = this.hoverBackgroundColor)
             button.addEventListener('mouseleave', () => button.style.backgroundColor = 'transparent')
-            button.addEventListener('click', () => window.callbackFunction(`${widget.callbackName}_~_${button.innerText}`));
+            if (callbackName) {
+                button.addEventListener('click', () => window.callbackFunction(`${widget.callbackName}_~_${button.innerText}`));
+            }
             button.addEventListener('mousedown', () => {
                 button.style.backgroundColor = this.activeBackgroundColor
                 button.style.color = this.activeTextColor
@@ -110,8 +152,7 @@ if (!window.TopBar) {
                 button.style.fontWeight = 'normal'
             })
             if (separator) this.makeSeparator()
-            this.topBar.appendChild(button)
-            this.reSize()
+            if (append) this.topBar.appendChild(button); this.reSize()
             return widget
         }
 
