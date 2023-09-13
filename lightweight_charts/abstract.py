@@ -1,7 +1,7 @@
 import asyncio
 import os
 from datetime import datetime
-from typing import Union, Literal, List
+from typing import Union, Literal, List, Optional
 import pandas as pd
 
 from .table import Table
@@ -848,15 +848,31 @@ class AbstractChart(Candlestick, Pane):
     def spinner(self, visible):
         self.run_script(f"{self.id}.spinner.style.display = '{'block' if visible else 'none'}'")
 
-    def hotkey(self, modifier_key: Literal['ctrl', 'alt', 'shift', 'meta'],
-               keys: Union[str, tuple, int], func: callable):
+    def hotkey(
+        self,
+        keys: Union[str, tuple, int],
+        func: callable,
+        modifier_key: Optional[Literal['ctrl', 'alt', 'shift', 'meta']] = None
+    ):
         if not isinstance(keys, tuple):
             keys = (keys,)
+
         for key in keys:
-            key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
+            # default to taking the key code as is
+            key_code = key
+            # if the key code is only one character or digit, build the correct key code
+            if len(str(key)) == 1:
+                key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
+
+            # default to no modifier key
+            modifier_key_js = ''
+            # if there is a modifier key, create the js
+            if modifier_key:
+                modifier_key_js = f"event.{modifier_key}Key && "
+
             self.run_script(f'''
             {self.id}.commandFunctions.unshift((event) => {{
-                if (event.{modifier_key + 'Key'} && event.code === '{key_code}') {{
+                if ({modifier_key_js}event.code === '{key_code}') {{
                     event.preventDefault()
                     window.callbackFunction(`{modifier_key, keys}_~_{key}`)
                     return true
