@@ -856,17 +856,17 @@ class AbstractChart(Candlestick, Pane):
 
         for key in keys:
             # when there is no modifier key use the key value
-            key_event_condition = f"event.key === '{key}'"
+            condition = f"event.key === '{key}'"
             # if there is a modifier key
             if modifier_key:
                 # use the key code instead
                 key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
                 # change the condition to also require the modifier
-                key_event_condition = f"event.{modifier_key}Key && event.code === '{key_code}'"
+                condition = f"event.{modifier_key}Key && event.code === '{key_code}'"
 
             self.run_script(f'''
             {self.id}.commandFunctions.unshift((event) => {{
-                if ({key_event_condition}) {{
+                if ({condition}) {{
                     event.preventDefault()
                     window.callbackFunction(`{modifier_key, keys}_~_{key}`)
                     return true
