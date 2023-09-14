@@ -856,7 +856,7 @@ class AbstractChart(Candlestick, Pane):
 
         for key in keys:
             # when there is no modifier key use the key value
-            condition = f"event.key === '{key}'"
+            condition = f"event.key.toLowerCase() === '{str(key).lower()}'"
             # if there is a modifier key
             if modifier_key:
                 # use the key code instead
