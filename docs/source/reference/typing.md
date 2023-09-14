@@ -33,6 +33,9 @@ Throughout the library, colors should be given as either rgb (`rgb(100, 100, 100
 ```{py:class} PRICE_SCALE_MODE(Literal['normal', 'logarithmic', 'percentage', 'index100'])
 ```
 
+```{py:class} ALIGN(Literal['left', 'right'])
+```
+
 
 
 

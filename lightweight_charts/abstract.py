@@ -1,5 +1,6 @@
 import asyncio
 import os
+from base64 import b64decode
 from datetime import datetime
 from typing import Union, Literal, List
 import pandas as pd
@@ -870,6 +871,15 @@ class AbstractChart(Candlestick, Pane):
                      position: FLOAT = 'left', draggable: bool = False, func: callable = None
                      ) -> Table:
         return self.win.create_table(width, height, headings, widths, alignments, position, draggable, func)
+
+    def screenshot(self) -> bytes:
+        """
+        Takes a screenshot. This method can only be used after the chart window is visible.
+        :return: a bytes object containing a screenshot of the chart.
+        """
+        self.run_script(f'_~_~RETURN~_~_{self.id}.chart.takeScreenshot().toDataURL()')
+        serial_data = self.win._return_q.get()
+        return b64decode(serial_data.split(',')[1])
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
                         sync: Union[str, bool] = None, scale_candles_only: bool = False,
