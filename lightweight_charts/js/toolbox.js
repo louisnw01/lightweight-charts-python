@@ -190,8 +190,8 @@ if (!window.ToolBox) {
 
                 if (!ray) {
                     trendLine.markers = [
-                        {time: firstTime, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
-                        {time: currentTime, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
+                        {time: trendLine.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
+                        {time: trendLine.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
                     ]
                     trendLine.line.setMarkers(trendLine.markers)
                 }
@@ -411,8 +411,8 @@ if (!window.ToolBox) {
 
                 if (!hoveringOver.ray) {
                     hoveringOver.markers = [
-                        {time: startDate, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
-                        {time: endDate, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
+                        {time: hoveringOver.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
+                        {time: hoveringOver.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
                     ]
                     hoveringOver.line.setMarkers(hoveringOver.markers)
                 }
@@ -457,8 +457,8 @@ if (!window.ToolBox) {
 
 
                 hoveringOver.markers = [
-                    {time: firstTime, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
-                    {time: currentTime, position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
+                    {time: hoveringOver.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
+                    {time: hoveringOver.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
                 ]
                 hoveringOver.line.setMarkers(hoveringOver.markers)
 

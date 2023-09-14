@@ -16,7 +16,7 @@ except ImportError:
     try:
         from PySide6.QtWebEngineWidgets import QWebEngineView
         from PySide6.QtWebChannel import QWebChannel
-        from PySide6.QtCore import QObject, Slot
+        from PySide6.QtCore import Qt, QObject, Slot
     except ImportError:
         QWebEngineView = None
 
@@ -24,11 +24,11 @@ if QWebEngineView:
     class Bridge(QObject):
         def __init__(self, chart):
             super().__init__()
-            self.chart = chart
+            self.win = chart.win
 
         @Slot(str)
         def callback(self, message):
-            emit_callback(self.chart, message)
+            emit_callback(self.win, message)
 
 try:
     from streamlit.components.v1 import html
@@ -78,6 +78,7 @@ class QtChart(abstract.AbstractChart):
         self.web_channel.registerObject('bridge', self.bridge)
         self.webview.page().setWebChannel(self.web_channel)
         self.webview.loadFinished.connect(self.win.on_js_load)
+        self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
         self._html = f'''
         {abstract.TEMPLATE[:85]}
         <script src="qrc:///qtwebchannel/qwebchannel.js"></script>

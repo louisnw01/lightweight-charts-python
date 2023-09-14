@@ -22,7 +22,7 @@ class Row(dict):
         self._table = table
         self.id = id
         self.meta = {}
-        self.run_script(f'{self._table.id}.newRow({list(items.values())}, "{self.id}")')
+        self.run_script(f'{self._table.id}.newRow("{self.id}")')
         for key, val in items.items():
             self[key] = val
 

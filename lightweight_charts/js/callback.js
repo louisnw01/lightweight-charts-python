@@ -13,12 +13,25 @@ if (!window.TopBar) {
             this.topBar.style.borderBottom = '2px solid #3C434C'
             this.topBar.style.display = 'flex'
             this.topBar.style.alignItems = 'center'
+
+            let createTopBarContainer = (justification) => {
+                let div = document.createElement('div')
+                div.style.display = 'flex'
+                div.style.alignItems = 'center'
+                div.style.justifyContent = justification
+                div.style.flexGrow = '1'
+                this.topBar.appendChild(div)
+                return div
+            }
+            this.left = createTopBarContainer('flex-start')
+            this.right = createTopBarContainer('flex-end')
+
             chart.wrapper.prepend(this.topBar)
             chart.topBar = this.topBar
             this.reSize = () => chart.reSize()
             this.reSize()
         }
-        makeSwitcher(items, activeItem, callbackName) {
+        makeSwitcher(items, activeItem, callbackName, align='left') {
             let switcherElement = document.createElement('div');
             switcherElement.style.margin = '4px 12px'
             let widget = {
@@ -60,25 +73,20 @@ if (!window.TopBar) {
                 activeItem = item;
                 window.callbackFunction(`${widget.callbackName}_~_${item}`);
             }
-
-            this.topBar.appendChild(switcherElement)
-            this.makeSeparator(this.topBar)
-            this.reSize()
+            this.appendWidget(switcherElement, align, true)
             return widget
         }
-        makeTextBoxWidget(text) {
+        makeTextBoxWidget(text, align='left') {
             let textBox = document.createElement('div')
             textBox.style.margin = '0px 18px'
             textBox.style.fontSize = '16px'
             textBox.style.color = 'rgb(220, 220, 220)'
             textBox.innerText = text
-            this.topBar.append(textBox)
-            this.makeSeparator(this.topBar)
-            this.reSize()
+            this.appendWidget(textBox, align, true)
             return textBox
         }
 
-        makeMenu(items, activeItem, separator, callbackName) {
+        makeMenu(items, activeItem, separator, callbackName, align='right') {
             let menu = document.createElement('div')
             menu.style.position = 'absolute'
             menu.style.display = 'none'
@@ -102,7 +110,9 @@ if (!window.TopBar) {
                 button.elem.style.padding = '2px 2px'
                 menu.appendChild(button.elem)
             })
-            let widget = this.makeButton(activeItem+' ↓', null, separator)
+            let widget =
+                this.makeButton(activeItem+' ↓', null, separator, true, align)
+
             widget.elem.addEventListener('click', () => {
                 menuOpen = !menuOpen
                 if (!menuOpen) return menu.style.display = 'none'
@@ -117,11 +127,11 @@ if (!window.TopBar) {
             document.body.appendChild(menu)
         }
 
-        makeButton(defaultText, callbackName, separator, append=true) {
+        makeButton(defaultText, callbackName, separator, append=true, align='left') {
             let button = document.createElement('button')
             button.style.border = 'none'
             button.style.padding = '2px 5px'
-            button.style.margin = '4px 18px'
+            button.style.margin = '4px 10px'
             button.style.fontSize = '13px'
             button.style.backgroundColor = 'transparent'
             button.style.color = this.textColor
@@ -151,17 +161,27 @@ if (!window.TopBar) {
                 button.style.color = this.textColor
                 button.style.fontWeight = 'normal'
             })
-            if (separator) this.makeSeparator()
-            if (append) this.topBar.appendChild(button); this.reSize()
+            if (append) this.appendWidget(button, align, separator)
             return widget
         }
 
-        makeSeparator() {
+        makeSeparator(align='left') {
             let seperator = document.createElement('div')
             seperator.style.width = '1px'
             seperator.style.height = '20px'
             seperator.style.backgroundColor = '#3C434C'
-            this.topBar.appendChild(seperator)
+            let div = align === 'left' ? this.left : this.right
+            div.appendChild(seperator)
+        }
+
+        appendWidget(widget, align, separator) {
+            let div = align === 'left' ? this.left : this.right
+            if (separator) {
+                if (align === 'left') div.appendChild(widget)
+                this.makeSeparator(align)
+                if (align === 'right') div.appendChild(widget)
+            } else div.appendChild(widget)
+            this.reSize()
         }
     }
     window.TopBar = TopBar

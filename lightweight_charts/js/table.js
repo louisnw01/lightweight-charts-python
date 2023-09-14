@@ -85,17 +85,15 @@ if (!window.Table) {
 
         }
 
-        newRow(vals, id) {
+        newRow(id) {
             let row = this.table.insertRow()
             row.style.cursor = 'default'
 
-            for (let i = 0; i < vals.length; i++) {
+            for (let i = 0; i < this.headings.length; i++) {
                 row[this.headings[i]] = row.insertCell()
-                row[this.headings[i]].textContent = vals[i]
                 row[this.headings[i]].style.width = this.widths[i];
                 row[this.headings[i]].style.textAlign = this.alignments[i];
                 row[this.headings[i]].style.border = '1px solid rgb(70, 70, 70)'
-
             }
             row.addEventListener('mouseover', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
             row.addEventListener('mouseout', () => row.style.backgroundColor = 'transparent')

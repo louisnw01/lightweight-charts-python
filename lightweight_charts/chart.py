@@ -1,6 +1,5 @@
 import asyncio
 import multiprocessing as mp
-from base64 import b64decode
 import webview
 
 from lightweight_charts import abstract
@@ -148,12 +147,3 @@ class Chart(abstract.AbstractChart):
         Chart._window_num = 0
         Chart._q = mp.Queue()
         self.is_alive = False
-
-    def screenshot(self) -> bytes:
-        """
-        Takes a screenshot. This method can only be used after the chart window is visible.
-        :return: a bytes object containing a screenshot of the chart.
-        """
-        self.run_script(f'_~_~RETURN~_~_{self.id}.chart.takeScreenshot().toDataURL()')
-        serial_data = self.win._return_q.get()
-        return b64decode(serial_data.split(',')[1])
