@@ -853,26 +853,26 @@ class AbstractChart(Candlestick, Pane):
                keys: Union[str, tuple, int], func: callable):
         if not isinstance(keys, tuple):
             keys = (keys,)
-
         for key in keys:
-            # when there is no modifier key use the key value
-            condition = f"event.key.toLowerCase() === '{str(key).lower()}'"
-            # if there is a modifier key
-            if modifier_key:
-                # use the key code instead
-                key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
-                # change the condition to also require the modifier
-                condition = f"event.{modifier_key}Key && event.code === '{key_code}'"
+            key = str(key)
+            if key.isalnum() and len(key) == 1:
+                key_code = f'Digit{key}' if key.isdigit() else f'Key{key.upper()}'
+                key_condition = f'event.code === "{key_code}"'
+            else:
+                key_condition = f'event.key === "{key}"'
+            if modifier_key is not None:
+                key_condition += f'&& event.{modifier_key}Key'
 
             self.run_script(f'''
-            {self.id}.commandFunctions.unshift((event) => {{
-                if ({condition}) {{
-                    event.preventDefault()
-                    window.callbackFunction(`{modifier_key, keys}_~_{key}`)
-                    return true
-                }}
-                else return false
-            }})''')
+                    {self.id}.commandFunctions.unshift((event) => {{
+                        console.log(event.key)
+                        if ({key_condition}) {{
+                            event.preventDefault()
+                            window.callbackFunction(`{modifier_key, keys}_~_{key}`)
+                            return true
+                        }}
+                        else return false
+                    }})''')
         self.win.handlers[f'{modifier_key, keys}'] = func
 
     def create_table(self, width: NUM, height: NUM,
