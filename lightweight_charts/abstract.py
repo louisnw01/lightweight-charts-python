@@ -849,15 +849,24 @@ class AbstractChart(Candlestick, Pane):
     def spinner(self, visible):
         self.run_script(f"{self.id}.spinner.style.display = '{'block' if visible else 'none'}'")
 
-    def hotkey(self, modifier_key: Literal['ctrl', 'alt', 'shift', 'meta'],
+    def hotkey(self, modifier_key: Literal['ctrl', 'alt', 'shift', 'meta', None],
                keys: Union[str, tuple, int], func: callable):
         if not isinstance(keys, tuple):
             keys = (keys,)
+
         for key in keys:
-            key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
+            # when there is no modifier key use the key value
+            condition = f"event.key.toLowerCase() === '{str(key).lower()}'"
+            # if there is a modifier key
+            if modifier_key:
+                # use the key code instead
+                key_code = 'Key' + key.upper() if isinstance(key, str) else 'Digit' + str(key)
+                # change the condition to also require the modifier
+                condition = f"event.{modifier_key}Key && event.code === '{key_code}'"
+
             self.run_script(f'''
             {self.id}.commandFunctions.unshift((event) => {{
-                if (event.{modifier_key + 'Key'} && event.code === '{key_code}') {{
+                if ({condition}) {{
                     event.preventDefault()
                     window.callbackFunction(`{modifier_key, keys}_~_{key}`)
                     return true
