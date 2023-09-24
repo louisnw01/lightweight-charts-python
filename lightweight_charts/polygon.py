@@ -411,21 +411,21 @@ class PolygonChart(Chart):
         self.end_date = end_date
         self.limit = limit
         self.live = live
-
+        self.win.style(
+            active_background_color='rgba(91, 98, 246, 0.8)',
+            muted_background_color='rgba(91, 98, 246, 0.5)'
+        )
         self.polygon.api_key(api_key)
         self.events.search += self.on_search
         self.legend(True)
         self.grid(False, False)
         self.crosshair(vert_visible=False, horz_visible=False)
 
-        self.topbar.active_background_color = 'rgb(91, 98, 246)'
         self.topbar.textbox('symbol')
         self.topbar.switcher('timeframe', timeframe_options, func=self._on_timeframe_selection)
         self.topbar.switcher('security', security_options, func=self._on_security_selection)
 
         self.run_script(f'''
-        {self.id}.search.box.style.backgroundColor = 'rgba(91, 98, 246, 0.5)'
-        {self.id}.spinner.style.borderTop = '4px solid rgba(91, 98, 246, 0.8)'
         {self.id}.search.window.style.display = "flex"
         {self.id}.search.box.focus()
         ''')

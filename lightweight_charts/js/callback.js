@@ -1,16 +1,10 @@
 if (!window.TopBar) {
     class TopBar {
-        constructor(chart, hoverBackgroundColor, clickBackgroundColor, activeBackgroundColor, textColor, activeTextColor) {
+        constructor(chart) {
             this.makeSwitcher = this.makeSwitcher.bind(this)
-            this.hoverBackgroundColor = hoverBackgroundColor
-            this.clickBackgroundColor = clickBackgroundColor
-            this.activeBackgroundColor = activeBackgroundColor
-            this.textColor = textColor
-            this.activeTextColor = activeTextColor
-
             this.topBar = document.createElement('div')
-            this.topBar.style.backgroundColor = '#0c0d0f'
-            this.topBar.style.borderBottom = '2px solid #3C434C'
+            this.topBar.style.backgroundColor = pane.backgroundColor
+            this.topBar.style.borderBottom = '2px solid '+pane.borderColor
             this.topBar.style.display = 'flex'
             this.topBar.style.alignItems = 'center'
 
@@ -45,17 +39,17 @@ if (!window.TopBar) {
                 itemEl.style.margin = '0px 2px'
                 itemEl.style.fontSize = '13px'
                 itemEl.style.borderRadius = '4px'
-                itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : 'transparent'
-                itemEl.style.color = item === activeItem ? this.activeTextColor : this.textColor
+                itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : 'transparent'
+                itemEl.style.color = item === activeItem ? pane.activeColor : pane.color
                 itemEl.innerText = item;
                 document.body.appendChild(itemEl)
                 itemEl.style.minWidth = itemEl.clientWidth + 1 + 'px'
                 document.body.removeChild(itemEl)
 
-                itemEl.addEventListener('mouseenter', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : this.hoverBackgroundColor)
-                itemEl.addEventListener('mouseleave', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : 'transparent')
-                itemEl.addEventListener('mousedown', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : this.clickBackgroundColor)
-                itemEl.addEventListener('mouseup', () => itemEl.style.backgroundColor = item === activeItem ? this.activeBackgroundColor : this.hoverBackgroundColor)
+                itemEl.addEventListener('mouseenter', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : pane.hoverBackgroundColor)
+                itemEl.addEventListener('mouseleave', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : 'transparent')
+                itemEl.addEventListener('mousedown', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : pane.clickBackgroundColor)
+                itemEl.addEventListener('mouseup', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : pane.hoverBackgroundColor)
                 itemEl.addEventListener('click', () => onItemClicked(item))
 
                 switcherElement.appendChild(itemEl);
@@ -66,8 +60,8 @@ if (!window.TopBar) {
             let onItemClicked = (item)=> {
                 if (item === activeItem) return
                 intervalElements.forEach((element, index) => {
-                    element.style.backgroundColor = items[index] === item ? this.activeBackgroundColor : 'transparent'
-                    element.style.color = items[index] === item ? this.activeTextColor : this.textColor
+                    element.style.backgroundColor = items[index] === item ? pane.activeBackgroundColor : 'transparent'
+                    element.style.color = items[index] === item ? pane.activeColor : pane.color
                     element.style.fontWeight = items[index] === item ? '500' : 'normal'
                 })
                 activeItem = item;
@@ -80,7 +74,7 @@ if (!window.TopBar) {
             let textBox = document.createElement('div')
             textBox.style.margin = '0px 18px'
             textBox.style.fontSize = '16px'
-            textBox.style.color = 'rgb(220, 220, 220)'
+            textBox.style.color = pane.color
             textBox.innerText = text
             this.appendWidget(textBox, align, true)
             return textBox
@@ -91,9 +85,9 @@ if (!window.TopBar) {
             menu.style.position = 'absolute'
             menu.style.display = 'none'
             menu.style.zIndex = '100000'
-            menu.style.backgroundColor = '#0c0d0f'
+            menu.style.backgroundColor = pane.backgroundColor
             menu.style.borderRadius = '2px'
-            menu.style.border = '2px solid #3C434C'
+            menu.style.border = '2px solid '+pane.borderColor
             menu.style.borderTop = 'none'
             menu.style.alignItems = 'flex-start'
 
@@ -134,7 +128,7 @@ if (!window.TopBar) {
             button.style.margin = '4px 10px'
             button.style.fontSize = '13px'
             button.style.backgroundColor = 'transparent'
-            button.style.color = this.textColor
+            button.style.color = pane.color
             button.style.borderRadius = '4px'
             button.innerText = defaultText;
             document.body.appendChild(button)
@@ -146,19 +140,19 @@ if (!window.TopBar) {
                 callbackName: callbackName
             }
 
-            button.addEventListener('mouseenter', () => button.style.backgroundColor = this.hoverBackgroundColor)
+            button.addEventListener('mouseenter', () => button.style.backgroundColor = pane.hoverBackgroundColor)
             button.addEventListener('mouseleave', () => button.style.backgroundColor = 'transparent')
             if (callbackName) {
                 button.addEventListener('click', () => window.callbackFunction(`${widget.callbackName}_~_${button.innerText}`));
             }
             button.addEventListener('mousedown', () => {
-                button.style.backgroundColor = this.activeBackgroundColor
-                button.style.color = this.activeTextColor
+                button.style.backgroundColor = pane.activeBackgroundColor
+                button.style.color = pane.activeColor
                 button.style.fontWeight = '500'
             })
             button.addEventListener('mouseup', () => {
-                button.style.backgroundColor = this.hoverBackgroundColor
-                button.style.color = this.textColor
+                button.style.backgroundColor = pane.hoverBackgroundColor
+                button.style.color = pane.color
                 button.style.fontWeight = 'normal'
             })
             if (append) this.appendWidget(button, align, separator)
@@ -169,7 +163,7 @@ if (!window.TopBar) {
             let seperator = document.createElement('div')
             seperator.style.width = '1px'
             seperator.style.height = '20px'
-            seperator.style.backgroundColor = '#3C434C'
+            seperator.style.backgroundColor = pane.borderColor
             let div = align === 'left' ? this.left : this.right
             div.appendChild(seperator)
         }
@@ -201,7 +195,7 @@ function makeSearchBox(chart) {
     searchWindow.style.zIndex = '1000'
     searchWindow.style.alignItems = 'center'
     searchWindow.style.backgroundColor = 'rgba(30, 30, 30, 0.9)'
-    searchWindow.style.border = '2px solid #3C434C'
+    searchWindow.style.border = '2px solid '+pane.borderColor
     searchWindow.style.borderRadius = '5px'
     searchWindow.style.display = 'none'
 
@@ -213,8 +207,8 @@ function makeSearchBox(chart) {
     sBox.style.textAlign = 'center'
     sBox.style.width = '100px'
     sBox.style.marginLeft = '10px'
-    sBox.style.backgroundColor = 'rgba(0, 122, 255, 0.3)'
-    sBox.style.color = 'rgb(240,240,240)'
+    sBox.style.backgroundColor = pane.mutedBackgroundColor
+    sBox.style.color = pane.activeColor
     sBox.style.fontSize = '20px'
     sBox.style.border = 'none'
     sBox.style.outline = 'none'
@@ -260,7 +254,7 @@ function makeSpinner(chart) {
     chart.spinner.style.width = '30px'
     chart.spinner.style.height = '30px'
     chart.spinner.style.border = '4px solid rgba(255, 255, 255, 0.6)'
-    chart.spinner.style.borderTop = '4px solid rgba(0, 122, 255, 0.8)'
+    chart.spinner.style.borderTop = '4px solid '+pane.activeBackgroundColor
     chart.spinner.style.borderRadius = '50%'
     chart.spinner.style.position = 'absolute'
     chart.spinner.style.top = '50%'

@@ -1,4 +1,15 @@
 if (!window.Chart) {
+    window.pane = {
+        backgroundColor: '#0c0d0f',
+        hoverBackgroundColor: '#3c434c',
+        clickBackgroundColor: '#50565E',
+        activeBackgroundColor: 'rgba(0, 122, 255, 0.7)',
+        mutedBackgroundColor: 'rgba(0, 122, 255, 0.3)',
+        borderColor: '#3C434C',
+        color: '#d8d9db',
+        activeColor: '#ececed',
+    }
+
     class Chart {
         constructor(chartId, innerWidth, innerHeight, position, autoSize) {
             this.makeCandlestickSeries = this.makeCandlestickSeries.bind(this)
@@ -17,7 +28,7 @@ if (!window.Chart) {
                 width: window.innerWidth * innerWidth,
                 height: window.innerHeight * innerHeight,
                 layout: {
-                    textColor: '#d1d4dc',
+                    textColor: pane.color,
                     background: {
                         color: '#000000',
                         type: LightweightCharts.ColorType.Solid,
@@ -48,7 +59,7 @@ if (!window.Chart) {
             this.wrapper.style.position = 'relative'
             this.wrapper.style.float = position
             this.div.style.position = 'relative'
-            this.div.style.display = 'flex'
+            // this.div.style.display = 'flex'
             this.reSize()
             this.wrapper.appendChild(this.div)
             document.getElementById('wrapper').append(this.wrapper)
@@ -196,9 +207,10 @@ if (!window.Chart) {
             let legendItemFormat = (num, decimal) => num.toFixed(decimal).toString().padStart(8, ' ')
 
             let shorthandFormat = (num) => {
-                if (num >= 1000000) {
+                const absNum = Math.abs(num)
+                if (absNum >= 1000000) {
                     return (num / 1000000).toFixed(1) + 'M';
-                } else if (num >= 1000) {
+                } else if (absNum >= 1000) {
                     return (num / 1000).toFixed(1) + 'K';
                 }
                 return num.toString().padStart(8, ' ');
@@ -225,7 +237,14 @@ if (!window.Chart) {
                     this.candle.innerHTML = finalString + '</span>'
                     this.lines.forEach((line) => {
                         if (!param.seriesData.get(line.line.series)) return
-                        let price = legendItemFormat(param.seriesData.get(line.line.series).value, line.line.precision)
+                        let price = param.seriesData.get(line.line.series).value
+
+                        if (line.line.series._series._seriesType === 'Histogram') {
+                            price = shorthandFormat(price)
+                        }
+                        else {
+                            price = legendItemFormat(price, line.line.precision)
+                        }
                         line.div.innerHTML = `<span style="color: ${line.solid};">▨</span>    ${line.line.name} : ${price}`
                     })
 
@@ -381,7 +400,7 @@ function lastBar(obj) {
     return obj[obj.length-1]
 }
 
-function calculateTrendLine(startDate, startValue, endDate, endValue, interval, chart, ray=false) {
+function calculateTrendLine(startDate, startValue, endDate, endValue, chart, ray=false) {
     let reversed = false
     if (stampToDate(endDate).getTime() < stampToDate(startDate).getTime()) {
         reversed = true;
@@ -406,7 +425,7 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, interval, 
     else {
         endIndex = chart.candleData.findIndex(item => stampToDate(item.time).getTime() === stampToDate(endDate).getTime())
         if (endIndex === -1) {
-            let barsBetween = (stampToDate(endDate)-stampToDate(chart.candleData[chart.candleData.length-1].time))/interval
+            let barsBetween = (endDate-lastBar(chart.candleData).time)/chart.interval
             endIndex = chart.candleData.length-1+barsBetween
         }
     }
@@ -422,7 +441,7 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, interval, 
         }
         else {
             iPastData ++
-            currentDate = dateToStamp(new Date(stampToDate(chart.candleData[chart.candleData.length-1].time).getTime()+(iPastData*interval)))
+            currentDate = lastBar(chart.candleData).time+(iPastData*chart.interval)
         }
 
         const currentValue = reversed ? startValue + rate_of_change * (numBars - i) : startValue + rate_of_change * i;
@@ -439,7 +458,7 @@ if (!window.ContextMenu) {
             this.menu.style.position = 'absolute'
             this.menu.style.zIndex = '10000'
             this.menu.style.background = 'rgb(50, 50, 50)'
-            this.menu.style.color = '#ececed'
+            this.menu.style.color = pane.activeColor
             this.menu.style.display = 'none'
             this.menu.style.borderRadius = '5px'
             this.menu.style.padding = '3px 3px'
@@ -508,7 +527,7 @@ if (!window.ContextMenu) {
             separator.style.width = '90%'
             separator.style.height = '1px'
             separator.style.margin = '3px 0px'
-            separator.style.backgroundColor = '#3C434C'
+            separator.style.backgroundColor = pane.borderColor
             this.menu.appendChild(separator)
         }
 

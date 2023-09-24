@@ -11,11 +11,7 @@ if (!window.ToolBox) {
             this.chart.cursor = 'default'
             this.makingDrawing = false
 
-            this.activeBackgroundColor = 'rgba(0, 122, 255, 0.7)'
-            this.activeIconColor = 'rgb(240, 240, 240)'
-            this.iconColor = 'lightgrey'
-            this.backgroundColor = 'transparent'
-            this.hoverColor = 'rgba(80, 86, 94, 0.7)'
+            this.hoverBackgroundColor = 'rgba(80, 86, 94, 0.7)'
             this.clickBackgroundColor = 'rgba(90, 106, 104, 0.7)'
 
             this.elem = this.makeToolBox()
@@ -35,9 +31,8 @@ if (!window.ToolBox) {
             toolBoxElem.style.display = 'flex'
             toolBoxElem.style.alignItems = 'center'
             toolBoxElem.style.top = '25%'
-            toolBoxElem.style.borderRight = '2px solid #3C434C'
-            toolBoxElem.style.borderTop = '2px solid #3C434C'
-            toolBoxElem.style.borderBottom = '2px solid #3C434C'
+            toolBoxElem.style.border = '2px solid '+pane.borderColor
+            toolBoxElem.style.borderLeft = 'none'
             toolBoxElem.style.borderTopRightRadius = '4px'
             toolBoxElem.style.borderBottomRightRadius = '4px'
             toolBoxElem.style.backgroundColor = 'rgba(25, 27, 30, 0.5)'
@@ -48,11 +43,11 @@ if (!window.ToolBox) {
             let trend = this.makeToolBoxElement(this.onTrendSelect, 'KeyT', `<rect x="3.84" y="13.67" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -5.9847 14.4482)" width="21.21" height="1.56"/><path d="M23,3.17L20.17,6L23,8.83L25.83,6L23,3.17z M23,7.41L21.59,6L23,4.59L24.41,6L23,7.41z"/><path d="M6,20.17L3.17,23L6,25.83L8.83,23L6,20.17z M6,24.41L4.59,23L6,21.59L7.41,23L6,24.41z"/>`)
             let horz = this.makeToolBoxElement(this.onHorzSelect, 'KeyH', `<rect x="4" y="14" width="9" height="1"/><rect x="16" y="14" width="9" height="1"/><path d="M11.67,14.5l2.83,2.83l2.83-2.83l-2.83-2.83L11.67,14.5z M15.91,14.5l-1.41,1.41l-1.41-1.41l1.41-1.41L15.91,14.5z"/>`)
             let ray = this.makeToolBoxElement(this.onRaySelect, 'KeyR', `<rect x="8" y="14" width="17" height="1"/><path d="M3.67,14.5l2.83,2.83l2.83-2.83L6.5,11.67L3.67,14.5z M7.91,14.5L6.5,15.91L5.09,14.5l1.41-1.41L7.91,14.5z"/>`)
-            //let testB = this.makeToolBoxElement(this.onTrendSelect, `<rect x="8" y="6" width="12" height="1"/><rect x="9" y="22" width="11" height="1"/><path d="M3.67,6.5L6.5,9.33L9.33,6.5L6.5,3.67L3.67,6.5z M7.91,6.5L6.5,7.91L5.09,6.5L6.5,5.09L7.91,6.5z"/><path d="M19.67,6.5l2.83,2.83l2.83-2.83L22.5,3.67L19.67,6.5z M23.91,6.5L22.5,7.91L21.09,6.5l1.41-1.41L23.91,6.5z"/><path d="M19.67,22.5l2.83,2.83l2.83-2.83l-2.83-2.83L19.67,22.5z M23.91,22.5l-1.41,1.41l-1.41-1.41l1.41-1.41L23.91,22.5z"/><path d="M3.67,22.5l2.83,2.83l2.83-2.83L6.5,19.67L3.67,22.5z M7.91,22.5L6.5,23.91L5.09,22.5l1.41-1.41L7.91,22.5z"/><rect x="22" y="9" width="1" height="11"/><rect x="6" y="9" width="1" height="11"/>`)
+            // let testB = this.makeToolBoxElement(this.onTrendSelect, 'KeyB', `<rect x="8" y="6" width="12" height="1"/><rect x="9" y="22" width="11" height="1"/><path d="M3.67,6.5L6.5,9.33L9.33,6.5L6.5,3.67L3.67,6.5z M7.91,6.5L6.5,7.91L5.09,6.5L6.5,5.09L7.91,6.5z"/><path d="M19.67,6.5l2.83,2.83l2.83-2.83L22.5,3.67L19.67,6.5z M23.91,6.5L22.5,7.91L21.09,6.5l1.41-1.41L23.91,6.5z"/><path d="M19.67,22.5l2.83,2.83l2.83-2.83l-2.83-2.83L19.67,22.5z M23.91,22.5l-1.41,1.41l-1.41-1.41l1.41-1.41L23.91,22.5z"/><path d="M3.67,22.5l2.83,2.83l2.83-2.83L6.5,19.67L3.67,22.5z M7.91,22.5L6.5,23.91L5.09,22.5l1.41-1.41L7.91,22.5z"/><rect x="22" y="9" width="1" height="11"/><rect x="6" y="9" width="1" height="11"/>`)
             toolBoxElem.appendChild(trend)
             toolBoxElem.appendChild(horz)
             toolBoxElem.appendChild(ray)
-            //toolBoxElem.appendChild(testB)
+            // toolBoxElem.appendChild(testB)
 
             this.chart.div.append(toolBoxElem)
 
@@ -63,7 +58,7 @@ if (!window.ToolBox) {
             }
             this.chart.commandFunctions.push((event) => {
                 if ((event.metaKey || event.ctrlKey) && event.code === 'KeyZ') {
-                    commandZHandler(this.drawings[this.drawings.length - 1])
+                    commandZHandler(lastBar(this.drawings))
                     return true
                 }
             });
@@ -72,13 +67,10 @@ if (!window.ToolBox) {
         }
 
         makeToolBoxElement(action, keyCmd, paths) {
-            let icon = {
-                elem: document.createElement('div'),
-                action: action,
-            }
-            icon.elem.style.margin = '3px'
-            icon.elem.style.borderRadius = '4px'
-            icon.elem.style.display = 'flex'
+            let elem = document.createElement('div')
+            elem.style.margin = '3px'
+            elem.style.borderRadius = '4px'
+            elem.style.display = 'flex'
 
             let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("width", "29");
@@ -86,27 +78,29 @@ if (!window.ToolBox) {
 
             let group = document.createElementNS("http://www.w3.org/2000/svg", "g");
             group.innerHTML = paths
-            group.setAttribute("fill", this.iconColor)
+            group.setAttribute("fill", pane.color)
 
             svg.appendChild(group)
-            icon.elem.appendChild(svg);
+            elem.appendChild(svg);
 
-            icon.elem.addEventListener('mouseenter', () => {
-                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.hoverColor
+            let icon = {elem: elem, action: action}
+
+            elem.addEventListener('mouseenter', () => {
+                elem.style.backgroundColor = icon === this.chart.activeIcon ? pane.activeBackgroundColor : this.hoverBackgroundColor
             })
-            icon.elem.addEventListener('mouseleave', () => {
-                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.backgroundColor
+            elem.addEventListener('mouseleave', () => {
+                elem.style.backgroundColor = icon === this.chart.activeIcon ? pane.activeBackgroundColor : 'transparent'
             })
-            icon.elem.addEventListener('mousedown', () => {
-                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : this.clickBackgroundColor
+            elem.addEventListener('mousedown', () => {
+                elem.style.backgroundColor = icon === this.chart.activeIcon ? pane.activeBackgroundColor : this.clickBackgroundColor
             })
-            icon.elem.addEventListener('mouseup', () => {
-                icon.elem.style.backgroundColor = icon === this.chart.activeIcon ? this.activeBackgroundColor : 'transparent'
+            elem.addEventListener('mouseup', () => {
+                elem.style.backgroundColor = icon === this.chart.activeIcon ? pane.activeBackgroundColor : 'transparent'
             })
-            icon.elem.addEventListener('click', () => {
+            elem.addEventListener('click', () => {
                 if (this.chart.activeIcon) {
-                    this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
-                    group.setAttribute("fill", this.iconColor)
+                    this.chart.activeIcon.elem.style.backgroundColor = 'transparent'
+                    group.setAttribute("fill", pane.color)
                     document.body.style.cursor = 'crosshair'
                     this.chart.cursor = 'crosshair'
                     this.chart.activeIcon.action(false)
@@ -115,8 +109,8 @@ if (!window.ToolBox) {
                     }
                 }
                 this.chart.activeIcon = icon
-                group.setAttribute("fill", this.activeIconColor)
-                icon.elem.style.backgroundColor = this.activeBackgroundColor
+                group.setAttribute("fill", pane.activeColor)
+                elem.style.backgroundColor = pane.activeBackgroundColor
                 document.body.style.cursor = 'crosshair'
                 this.chart.cursor = 'crosshair'
                 this.chart.activeIcon.action(true)
@@ -125,76 +119,56 @@ if (!window.ToolBox) {
                 if (event.altKey && event.code === keyCmd) {
                     event.preventDefault()
                     if (this.chart.activeIcon) {
-                        this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
-                        group.setAttribute("fill", this.iconColor)
+                        this.chart.activeIcon.elem.style.backgroundColor = 'transparent'
+                        group.setAttribute("fill", pane.color)
                         document.body.style.cursor = 'crosshair'
                         this.chart.cursor = 'crosshair'
                         this.chart.activeIcon.action(false)
                     }
                     this.chart.activeIcon = icon
-                    group.setAttribute("fill", this.activeIconColor)
-                    icon.elem.style.backgroundColor = this.activeBackgroundColor
+                    group.setAttribute("fill", pane.activeColor)
+                    elem.style.backgroundColor = pane.activeBackgroundColor
                     document.body.style.cursor = 'crosshair'
                     this.chart.cursor = 'crosshair'
                     this.chart.activeIcon.action(true)
                     return true
                 }
             })
-            return icon.elem
+            return elem
+        }
+
+        removeActiveAndSave() {
+            document.body.style.cursor = 'default'
+            this.chart.cursor = 'default'
+            this.chart.activeIcon.elem.style.backgroundColor = 'transparent'
+            this.chart.activeIcon = null
+            this.saveDrawings()
         }
 
         onTrendSelect(toggle, ray = false) {
-            let trendLine = {
-                line: null,
-                color: 'rgb(15, 139, 237)',
-                markers: null,
-                data: null,
-                from: null,
-                to: null,
-                ray: ray,
-            }
+            let trendLine = null
             let firstTime = null
             let firstPrice = null
             let currentTime = null
 
-
             if (!toggle) {
-                this.chart.chart.unsubscribeClick(this.clickHandler)
-                return
+                return this.chart.chart.unsubscribeClick(this.clickHandler)
             }
             let crosshairHandlerTrend = (param) => {
                 this.chart.chart.unsubscribeCrosshairMove(crosshairHandlerTrend)
 
                 if (!this.makingDrawing) return
 
-                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
-                let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
-                let lastCandleTime = this.chart.candleData[this.chart.candleData.length - 1].time
                 currentTime = this.chart.chart.timeScale().coordinateToTime(param.point.x)
                 if (!currentTime) {
-                    let barsToMove = param.logical - this.chart.chart.timeScale().coordinateToLogical(this.chart.chart.timeScale().timeToCoordinate(lastCandleTime))
-                    currentTime = dateToStamp(new Date(stampToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.chart.interval)))
+                    let barsToMove = param.logical - this.chart.candleData.length-1
+                    currentTime = lastBar(this.chart.candleData).time+(barsToMove*this.chart.interval)
                 }
                 let currentPrice = this.chart.series.coordinateToPrice(param.point.y)
 
-
                 if (!currentTime) return this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
-                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.chart.interval, this.chart, ray)
-                trendLine.from = [data[0].time, data[0].value]
-                trendLine.to = [data[data.length - 1].time, data[data.length-1].value]
+                trendLine.calculateAndSet(firstTime, firstPrice, currentTime, currentPrice)
 
-                trendLine.line.setData(data)
-
-                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
-                this.chart.chart.timeScale().setVisibleLogicalRange(logical)
-
-                if (!ray) {
-                    trendLine.markers = [
-                        {time: trendLine.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
-                        {time: trendLine.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
-                    ]
-                    trendLine.line.setMarkers(trendLine.markers)
-                }
                 setTimeout(() => {
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
                 }, 10);
@@ -203,21 +177,9 @@ if (!window.ToolBox) {
             this.clickHandler = (param) => {
                 if (!this.makingDrawing) {
                     this.makingDrawing = true
-                    trendLine.line = this.chart.chart.addLineSeries({
-                        color: 'rgb(15, 139, 237)',
-                        lineWidth: 2,
-                        lastValueVisible: false,
-                        priceLineVisible: false,
-                        crosshairMarkerVisible: false,
-                        autoscaleInfoProvider: () => ({
-                            priceRange: {
-                                minValue: 1_000_000_000,
-                                maxValue: 0,
-                            },
-                        }),
-                    })
+                    trendLine = new TrendLine(this.chart, 'rgb(15, 139, 237)', ray)
                     firstPrice = this.chart.series.coordinateToPrice(param.point.y)
-                    firstTime = !ray ? this.chart.chart.timeScale().coordinateToTime(param.point.x) : this.chart.candleData[this.chart.candleData.length - 1].time
+                    firstTime = !ray ? this.chart.chart.timeScale().coordinateToTime(param.point.x) : lastBar(this.chart.candleData).time
                     this.chart.chart.applyOptions({handleScroll: false})
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
                 }
@@ -228,30 +190,23 @@ if (!window.ToolBox) {
                     this.drawings.push(trendLine)
                     this.chart.chart.unsubscribeCrosshairMove(crosshairHandlerTrend)
                     this.chart.chart.unsubscribeClick(this.clickHandler)
-                    document.body.style.cursor = 'default'
-                    this.chart.cursor = 'default'
-                    this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
-                    this.chart.activeIcon = null
-                    this.saveDrawings()
+                    this.removeActiveAndSave()
                 }
             }
             this.chart.chart.subscribeClick(this.clickHandler)
         }
 
-        clickHandlerHorz = (param) => {
+        onHorzSelect(toggle) {
+            let clickHandlerHorz = (param) => {
                 let price = this.chart.series.coordinateToPrice(param.point.y)
                 let lineStyle = LightweightCharts.LineStyle.Solid
                 let line = new HorizontalLine(this.chart, 'toolBox', price,'red', 2, lineStyle, true)
                 this.drawings.push(line)
-                this.chart.chart.unsubscribeClick(this.clickHandlerHorz)
-                document.body.style.cursor = 'default'
-                this.chart.cursor = 'default'
-                this.chart.activeIcon.elem.style.backgroundColor = this.backgroundColor
-                this.chart.activeIcon = null
-                this.saveDrawings()
+                this.chart.chart.unsubscribeClick(clickHandlerHorz)
+                this.removeActiveAndSave()
             }
-        onHorzSelect(toggle) {
-            !toggle ? this.chart.chart.unsubscribeClick(this.clickHandlerHorz) : this.chart.chart.subscribeClick(this.clickHandlerHorz)
+            if (toggle) this.chart.chart.subscribeClick(clickHandlerHorz)
+            else this.chart.chart.unsubscribeClick(clickHandlerHorz)
         }
 
         onRaySelect(toggle) {
@@ -382,8 +337,8 @@ if (!window.ToolBox) {
                 let priceDiff = priceAtCursor - originalPrice
                 let barsToMove = param.logical - originalIndex
 
-                let startBarIndex = this.chart.candleData.findIndex(item => stampToDate(item.time).getTime() === stampToDate(hoveringOver.from[0]).getTime())
-                let endBarIndex = this.chart.candleData.findIndex(item => stampToDate(item.time).getTime() === stampToDate(hoveringOver.to[0]).getTime())
+                let startBarIndex = this.chart.candleData.findIndex(item => item.time === hoveringOver.from[0])
+                let endBarIndex = this.chart.candleData.findIndex(item => item.time === hoveringOver.to[0])
 
                 let startDate
                 let endBar
@@ -395,27 +350,11 @@ if (!window.ToolBox) {
                     endBar = endBarIndex === -1 ? null : this.chart.candleData[endBarIndex + barsToMove]
                 }
 
-                let endDate = endBar ? endBar.time : dateToStamp(new Date(stampToDate(hoveringOver.to[0]).getTime() + (barsToMove * this.chart.interval)))
+                let endDate = endBar ? endBar.time : hoveringOver.to[0] + (barsToMove * this.chart.interval)
                 let startValue = hoveringOver.from[1] + priceDiff
                 let endValue = hoveringOver.to[1] + priceDiff
-                let data = calculateTrendLine(startDate, startValue, endDate, endValue, this.chart.interval, this.chart, hoveringOver.ray)
 
-
-                let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
-
-                hoveringOver.from = [data[0].time, data[0].value]
-                hoveringOver.to = [data[data.length - 1].time, data[data.length - 1].value]
-                hoveringOver.line.setData(data)
-
-                this.chart.chart.timeScale().setVisibleLogicalRange(logical)
-
-                if (!hoveringOver.ray) {
-                    hoveringOver.markers = [
-                        {time: hoveringOver.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
-                        {time: hoveringOver.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
-                    ]
-                    hoveringOver.line.setMarkers(hoveringOver.markers)
-                }
+                hoveringOver.calculateAndSet(startDate, startValue, endDate, endValue)
 
                 originalIndex = param.logical
                 originalPrice = priceAtCursor
@@ -438,29 +377,12 @@ if (!window.ToolBox) {
                     firstPrice = hoveringOver.to[1]
                 }
 
-                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
-                let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
-
-                let lastCandleTime = this.chart.candleData[this.chart.candleData.length - 1].time
                 if (!currentTime) {
-                    let barsToMove = param.logical - this.chart.chart.timeScale().coordinateToLogical(this.chart.chart.timeScale().timeToCoordinate(lastCandleTime))
-                    currentTime = dateToStamp(new Date(stampToDate(this.chart.candleData[this.chart.candleData.length - 1].time).getTime() + (barsToMove * this.chart.interval)))
+                    let barsToMove = param.logical - this.chart.candleData.length-1
+                    currentTime = lastBar(this.chart.candleData).time + (barsToMove*this.chart.interval)
                 }
-                let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.chart.interval, this.chart)
-                hoveringOver.line.setData(data)
 
-                this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
-                this.chart.chart.timeScale().setVisibleLogicalRange(logical)
-
-                hoveringOver.from = [data[0].time, data[0].value]
-                hoveringOver.to = [data[data.length - 1].time, data[data.length - 1].value]
-
-
-                hoveringOver.markers = [
-                    {time: hoveringOver.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
-                    {time: hoveringOver.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
-                ]
-                hoveringOver.line.setMarkers(hoveringOver.markers)
+                hoveringOver.calculateAndSet(firstTime, firstPrice, currentTime, currentPrice)
 
                 setTimeout(() => {
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
@@ -481,12 +403,10 @@ if (!window.ToolBox) {
         renderDrawings() {
             this.drawings.forEach((item) => {
                 if ('price' in item) return
-                let startDate = dateToStamp(new Date(Math.round(stampToDate(item.from[0]).getTime() / this.chart.interval) * this.chart.interval))
-                let endDate = dateToStamp(new Date(Math.round(stampToDate(item.to[0]).getTime() / this.chart.interval) * this.chart.interval))
-                let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.chart.interval, this.chart, item.ray)
-                item.from = [data[0].time, data[0].value]
-                item.to = [data[data.length - 1].time, data[data.length-1].value]
-                item.line.setData(data)
+                console.log('rendering')
+                let startDate = Math.round(item.from[0]/this.chart.interval)*this.chart.interval
+                let endDate = Math.round(item.to[0]/this.chart.interval)*this.chart.interval
+                item.calculateAndSet(startDate, item.from[1], endDate, item.to[1])
             })
         }
 
@@ -524,41 +444,83 @@ if (!window.ToolBox) {
         }
 
         loadDrawings(drawings) {
-            this.drawings = drawings
-            this.chart.chart.applyOptions({handleScroll: false})
-            this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
-            this.drawings.forEach((item) => {
-                let idx = this.drawings.indexOf(item)
+            this.drawings = []
+            drawings.forEach((item) => {
+                let drawing = null
                 if ('price' in item) {
-                    this.drawings[idx] = new HorizontalLine(this.chart, 'toolBox', item.priceLine.price, item.priceLine.color, 2, item.priceLine.lineStyle, item.priceLine.axisLabelVisible)
+                    drawing = new HorizontalLine(this.chart, 'toolBox',
+                        item.priceLine.price, item.priceLine.color, 2,
+                        item.priceLine.lineStyle, item.priceLine.axisLabelVisible)
                 }
                 else {
-                    this.drawings[idx].line = this.chart.chart.addLineSeries({
-                        lineWidth: 2,
-                        color: this.drawings[idx].color,
-                        lastValueVisible: false,
-                        priceLineVisible: false,
-                        crosshairMarkerVisible: false,
-                        autoscaleInfoProvider: () => ({
-                            priceRange: {
-                                minValue: 1_000_000_000,
-                                maxValue: 0,
-                            },
-                        }),
-                    })
-                    let startDate = dateToStamp(new Date(Math.round(stampToDate(item.from[0]).getTime() / this.chart.interval) * this.chart.interval))
-                    let endDate = dateToStamp(new Date(Math.round(stampToDate(item.to[0]).getTime() / this.chart.interval) * this.chart.interval))
-                    let data = calculateTrendLine(startDate, item.from[1], endDate, item.to[1], this.chart.interval, this.chart, item.ray)
-                    item.from = [data[0].time, data[0].value]
-                    item.to = [data[data.length - 1].time, data[data.length-1].value]
-                    item.line.setData(data)
+                    let startDate = Math.round(item.from[0]/this.chart.interval)*this.chart.interval
+                    let endDate = Math.round(item.to[0]/this.chart.interval)*this.chart.interval
+
+                    drawing = new TrendLine(this.chart, item.color, item.ray)
+                    drawing.calculateAndSet(startDate, item.from[1], endDate, item.to[1])
                 }
+                this.drawings.push(drawing)
             })
-            this.chart.chart.applyOptions({handleScroll: true})
-            this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
         }
     }
     window.ToolBox = ToolBox
+
+
+    class TrendLine {
+        constructor(chart, color, ray) {
+            this.calculateAndSet = this.calculateAndSet.bind(this)
+
+            this.line = chart.chart.addLineSeries({
+                color: color,
+                lineWidth: 2,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                crosshairMarkerVisible: false,
+                autoscaleInfoProvider: () => ({
+                    priceRange: {
+                        minValue: 1_000_000_000,
+                        maxValue: 0,
+                    },
+                }),
+            })
+            this.color = color
+            this.markers = null
+            this.data = null
+            this.from = null
+            this.to = null
+            this.ray = ray
+            this.chart = chart
+        }
+
+        toJSON() {
+            // Exclude the chart attribute from serialization
+            const {chart, ...serialized} = this;
+            return serialized;
+        }
+
+        calculateAndSet(firstTime, firstPrice, currentTime, currentPrice) {
+            let data = calculateTrendLine(firstTime, firstPrice, currentTime, currentPrice, this.chart, this.ray)
+            this.from = [data[0].time, data[0].value]
+            this.to = [data[data.length - 1].time, data[data.length-1].value]
+
+            this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
+            let logical = this.chart.chart.timeScale().getVisibleLogicalRange()
+
+            this.line.setData(data)
+
+            this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
+            this.chart.chart.timeScale().setVisibleLogicalRange(logical)
+
+            if (!this.ray) {
+                this.markers = [
+                    {time: this.from[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1},
+                    {time: this.to[0], position: 'inBar', color: '#1E80F0', shape: 'circle', size: 0.1}
+                ]
+                this.line.setMarkers(this.markers)
+            }
+        }
+    }
+    window.TrendLine = TrendLine
 
     class ColorPicker {
         constructor(saveDrawings) {
@@ -566,13 +528,13 @@ if (!window.ToolBox) {
 
             this.container = document.createElement('div')
             this.container.style.maxWidth = '170px'
-            this.container.style.backgroundColor = '#191B1E'
+            this.container.style.backgroundColor = pane.backgroundColor
             this.container.style.position = 'absolute'
             this.container.style.zIndex = '10000'
             this.container.style.display = 'none'
             this.container.style.flexDirection = 'column'
             this.container.style.alignItems = 'center'
-            this.container.style.border = '2px solid #3C434C'
+            this.container.style.border = '2px solid '+pane.borderColor
             this.container.style.borderRadius = '8px'
             this.container.style.cursor = 'default'
 
@@ -593,7 +555,7 @@ if (!window.ToolBox) {
             colors.forEach((color) => colorPicker.appendChild(this.makeColorBox(color)))
 
             let separator = document.createElement('div')
-            separator.style.backgroundColor = '#3C434C'
+            separator.style.backgroundColor = pane.borderColor
             separator.style.height = '1px'
             separator.style.width = '130px'
 
@@ -696,7 +658,7 @@ if (!window.ToolBox) {
             this.container.style.position = 'absolute'
             this.container.style.zIndex = '10000'
             this.container.style.background = 'rgb(50, 50, 50)'
-            this.container.style.color = '#ececed'
+            this.container.style.color = pane.activeColor
             this.container.style.display = 'none'
             this.container.style.borderRadius = '5px'
             this.container.style.padding = '3px 3px'
@@ -727,7 +689,7 @@ if (!window.ToolBox) {
             item.style.borderRadius = '3px'
             item.innerText = text
 
-            item.addEventListener('mouseover', (event) => item.style.backgroundColor = 'rgba(0, 122, 255, 0.3)')
+            item.addEventListener('mouseover', (event) => item.style.backgroundColor = pane.mutedBackgroundColor)
             item.addEventListener('mouseout', (event) => item.style.backgroundColor = 'transparent')
 
             item.addEventListener('click', (event) => {
@@ -760,5 +722,5 @@ if (!window.ToolBox) {
             this.container.style.display = 'none'
         }
     }
-    window.ColorPicker = ColorPicker
+    window.StylePicker = StylePicker
 }

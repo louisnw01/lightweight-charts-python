@@ -105,6 +105,23 @@ class Window:
         ''', run_last=True)
         return subchart
 
+    def style(self, background_color: str = '#0c0d0f', hover_background_color: str = '#3c434c',
+              click_background_color: str = '#50565E',
+              active_background_color: str = 'rgba(0, 122, 255, 0.7)',
+              muted_background_color: str = 'rgba(0, 122, 255, 0.3)',
+              border_color: str = '#3C434C', color: str = '#d8d9db', active_color: str = '#ececed'):
+        self.run_script(f'''
+        window.pane = {{
+            backgroundColor: '{background_color}',
+            hoverBackgroundColor: '{hover_background_color}',
+            clickBackgroundColor: '{click_background_color}',
+            activeBackgroundColor: '{active_background_color}',
+            mutedBackgroundColor: '{muted_background_color}',
+            borderColor: '{border_color}',
+            color: '{color}',
+            activeColor: '{active_color}', 
+        }}''')
+
 
 class SeriesCommon(Pane):
     def __init__(self, chart: 'AbstractChart', name: str = None):
@@ -113,7 +130,7 @@ class SeriesCommon(Pane):
         if hasattr(chart, '_interval'):
             self._interval = chart._interval
         else:
-            self._interval = pd.Timedelta(seconds=1)
+            self._interval = 1
         self._last_bar = None
         self.name = name
         self.num_decimals = 2
@@ -124,10 +141,35 @@ class SeriesCommon(Pane):
         common_interval = df['time'].diff().value_counts()
         if common_interval.empty:
             return
-        self._interval = common_interval.index[0]
+        self._interval = common_interval.index[0].total_seconds()
+
+        units = [
+            pd.Timedelta(microseconds=df['time'].dt.microsecond.value_counts().index[0]),
+            pd.Timedelta(seconds=df['time'].dt.second.value_counts().index[0]),
+            pd.Timedelta(minutes=df['time'].dt.minute.value_counts().index[0]),
+            pd.Timedelta(hours=df['time'].dt.hour.value_counts().index[0]),
+            pd.Timedelta(days=df['time'].dt.day.value_counts().index[0]),
+        ]
+        self.offset = 0
+        for value in units:
+            value = value.total_seconds()
+            if value == 0:
+                continue
+            elif value > self._interval:
+                break
+            self.offset = value
+            break
+
         self.run_script(
-            f'if ({self.id}.toolBox) {self.id}.interval = {self._interval.total_seconds() * 1000}'
+            f'if ({self.id}.toolBox) {self.id}.interval = {self._interval}'
         )
+
+    def _push_to_legend(self):
+        self.run_script(f'''
+        {self._chart.id}.lines.push({self.id})
+        if ('legend' in {self._chart.id}) {{
+            {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
+        }}''')
 
     @staticmethod
     def _format_labels(data, labels, index, exclude_lowercase):
@@ -162,8 +204,7 @@ class SeriesCommon(Pane):
     def _single_datetime_format(self, arg):
         if isinstance(arg, (str, int, float)) or not pd.api.types.is_datetime64_any_dtype(arg):
             arg = pd.to_datetime(arg)
-        interval_seconds = self._interval.total_seconds()
-        arg = interval_seconds * (arg.timestamp() // interval_seconds)
+        arg = self._interval * (arg.timestamp() // self._interval)+self.offset
         return arg
 
     def set(self, df: pd.DataFrame = None, format_cols: bool = True):
@@ -185,7 +226,6 @@ class SeriesCommon(Pane):
             series.rename({self.name: 'value'}, inplace=True)
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({js_data(series)})')
-
 
     def marker(self, time: datetime = None, position: MARKER_POSITION = 'below',
                shape: MARKER_SHAPE = 'arrow_up', color: str = '#2196F3', text: str = ''
@@ -362,8 +402,7 @@ class VerticalSpan(Pane):
         else:
             self.run_script(f'''
             {self.id}.setData(calculateTrendLine(
-            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1,
-            {chart._interval.total_seconds() * 1000}, {chart.id}))
+            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1, {chart.id}))
             ''')
 
     def delete(self):
@@ -401,13 +440,6 @@ class Line(SeriesCommon):
             }}
         null''')
 
-    def _push_to_legend(self):
-        self.run_script(f'''
-        {self._chart.id}.lines.push({self.id})
-        if ('legend' in {self._chart.id}) {{
-            {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
-        }}''')
-
     def _set_trend(self, start_time, start_value, end_time, end_value, ray=False, round=False):
         if round:
             start_time = self._single_datetime_format(start_time)
@@ -418,9 +450,7 @@ class Line(SeriesCommon):
         self.run_script(f'''
         {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: false}})
         {self.id}.series.setData(
-            calculateTrendLine({start_time}, {start_value},
-                                {end_time}, {end_value},
-                                {self._chart._interval.total_seconds() * 1000},
+            calculateTrendLine({start_time}, {start_value}, {end_time}, {end_value},
                                 {self._chart.id}, {jbool(ray)}))
         {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: true}})
         ''')
@@ -451,7 +481,8 @@ class Histogram(SeriesCommon):
                 color: '{color}',
                 lastValueVisible: {jbool(price_label)},
                 priceLineVisible: {jbool(price_line)},
-                priceScaleId: '{self.id}'
+                priceScaleId: '{self.id}',
+                priceFormat: {{type: "volume"}},
             }}),
             markers: [],
             horizontal_lines: [],
@@ -681,7 +712,11 @@ class AbstractChart(Candlestick, Pane):
         """
         Creates and returns a Histogram object.
         """
-        return Histogram(self, name, color, price_line, price_label, scale_margin_top, scale_margin_bottom)
+        histogram = Histogram(
+            self, name, color, price_line, price_label,
+            scale_margin_top, scale_margin_bottom)
+        histogram._push_to_legend()
+        return histogram
 
     def lines(self) -> List[Line]:
         """

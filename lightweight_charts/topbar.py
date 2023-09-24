@@ -50,7 +50,8 @@ class MenuWidget(Widget):
 class ButtonWidget(Widget):
     def __init__(self, topbar, button, separator, align, func):
         super().__init__(topbar, value=button, func=func)
-        self.run_script(f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, "{align}")')
+        self.run_script(
+            f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}")')
 
     def set(self, string):
         self.value = string
@@ -62,12 +63,6 @@ class TopBar(Pane):
         super().__init__(chart.win)
         self._chart = chart
         self._widgets: Dict[str, Widget] = {}
-
-        self.click_bg_color = '#50565E'
-        self.hover_bg_color = '#3c434c'
-        self.active_bg_color = 'rgba(0, 122, 255, 0.7)'
-        self.active_text_color = '#ececed'
-        self.text_color = '#d8d9db'
         self._created = False
 
     def _create(self):
@@ -76,10 +71,7 @@ class TopBar(Pane):
         from lightweight_charts.abstract import JS
         self._created = True
         self.run_script(JS['callback'])
-        self.run_script(f'''
-        {self.id} = new TopBar( {self._chart.id}, '{self.hover_bg_color}', '{self.click_bg_color}',
-                                '{self.active_bg_color}', '{self.text_color}', '{self.active_text_color}')
-        ''')
+        self.run_script(f'{self.id} = new TopBar({self._chart.id})')
 
     def __getitem__(self, item):
         if widget := self._widgets.get(item):
