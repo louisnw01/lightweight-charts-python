@@ -324,11 +324,11 @@ ___
 
 
 
-```{py:method} hotkey(modifier: 'ctrl' | 'alt' | 'shift' | 'meta', key: 'str' | 'int' | 'tuple', func: callable)
+```{py:method} hotkey(modifier: 'ctrl' | 'alt' | 'shift' | 'meta' | None, key: 'str' | 'int' | 'tuple', func: callable)
 
 Adds a global hotkey to the chart window, which will execute the method or function given.
 
-When using a number in `key`, it should be given as an integer. If multiple key commands are needed for the same function, a tuple can be passed to `key`.
+If multiple key commands are needed for the same function, a tuple can be passed to `key`.
 ```
 ___
 

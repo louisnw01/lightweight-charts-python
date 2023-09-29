@@ -134,6 +134,7 @@ class SeriesCommon(Pane):
         self._last_bar = None
         self.name = name
         self.num_decimals = 2
+        self.offset = 0
 
     def _set_interval(self, df: pd.DataFrame):
         if not pd.api.types.is_datetime64_any_dtype(df['time']):
@@ -155,7 +156,7 @@ class SeriesCommon(Pane):
             value = value.total_seconds()
             if value == 0:
                 continue
-            elif value > self._interval:
+            elif value >= self._interval:
                 break
             self.offset = value
             break

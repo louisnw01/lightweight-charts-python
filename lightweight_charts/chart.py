@@ -31,8 +31,8 @@ class PyWV:
         webview.start(debug=debug)
         self.exit.set()
 
-    def create_window(self, width, height, x, y, screen=0, on_top=False, maximize=False):
-        screen = webview.screens[screen]
+    def create_window(self, width, height, x, y, screen=None, on_top=False, maximize=False):
+        screen = webview.screens[screen] if screen is not None else None
         if maximize:
             width, height = screen.width, screen.height
         self.windows.append(webview.create_window(
@@ -69,7 +69,7 @@ class Chart(abstract.AbstractChart):
     _q, _emit_q, _return_q = (mp.Queue() for _ in range(3))
     _loaded_list = [mp.Event() for _ in range(MAX_WINDOWS)]
 
-    def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None, screen: int = 0,
+    def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None, screen: int = None,
                  on_top: bool = False, maximize: bool = False, debug: bool = False, toolbox: bool = False,
                  inner_width: float = 1.0, inner_height: float = 1.0, scale_candles_only: bool = False):
         self._i = Chart._window_num
@@ -121,6 +121,7 @@ class Chart(abstract.AbstractChart):
                 if self._exit.is_set():
                     self._exit.clear()
                     self.is_alive = False
+                    self.exit()
                     return
                 elif not self._emit_q.empty():
                     func, args = parse_event_message(self.win, self._emit_q.get())
@@ -146,4 +147,5 @@ class Chart(abstract.AbstractChart):
         Chart._main_window_handlers = None
         Chart._window_num = 0
         Chart._q = mp.Queue()
+        Chart._exit.clear(), Chart._start.clear()
         self.is_alive = False

@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime
 from random import choices
 from typing import Literal, Union
@@ -34,8 +35,13 @@ def parse_event_message(window, string):
 
 
 def js_data(data: Union[pd.DataFrame, pd.Series]):
-    orient = 'columns' if isinstance(data, pd.Series) else 'records'
-    return data.to_json(orient=orient, default_handler=lambda x: 'null' if pd.isna(x) else x)
+    if isinstance(data, pd.DataFrame):
+        d = data.to_dict(orient='records')
+        filtered_records = [{k: v for k, v in record.items() if v is not None} for record in d]
+    else:
+        d = data.to_dict()
+        filtered_records = {k: v for k, v in d.items()}
+    return json.dumps(filtered_records, indent=2)
 
 
 def jbool(b: bool): return 'true' if b is True else 'false' if b is False else None
