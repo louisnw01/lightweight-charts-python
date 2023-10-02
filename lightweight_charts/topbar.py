@@ -36,7 +36,13 @@ class TextWidget(Widget):
 class SwitcherWidget(Widget):
     def __init__(self, topbar, options, default, align, func):
         super().__init__(topbar, value=default, func=func)
-        self.run_script(f'{self.id} = {topbar.id}.makeSwitcher({list(options)}, "{default}", "{self.id}", "{align}")')
+        self.options = list(options)
+        self.run_script(f'{self.id} = {topbar.id}.makeSwitcher({self.options}, "{default}", "{self.id}", "{align}")')
+
+    def set(self, option):
+        if option not in self.options:
+            raise ValueError(f"option '{option}' does not exist within {self.options}.")
+        self.run_script(f'{self.id}.onItemClicked("{option}")')
 
 
 class MenuWidget(Widget):

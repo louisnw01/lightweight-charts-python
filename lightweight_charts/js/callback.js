@@ -31,8 +31,10 @@ if (!window.TopBar) {
             let widget = {
                 elem: switcherElement,
                 callbackName: callbackName,
+                intervalElements: null,
+                onItemClicked: null,
             }
-            let intervalElements = items.map((item)=> {
+            widget.intervalElements = items.map((item)=> {
                 let itemEl = document.createElement('button');
                 itemEl.style.border = 'none'
                 itemEl.style.padding = '2px 5px'
@@ -50,16 +52,14 @@ if (!window.TopBar) {
                 itemEl.addEventListener('mouseleave', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : 'transparent')
                 itemEl.addEventListener('mousedown', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : pane.clickBackgroundColor)
                 itemEl.addEventListener('mouseup', () => itemEl.style.backgroundColor = item === activeItem ? pane.activeBackgroundColor : pane.hoverBackgroundColor)
-                itemEl.addEventListener('click', () => onItemClicked(item))
+                itemEl.addEventListener('click', () => widget.onItemClicked(item))
 
                 switcherElement.appendChild(itemEl);
                 return itemEl;
             });
-            widget.intervalElements = intervalElements
-
-            let onItemClicked = (item)=> {
+            widget.onItemClicked = (item)=> {
                 if (item === activeItem) return
-                intervalElements.forEach((element, index) => {
+                widget.intervalElements.forEach((element, index) => {
                     element.style.backgroundColor = items[index] === item ? pane.activeBackgroundColor : 'transparent'
                     element.style.color = items[index] === item ? pane.activeColor : pane.color
                     element.style.fontWeight = items[index] === item ? '500' : 'normal'
