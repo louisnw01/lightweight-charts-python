@@ -87,9 +87,13 @@ class Window:
 
     def create_table(self, width: NUM, height: NUM, headings: tuple, widths: tuple = None,
                      alignments: tuple = None, position: FLOAT = 'left', draggable: bool = False,
-                     func: callable = None
+                     background_color: str = '#121417', border_color: str = 'rgb(70, 70, 70)',
+                     border_width: int = 1, heading_text_colors: tuple = None,
+                     heading_background_colors: tuple = None, func: callable = None
                      ) -> 'Table':
-        return Table(self, width, height, headings, widths, alignments, position, draggable, func)
+        return Table(self, width, height, headings, widths, alignments, position, draggable,
+                     background_color, border_color, border_width, heading_text_colors,
+                     heading_background_colors, func)
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
                         sync_id: str = None, scale_candles_only: bool = False, toolbox: bool = False
@@ -911,11 +915,15 @@ class AbstractChart(Candlestick, Pane):
                     }})''')
         self.win.handlers[f'{modifier_key, keys}'] = func
 
-    def create_table(self, width: NUM, height: NUM,
-                     headings: tuple, widths: tuple = None, alignments: tuple = None,
-                     position: FLOAT = 'left', draggable: bool = False, func: callable = None
+    def create_table(
+            self, width: NUM, height: NUM, headings: tuple, widths: tuple = None, alignments: tuple = None,
+            position: FLOAT = 'left', draggable: bool = False, background_color: str = '#121417',
+            border_color: str = 'rgb(70, 70, 70)', border_width: int = 1, heading_text_colors: tuple = None,
+            heading_background_colors: tuple = None, func: callable = None
                      ) -> Table:
-        return self.win.create_table(width, height, headings, widths, alignments, position, draggable, func)
+        return self.win.create_table(width, height, headings, widths, alignments, position, draggable,
+                                     background_color, border_color, border_width, heading_text_colors,
+                                     heading_background_colors, func)
 
     def screenshot(self) -> bytes:
         """

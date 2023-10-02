@@ -1,8 +1,11 @@
 if (!window.Table) {
     class Table {
-        constructor(width, height, headings, widths, alignments, position, draggable = false) {
+        constructor(width, height, headings, widths, alignments, position, draggable = false,
+                    tableBackgroundColor, borderColor, borderWidth, textColors, backgroundColors) {
             this.container = document.createElement('div')
             this.callbackName = null
+            this.borderColor = borderColor
+            this.borderWidth = borderWidth
 
             if (draggable) {
                 this.container.style.position = 'absolute'
@@ -11,7 +14,6 @@ if (!window.Table) {
                 this.container.style.position = 'relative'
                 this.container.style.float = position
             }
-
             this.container.style.zIndex = '2000'
             this.container.style.width = width <= 1 ? width * 100 + '%' : width + 'px'
             this.container.style.height = height <= 1 ? height * 100 + '%' : height + 'px'
@@ -19,7 +21,6 @@ if (!window.Table) {
             this.container.style.flexDirection = 'column'
             this.container.style.justifyContent = 'space-between'
 
-            this.container.style.backgroundColor = '#121417'
             this.container.style.borderRadius = '5px'
             this.container.style.color = 'white'
             this.container.style.fontSize = '12px'
@@ -47,12 +48,17 @@ if (!window.Table) {
                 th.style.padding = '0.2rem 0px'
                 th.style.fontWeight = '500'
                 th.style.textAlign = 'center'
+                if (i !== 0) th.style.borderLeft = borderWidth+'px solid '+borderColor
+                th.style.position = 'sticky'
+                th.style.top = '0'
+                th.style.backgroundColor = backgroundColors.length > 0 ? backgroundColors[i] : tableBackgroundColor
+                th.style.color = textColors[i]
                 row.appendChild(th)
-                th.style.border = '1px solid rgb(70, 70, 70)'
             }
 
             let overflowWrapper = document.createElement('div')
             overflowWrapper.style.overflow = 'auto'
+            overflowWrapper.style.backgroundColor = tableBackgroundColor
             overflowWrapper.appendChild(this.table)
             this.container.appendChild(overflowWrapper)
             document.getElementById('wrapper').appendChild(this.container)
@@ -93,7 +99,7 @@ if (!window.Table) {
                 row[this.headings[i]] = row.insertCell()
                 row[this.headings[i]].style.width = this.widths[i];
                 row[this.headings[i]].style.textAlign = this.alignments[i];
-                row[this.headings[i]].style.border = '1px solid rgb(70, 70, 70)'
+                row[this.headings[i]].style.border = this.borderWidth+'px solid '+this.borderColor
             }
             row.addEventListener('mouseover', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
             row.addEventListener('mouseout', () => row.style.backgroundColor = 'transparent')
@@ -121,20 +127,20 @@ if (!window.Table) {
             this.rows[rowId][column].textContent = val
         }
 
-        makeFooter(numBoxes) {
-            let footer = document.createElement('div')
-            footer.style.display = 'flex'
-            footer.style.width = '100%'
-            footer.style.padding = '3px 0px'
-            footer.style.backgroundColor = 'rgb(30, 30, 30)'
-            this.container.appendChild(footer)
+        makeSection(type, numBoxes) {
+            let section = document.createElement('div')
+            section.style.display = 'flex'
+            section.style.width = '100%'
+            section.style.padding = '3px 0px'
+            section.style.backgroundColor = 'rgb(30, 30, 30)'
+            type === 'footer' ? this.container.appendChild(section) : this.container.prepend(section)
 
-            this.footer = []
+            this[type] = []
             for (let i = 0; i < numBoxes; i++) {
-                this.footer.push(document.createElement('div'))
-                footer.appendChild(this.footer[i])
-                this.footer[i].style.flex = '1'
-                this.footer[i].style.textAlign = 'center'
+                this[type].push(document.createElement('div'))
+                section.appendChild(this[type][i])
+                this[type][i].style.flex = '1'
+                this[type][i].style.textAlign = 'center'
             }
         }
     }

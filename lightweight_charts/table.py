@@ -4,15 +4,16 @@ from typing import Union
 from .util import jbool, Pane, NUM
 
 
-class Footer:
-    def __init__(self, table):
+class Section:
+    def __init__(self, table, section_type):
         self._table = table
-
-    def __setitem__(self, key, value):
-        self._table.run_script(f'{self._table.id}.footer[{key}].innerText = "{value}"')
+        self.type = section_type
 
     def __call__(self, number_of_text_boxes: int):
-        self._table.run_script(f'{self._table.id}.makeFooter({number_of_text_boxes})')
+        self._table.run_script(f'{self._table.id}.makeSection("{self.type}", {number_of_text_boxes})')
+
+    def __setitem__(self, key, value):
+        self._table.run_script(f'{self._table.id}.{self.type}[{key}].innerText = "{value}"')
 
 
 class Row(dict):
@@ -50,7 +51,13 @@ class Row(dict):
 class Table(Pane, dict):
     VALUE = 'CELL__~__VALUE__~__PLACEHOLDER'
 
-    def __init__(self, window, width: NUM, height: NUM, headings: tuple, widths: tuple = None, alignments: tuple = None, position='left', draggable: bool = False, func: callable = None):
+    def __init__(
+            self, window, width: NUM, height: NUM, headings: tuple, widths: tuple = None,
+            alignments: tuple = None, position='left', draggable: bool = False,
+            background_color: str = '#121417', border_color: str = 'rgb(70, 70, 70)',
+            border_width: int = 1, heading_text_colors: tuple = None,
+            heading_background_colors: tuple = None, func: callable = None
+    ):
         dict.__init__(self)
         Pane.__init__(self, window)
         self._formatters = {}
@@ -60,10 +67,18 @@ class Table(Pane, dict):
         headings = list(headings)
         widths = list(widths) if widths else []
         alignments = list(alignments) if alignments else []
+        heading_text_colors = list(heading_text_colors) if heading_text_colors else []
+        heading_background_colors = list(heading_background_colors) if heading_background_colors else []
 
-        self.run_script(f'{self.id} = new Table({width}, {height}, {headings}, {widths}, {alignments}, "{position}", {jbool(draggable)})')
+        self.run_script(f'''
+        {self.id} = new Table(
+        {width}, {height}, {headings}, {widths}, {alignments}, '{position}', {jbool(draggable)},
+        '{background_color}', '{border_color}', {border_width}, {heading_text_colors},
+        {heading_background_colors} 
+        )''')
         self.run_script(f'{self.id}.callbackName = "{self.id}"') if func else None
-        self.footer = Footer(self)
+        self.footer = Section(self, 'footer')
+        self.header = Section(self, 'header')
 
     def new_row(self, *values, id=None) -> Row:
         row_id = random.randint(0, 99_999_999) if not id else id
