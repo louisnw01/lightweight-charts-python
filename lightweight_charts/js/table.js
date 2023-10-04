@@ -91,23 +91,35 @@ if (!window.Table) {
 
         }
 
-        newRow(id) {
-            let row = this.table.insertRow()
-            row.style.cursor = 'default'
-
-            for (let i = 0; i < this.headings.length; i++) {
-                row[this.headings[i]] = row.insertCell()
-                row[this.headings[i]].style.width = this.widths[i];
-                row[this.headings[i]].style.textAlign = this.alignments[i];
-                row[this.headings[i]].style.border = this.borderWidth+'px solid '+this.borderColor
+        addRowEventListener(row, id, isCell= false) {
+            if (isCell) {
+                id = `${id};;;${isCell}`
             }
             row.addEventListener('mouseover', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
             row.addEventListener('mouseout', () => row.style.backgroundColor = 'transparent')
             row.addEventListener('mousedown', () => row.style.backgroundColor = 'rgba(60, 60, 60)')
-
             row.addEventListener('click', () => window.callbackFunction(`${this.callbackName}_~_${id}`))
             row.addEventListener('mouseup', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
+        }
 
+        newRow(id, returnClickedCell=false) {
+            let row = this.table.insertRow()
+            row.style.cursor = 'default'
+
+            for (let i = 0; i < this.headings.length; i++) {
+                let cell = row.insertCell()
+                cell.style.width = this.widths[i];
+                cell.style.textAlign = this.alignments[i];
+                cell.style.border = this.borderWidth+'px solid '+this.borderColor
+
+                if (returnClickedCell) {
+                    this.addRowEventListener(cell, id, this.headings[i])
+                }
+                row[this.headings[i]] = cell
+            }
+            if (!returnClickedCell) {
+                this.addRowEventListener(row, id, false)
+            }
             this.rows[id] = row
         }
 

@@ -23,7 +23,7 @@ class Row(dict):
         self._table = table
         self.id = id
         self.meta = {}
-        self.run_script(f'{self._table.id}.newRow("{self.id}")')
+        self.run_script(f'{self._table.id}.newRow("{self.id}", {jbool(table.return_clicked_cells)})')
         for key, val in items.items():
             self[key] = val
 
@@ -56,14 +56,20 @@ class Table(Pane, dict):
             alignments: tuple = None, position='left', draggable: bool = False,
             background_color: str = '#121417', border_color: str = 'rgb(70, 70, 70)',
             border_width: int = 1, heading_text_colors: tuple = None,
-            heading_background_colors: tuple = None, func: callable = None
+            heading_background_colors: tuple = None, return_clicked_cells: bool = False,
+            func: callable = None
     ):
         dict.__init__(self)
         Pane.__init__(self, window)
         self._formatters = {}
         self.headings = headings
         self.is_shown = True
-        self.win.handlers[self.id] = lambda rId: func(self[rId])
+        if return_clicked_cells:
+            self.win.handlers[self.id] = lambda rId, cId: func(self[rId], cId)
+        else:
+            self.win.handlers[self.id] = lambda rId: func(self[rId])
+        self.return_clicked_cells = return_clicked_cells
+
         headings = list(headings)
         widths = list(widths) if widths else []
         alignments = list(alignments) if alignments else []

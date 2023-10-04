@@ -364,6 +364,10 @@ Charts are arranged horizontally from left to right. When the available space is
 
 [Subchart examples](../examples/subchart.md)
 
+```{important}
+Price axis scales vary depending on the precision of the data used, and there is no way to perfectly 'align' two seperate price scales if they contain differing price data.
+```
+
 ````
 `````
 

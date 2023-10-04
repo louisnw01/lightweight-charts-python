@@ -17,6 +17,7 @@ examples/toolbox
 examples/subchart
 examples/yfinance
 examples/events
+examples/screenshot
 examples/gui_examples
 ```
 
