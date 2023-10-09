@@ -1,6 +1,6 @@
 # `Table`
 
-`````{py:class} Table(width: NUM, height: NUM, headings: Tuple[str], widths: Tuple[float], alignments: Tuple[str], position: FLOAT, draggable: bool, func: callable)
+`````{py:class} Table(width: NUM, height: NUM, headings: Tuple[str], widths: Tuple[float], alignments: Tuple[str], position: FLOAT, draggable: bool, return_clicked_cells: bool, func: callable)
 
 Tables are panes that can be used to gain further functionality from charts. They are intended to be used for watchlists, order management, or position management. It should be accessed from the `create_table` common method.
 
@@ -17,6 +17,9 @@ The `Table` and `Row` objects act as dictionaries, and can be manipulated as suc
 
 `draggable`
 : If `True`, then the window can be dragged to any position within the window.
+
+`return_clicked_cells`
+: If `True`, an additional parameter will be emitted to the `func` given, containing the heading name of the clicked cell.
 
 `func`
 : If given, this will be called when a row is clicked, returning the `Row` object in question.
@@ -101,6 +104,11 @@ ___
 
 
 ````{py:class} Footer
+
+```{tip}
+All of these methods can be applied to the `header` parameter.
+```
+
 Tables can also have a footer containing a number of text boxes. To initialize this, call the `footer` attribute with the number of textboxes to be used:
 
 ```python
@@ -112,6 +120,15 @@ To edit the textboxes, treat `footer` as a list:
 table.footer[0] = 'Text Box 1'
 table.footer[1] = 'Text Box 2'
 table.footer[2] = 'Text Box 3'
+```
+
+When calling footer, the `func` parameter can also be used to convert each textbox into a button:
+
+```python
+def on_footer_click(table, box_index):
+    print(f'Box number {box_index+1} was pressed.')
+
+table.footer(3, func=on_footer_click)
 ```
 
 ````

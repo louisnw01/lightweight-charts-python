@@ -273,7 +273,7 @@ ___
 
 
 
-```{py:method} legend(visible: bool, ohlc: bool, percent: bool, lines: bool, color: COLOR, font_size: int, font_family: str)
+```{py:method} legend(visible: bool, ohlc: bool, percent: bool, lines: bool, color: COLOR, font_size: int, font_family: str, text: str)
 
 Configures the legend of the chart.
 ```
@@ -334,7 +334,7 @@ ___
 
 
 
-```{py:method} create_table(width: NUM, height: NUM, headings: Tuple[str], widths: Tuple[float], alignments: Tuple[str], position: FLOAT, draggable: bool, func: callable) -> Table
+```{py:method} create_table(width: NUM, height: NUM, headings: Tuple[str], widths: Tuple[float], alignments: Tuple[str], position: FLOAT, draggable: bool, return_clicked_cells: bool, func: callable) -> Table
 
 Creates and returns a [`Table`](https://lightweight-charts-python.readthedocs.io/en/latest/tables.html) object.
 
