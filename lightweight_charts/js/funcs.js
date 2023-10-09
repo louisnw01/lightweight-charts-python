@@ -54,6 +54,7 @@ if (!window.Chart) {
                 },
                 handleScroll: {vertTouchDrag: true},
             })
+            this.legend = new Legend(this)
             this.wrapper.style.display = 'flex'
             this.wrapper.style.flexDirection = 'column'
             this.wrapper.style.position = 'relative'
@@ -180,8 +181,11 @@ if (!window.Chart) {
     window.HorizontalLine = HorizontalLine
 
     class Legend {
-        constructor(chart, ohlcEnabled, percentEnabled, linesEnabled,
-                    color = 'rgb(191, 195, 203)', fontSize = '11', fontFamily = 'Monaco') {
+        constructor(chart) {
+            this.ohlcEnabled = false
+            this.percentEnabled = false
+            this.linesEnabled = false
+
             this.div = document.createElement('div')
             this.div.style.position = 'absolute'
             this.div.style.zIndex = '3000'
@@ -191,17 +195,15 @@ if (!window.Chart) {
             this.div.style.display = 'flex'
             this.div.style.flexDirection = 'column'
             this.div.style.maxWidth = `${(chart.scale.width * 100) - 8}vw`
-            this.div.style.color = color
-            this.div.style.fontSize = fontSize + 'px'
-            this.div.style.fontFamily = fontFamily
+
+            this.text = document.createElement('span')
+            this.text.style.lineHeight = '1.8'
             this.candle = document.createElement('div')
 
+            this.div.appendChild(this.text)
             this.div.appendChild(this.candle)
             chart.div.appendChild(this.div)
 
-            this.color = color
-
-            this.linesEnabled = linesEnabled
             this.makeLines(chart)
 
             let legendItemFormat = (num, decimal) => num.toFixed(decimal).toString().padStart(8, ' ')
@@ -228,11 +230,11 @@ if (!window.Chart) {
                                 | C ${legendItemFormat(data.close, chart.precision)} `
                         let percentMove = ((data.close - data.open) / data.open) * 100
                         let percent = `| ${percentMove >= 0 ? '+' : ''}${percentMove.toFixed(2)} %`
-                        finalString += ohlcEnabled ? ohlc : ''
-                        finalString += percentEnabled ? percent : ''
+                        finalString += this.ohlcEnabled ? ohlc : ''
+                        finalString += this.percentEnabled ? percent : ''
 
                         let volumeData = param.seriesData.get(chart.volumeSeries)
-                        if (volumeData) finalString += ohlcEnabled ? `<br>V ${shorthandFormat(volumeData.value)}` : ''
+                        if (volumeData) finalString += this.ohlcEnabled ? `<br>V ${shorthandFormat(volumeData.value)}` : ''
                     }
                     this.candle.innerHTML = finalString + '</span>'
                     this.lines.forEach((line) => {

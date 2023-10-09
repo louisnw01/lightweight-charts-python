@@ -15,8 +15,7 @@ if (!window.Table) {
                 this.container.style.float = position
             }
             this.container.style.zIndex = '2000'
-            this.container.style.width = width <= 1 ? width * 100 + '%' : width + 'px'
-            this.container.style.height = height <= 1 ? height * 100 + '%' : height + 'px'
+            this.reSize(width, height)
             this.container.style.display = 'flex'
             this.container.style.flexDirection = 'column'
             this.container.style.justifyContent = 'space-between'
@@ -156,6 +155,11 @@ if (!window.Table) {
                 }
                 this[type].push(textBox)
             }
+        }
+
+        reSize(width, height) {
+            this.container.style.width = width <= 1 ? width * 100 + '%' : width + 'px'
+            this.container.style.height = height <= 1 ? height * 100 + '%' : height + 'px'
         }
     }
     window.Table = Table

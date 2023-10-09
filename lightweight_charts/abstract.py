@@ -174,9 +174,8 @@ class SeriesCommon(Pane):
     def _push_to_legend(self):
         self.run_script(f'''
         {self._chart.id}.lines.push({self.id})
-        if ('legend' in {self._chart.id}) {{
-            {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
-        }}''')
+        {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
+        ''')
 
     @staticmethod
     def _format_labels(data, labels, index, exclude_lowercase):
@@ -469,11 +468,9 @@ class Line(SeriesCommon):
         self._chart._lines.remove(self) if self in self._chart._lines else None
         self.run_script(f'''
             {self._chart.id}.chart.removeSeries({self.id}.series)
-            if ('legend' in {self._chart.id}) {{
-                {self._chart.id}.legend.lines.forEach(line => {{
-                    if (line.line === {self.id}) {self._chart.id}.legend.div.removeChild(line.row)
-                }})
-            }}
+            {self._chart.id}.legend.lines.forEach(line => {{
+                if (line.line === {self.id}) {self._chart.id}.legend.div.removeChild(line.row)
+            }})
             delete {self.id}
         ''')
 
@@ -877,15 +874,25 @@ class AbstractChart(Candlestick, Pane):
           }})''')
 
     def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, lines: bool = True,
-               color: str = 'rgb(191, 195, 203)', font_size: int = 11, font_family: str = 'Monaco'):
+               color: str = 'rgb(191, 195, 203)', font_size: int = 11, font_family: str = 'Monaco',
+               text: str = ''):
         """
         Configures the legend of the chart.
         """
+        l_id = f'{self.id}.legend'
         if not visible:
+            self.run_script(f'{l_id}.div.style.display = "none"')
             return
         self.run_script(f'''
-        {self.id}.legend = new Legend(  {self.id}, {jbool(ohlc)}, {jbool(percent)}, {jbool(lines)},
-                                        '{color}', {font_size}, '{font_family}')
+        {l_id}.div.style.display = 'flex'
+        {l_id}.ohlcEnabled = {jbool(ohlc)}
+        {l_id}.percentEnabled = {jbool(percent)}
+        {l_id}.linesEnabled = {jbool(lines)}
+        {l_id}.div.style.color = '{color}'
+        {l_id}.color = '{color}'
+        {l_id}.div.style.fontSize = '{font_size}px'
+        {l_id}.div.style.fontFamily = '{font_family}'
+        {l_id}.text.innerText = '{text}'
         ''')
 
     def spinner(self, visible):

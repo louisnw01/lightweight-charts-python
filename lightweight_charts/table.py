@@ -12,7 +12,7 @@ class Section(Pane):
 
     def __call__(self, number_of_text_boxes: int, func: callable = None):
         if func:
-            self.win.handlers[self.id] = lambda boxId: func(self._table.id, int(boxId))
+            self.win.handlers[self.id] = lambda boxId: func(self._table, int(boxId))
         self.run_script(f'''
         {self._table.id}.makeSection("{self.id}", "{self.type}", {number_of_text_boxes}, {"true" if func else ""})
         ''')
@@ -103,6 +103,8 @@ class Table(Pane, dict):
     def __getitem__(self, item): return super().__getitem__(int(item))
 
     def format(self, column: str, format_str: str): self._formatters[column] = format_str
+
+    def resize(self, width: NUM, height: NUM): self.run_script(f'{self.id}.reSize({width}, {height})')
 
     def visible(self, visible: bool):
         self.is_shown = visible
