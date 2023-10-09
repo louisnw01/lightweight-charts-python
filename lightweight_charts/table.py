@@ -4,16 +4,21 @@ from typing import Union
 from .util import jbool, Pane, NUM
 
 
-class Section:
+class Section(Pane):
     def __init__(self, table, section_type):
+        super().__init__(table.win)
         self._table = table
         self.type = section_type
 
-    def __call__(self, number_of_text_boxes: int):
-        self._table.run_script(f'{self._table.id}.makeSection("{self.type}", {number_of_text_boxes})')
+    def __call__(self, number_of_text_boxes: int, func: callable = None):
+        if func:
+            self.win.handlers[self.id] = lambda boxId: func(self._table.id, int(boxId))
+        self.run_script(f'''
+        {self._table.id}.makeSection("{self.id}", "{self.type}", {number_of_text_boxes}, {"true" if func else ""})
+        ''')
 
     def __setitem__(self, key, value):
-        self._table.run_script(f'{self._table.id}.{self.type}[{key}].innerText = "{value}"')
+        self.run_script(f'{self._table.id}.{self.type}[{key}].innerText = "{value}"')
 
 
 class Row(dict):

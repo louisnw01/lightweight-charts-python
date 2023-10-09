@@ -57,7 +57,8 @@ if (!window.Table) {
             }
 
             let overflowWrapper = document.createElement('div')
-            overflowWrapper.style.overflow = 'auto'
+            overflowWrapper.style.overflowY = 'auto'
+            overflowWrapper.style.overflowX = 'hidden'
             overflowWrapper.style.backgroundColor = tableBackgroundColor
             overflowWrapper.appendChild(this.table)
             this.container.appendChild(overflowWrapper)
@@ -91,15 +92,12 @@ if (!window.Table) {
 
         }
 
-        addRowEventListener(row, id, isCell= false) {
-            if (isCell) {
-                id = `${id};;;${isCell}`
-            }
-            row.addEventListener('mouseover', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
-            row.addEventListener('mouseout', () => row.style.backgroundColor = 'transparent')
-            row.addEventListener('mousedown', () => row.style.backgroundColor = 'rgba(60, 60, 60)')
-            row.addEventListener('click', () => window.callbackFunction(`${this.callbackName}_~_${id}`))
-            row.addEventListener('mouseup', () => row.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
+        divToButton(div, callbackString) {
+            div.addEventListener('mouseover', () => div.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
+            div.addEventListener('mouseout', () => div.style.backgroundColor = 'transparent')
+            div.addEventListener('mousedown', () => div.style.backgroundColor = 'rgba(60, 60, 60)')
+            div.addEventListener('click', () => window.callbackFunction(callbackString))
+            div.addEventListener('mouseup', () => div.style.backgroundColor = 'rgba(60, 60, 60, 0.6)')
         }
 
         newRow(id, returnClickedCell=false) {
@@ -111,14 +109,13 @@ if (!window.Table) {
                 cell.style.width = this.widths[i];
                 cell.style.textAlign = this.alignments[i];
                 cell.style.border = this.borderWidth+'px solid '+this.borderColor
-
                 if (returnClickedCell) {
-                    this.addRowEventListener(cell, id, this.headings[i])
+                    this.divToButton(cell, `${this.callbackName}_~_${id};;;${this.headings[i]}`)
                 }
                 row[this.headings[i]] = cell
             }
             if (!returnClickedCell) {
-                this.addRowEventListener(row, id, false)
+                this.divToButton(row, `${this.callbackName}_~_${id}`)
             }
             this.rows[id] = row
         }
@@ -139,7 +136,7 @@ if (!window.Table) {
             this.rows[rowId][column].textContent = val
         }
 
-        makeSection(type, numBoxes) {
+        makeSection(id, type, numBoxes, func=false) {
             let section = document.createElement('div')
             section.style.display = 'flex'
             section.style.width = '100%'
@@ -149,10 +146,15 @@ if (!window.Table) {
 
             this[type] = []
             for (let i = 0; i < numBoxes; i++) {
-                this[type].push(document.createElement('div'))
-                section.appendChild(this[type][i])
-                this[type][i].style.flex = '1'
-                this[type][i].style.textAlign = 'center'
+                let textBox = document.createElement('div')
+                section.appendChild(textBox)
+                textBox.style.flex = '1'
+                textBox.style.textAlign = 'center'
+                if (func) {
+                    this.divToButton(textBox, `${id}_~_${i}`)
+                    textBox.style.borderRadius = '2px'
+                }
+                this[type].push(textBox)
             }
         }
     }

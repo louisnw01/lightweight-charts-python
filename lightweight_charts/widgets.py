@@ -13,6 +13,7 @@ try:
     from PyQt5.QtWebChannel import QWebChannel
     from PyQt5.QtCore import QObject, pyqtSlot as Slot
 except ImportError:
+    PyQt5 = None
     try:
         from PySide6.QtWebEngineWidgets import QWebEngineView
         from PySide6.QtWebChannel import QWebChannel
@@ -78,7 +79,8 @@ class QtChart(abstract.AbstractChart):
         self.web_channel.registerObject('bridge', self.bridge)
         self.webview.page().setWebChannel(self.web_channel)
         self.webview.loadFinished.connect(self.win.on_js_load)
-        self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+        if not PyQt5:
+            self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
         self._html = f'''
         {abstract.TEMPLATE[:85]}
         <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
