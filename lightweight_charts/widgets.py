@@ -9,11 +9,12 @@ except ImportError:
     wx = None
 
 try:
+    using_py6 = False
     from PyQt5.QtWebEngineWidgets import QWebEngineView
     from PyQt5.QtWebChannel import QWebChannel
     from PyQt5.QtCore import QObject, pyqtSlot as Slot
 except ImportError:
-    PyQt5 = None
+    using_py6 = True
     try:
         from PySide6.QtWebEngineWidgets import QWebEngineView
         from PySide6.QtWebChannel import QWebChannel
@@ -79,7 +80,7 @@ class QtChart(abstract.AbstractChart):
         self.web_channel.registerObject('bridge', self.bridge)
         self.webview.page().setWebChannel(self.web_channel)
         self.webview.loadFinished.connect(self.win.on_js_load)
-        if not PyQt5:
+        if using_py6:
             self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
         self._html = f'''
         {abstract.TEMPLATE[:85]}
