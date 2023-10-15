@@ -31,8 +31,8 @@ class PyWV:
         webview.start(debug=debug)
         self.exit.set()
 
-    def create_window(self, width, height, x, y, screen=None, on_top=False, maximize=False):
-        screen = webview.screens[screen] if screen is not None else None
+    def create_window(self, width, height, x, y, screen, on_top=False, maximize=False):
+        screen = webview.screens[screen]
         if maximize:
             width, height = screen.width, screen.height
         self.windows.append(webview.create_window(
@@ -69,7 +69,7 @@ class Chart(abstract.AbstractChart):
     _q, _emit_q, _return_q = (mp.Queue() for _ in range(3))
     _loaded_list = [mp.Event() for _ in range(MAX_WINDOWS)]
 
-    def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None, screen: int = None,
+    def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None, screen: int = 0,
                  on_top: bool = False, maximize: bool = False, debug: bool = False, toolbox: bool = False,
                  inner_width: float = 1.0, inner_height: float = 1.0, scale_candles_only: bool = False):
         self._i = Chart._window_num
