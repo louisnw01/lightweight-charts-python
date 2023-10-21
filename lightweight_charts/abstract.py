@@ -141,6 +141,7 @@ class SeriesCommon(Pane):
         self.name = name
         self.num_decimals = 2
         self.offset = 0
+        self.data = pd.DataFrame()
 
     def _set_interval(self, df: pd.DataFrame):
         if not pd.api.types.is_datetime64_any_dtype(df['time']):
@@ -216,6 +217,7 @@ class SeriesCommon(Pane):
     def set(self, df: pd.DataFrame = None, format_cols: bool = True):
         if df is None or df.empty:
             self.run_script(f'{self.id}.series.setData([])')
+            self.data = pd.DataFrame()
             return
         if format_cols:
             df = self._df_datetime_format(df, exclude_lowercase=self.name)
@@ -223,6 +225,7 @@ class SeriesCommon(Pane):
             if self.name not in df:
                 raise NameError(f'No column named "{self.name}".')
             df = df.rename(columns={self.name: 'value'})
+        self.data = df.copy()
         self._last_bar = df.iloc[-1]
         self.run_script(f'{self.id}.series.setData({js_data(df)})')
 
@@ -230,6 +233,9 @@ class SeriesCommon(Pane):
         series = self._series_datetime_format(series, exclude_lowercase=self.name)
         if self.name in series.index:
             series.rename({self.name: 'value'}, inplace=True)
+        if series['time'] != self._last_bar['time']:
+            self.data.loc[self.data.index[-1]] = self._last_bar
+            self.data = pd.concat([self.data, series.to_frame().T], ignore_index=True)
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({js_data(series)})')
 

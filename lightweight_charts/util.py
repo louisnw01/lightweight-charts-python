@@ -99,7 +99,11 @@ class Emitter:
         return self
 
     def _emit(self, *args):
-        self._callable(*args) if self._callable else None
+        if self._callable:
+            if asyncio.iscoroutinefunction(self._callable):
+                asyncio.create_task(self._callable(*args))
+            else:
+                self._callable(*args)
 
 
 class JSEmitter:

@@ -34,7 +34,11 @@ class PyWV:
     def create_window(self, width, height, x, y, screen=None, on_top=False, maximize=False):
         screen = webview.screens[screen] if screen is not None else None
         if maximize:
-            width, height = screen.width, screen.height
+            if screen is None:
+                active_screen = webview.screens[0]
+                width, height = active_screen.width, active_screen.height
+            else:
+                width, height = screen.width, screen.height
         self.windows.append(webview.create_window(
             '', html=self.html, js_api=self.callback_api,
             width=width, height=height, x=x, y=y, screen=screen,
