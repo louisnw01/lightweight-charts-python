@@ -447,6 +447,7 @@ class Line(SeriesCommon):
         self.color = color
         self.run_script(f'''
         {self.id} = {{
+            type: "line",
             series: {chart.id}.chart.addLineSeries({{
                 color: '{color}',
                 lineStyle: {line_style(style)},
@@ -504,6 +505,7 @@ class Histogram(SeriesCommon):
         self.color = color
         self.run_script(f'''
         {self.id} = {{
+            type: "histogram",
             series: {chart.id}.chart.addHistogramSeries({{
                 color: '{color}',
                 lastValueVisible: {jbool(price_label)},

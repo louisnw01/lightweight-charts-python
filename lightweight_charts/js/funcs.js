@@ -241,7 +241,7 @@ if (!window.Chart) {
                         if (!param.seriesData.get(line.line.series)) return
                         let price = param.seriesData.get(line.line.series).value
 
-                        if (line.line.series._series._seriesType === 'Histogram') {
+                        if (line.line.type === 'histogram') {
                             price = shorthandFormat(price)
                         }
                         else {
