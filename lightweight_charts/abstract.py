@@ -227,16 +227,24 @@ class SeriesCommon(Pane):
             df = df.rename(columns={self.name: 'value'})
         self.data = df.copy()
         self._last_bar = df.iloc[-1]
-        self.run_script(f'{self.id}.series.setData({js_data(df)})')
+        self.run_script(f'{self.id}.data = {js_data(df)}; {self.id}.series.setData({self.id}.data); ')
 
     def update(self, series: pd.Series):
         series = self._series_datetime_format(series, exclude_lowercase=self.name)
         if self.name in series.index:
             series.rename({self.name: 'value'}, inplace=True)
-        if series['time'] != self._last_bar['time']:
+        if self._last_bar and series['time'] != self._last_bar['time']:
             self.data.loc[self.data.index[-1]] = self._last_bar
             self.data = pd.concat([self.data, series.to_frame().T], ignore_index=True)
         self._last_bar = series
+        bar = js_data(series)
+        self.run_script(f'''
+            if (stampToDate(lastBar({self.id}.data).time).getTime() === stampToDate({series['time']}).getTime()) {{
+                {self.id}.data[{self.id}.data.length-1] = {bar}
+            }}
+            else {self.id}.data.push({bar})
+            {self.id}.series.update({bar})
+        ''')
         self.run_script(f'{self.id}.series.update({js_data(series)})')
 
     def marker(self, time: datetime = None, position: MARKER_POSITION = 'below',
@@ -345,6 +353,15 @@ class SeriesCommon(Pane):
         if ('volumeSeries' in {self.id}) {self.id}.volumeSeries.applyOptions({{visible: {jbool(arg)}}})
         ''')
 
+    def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None,
+                      color: str = 'rgba(252, 219, 3, 0.2)'):
+        """
+        Creates a vertical line or span across the chart.\n
+        Start time and end time can be used together, or end_time can be
+        omitted and a single time or a list of times can be passed to start_time.
+        """
+        return VerticalSpan(self, start_time, end_time, color)
+
 
 class HorizontalLine(Pane):
     def __init__(self, chart, price, color, width, style, text, axis_label_visible, func):
@@ -388,13 +405,13 @@ class HorizontalLine(Pane):
 
 
 class VerticalSpan(Pane):
-    def __init__(self, chart: 'AbstractChart', start_time: Union[TIME, tuple, list], end_time: TIME = None,
+    def __init__(self, series: 'SeriesCommon', start_time: Union[TIME, tuple, list], end_time: TIME = None,
                  color: str = 'rgba(252, 219, 3, 0.2)'):
-        super().__init__(chart.win)
-        self._chart = chart
+        self._chart = series._chart
+        super().__init__(self._chart.win)
         start_time, end_time = pd.to_datetime(start_time), pd.to_datetime(end_time)
         self.run_script(f'''
-        {self.id} = {chart.id}.chart.addHistogramSeries({{
+        {self.id} = {self._chart.id}.chart.addHistogramSeries({{
                 color: '{color}',
                 priceFormat: {{type: 'volume'}},
                 priceScaleId: 'vertical_line',
@@ -414,7 +431,7 @@ class VerticalSpan(Pane):
         else:
             self.run_script(f'''
             {self.id}.setData(calculateTrendLine(
-            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1, {chart.id}))
+            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1, {series.id}))
             ''')
 
     def delete(self):
@@ -510,6 +527,9 @@ class Histogram(SeriesCommon):
         """
         self.run_script(f'''
             {self._chart.id}.chart.removeSeries({self.id}.series)
+            {self._chart.id}.legend.lines.forEach(line => {{
+                if (line.line === {self.id}) {self._chart.id}.legend.div.removeChild(line.row)
+            }})
             delete {self.id}
         ''')
 
@@ -545,7 +565,7 @@ class Candlestick(SeriesCommon):
         self.candle_data = df.copy()
         self._last_bar = df.iloc[-1]
 
-        self.run_script(f'{self.id}.candleData = {js_data(df)}; {self.id}.series.setData({self.id}.candleData)')
+        self.run_script(f'{self.id}.data = {js_data(df)}; {self.id}.series.setData({self.id}.data)')
         toolbox_action = 'clearDrawings' if not render_drawings else 'renderDrawings'
         self.run_script(f"if ('toolBox' in {self._chart.id}) {self._chart.id}.toolBox.{toolbox_action}()")
         if 'volume' not in df:
@@ -559,6 +579,11 @@ class Candlestick(SeriesCommon):
             if line.name not in df.columns:
                 continue
             line.set(df[['time', line.name]], format_cols=False)
+        # set autoScale to true in case the user has dragged the price scale
+        self.run_script(f'''
+            if (!{self.id}.chart.priceScale("right").options.autoScale)
+                {self.id}.chart.priceScale("right").applyOptions({{autoScale: true}})
+        ''')
 
     def update(self, series: pd.Series, _from_tick=False):
         """
@@ -574,10 +599,10 @@ class Candlestick(SeriesCommon):
         self._last_bar = series
         bar = js_data(series)
         self.run_script(f'''
-            if (stampToDate(lastBar({self.id}.candleData).time).getTime() === stampToDate({series['time']}).getTime()) {{
-                {self.id}.candleData[{self.id}.candleData.length-1] = {bar}
+            if (stampToDate(lastBar({self.id}.data).time).getTime() === stampToDate({series['time']}).getTime()) {{
+                {self.id}.data[{self.id}.data.length-1] = {bar}
             }}
-            else {self.id}.candleData.push({bar})
+            else {self.id}.data.push({bar})
             {self.id}.series.update({bar})
         ''')
         if 'volume' not in series:
@@ -749,15 +774,6 @@ class AbstractChart(Candlestick, Pane):
         line = Line(self, '', color, style, width, False, False, False)
         line._set_trend(start_time, value, start_time, value, ray=True, round=round)
         return line
-
-    def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None,
-                      color: str = 'rgba(252, 219, 3, 0.2)'):
-        """
-        Creates a vertical line or span across the chart.\n
-        Start time and end time can be used together, or end_time can be
-        omitted and a single time or a list of times can be passed to start_time.
-        """
-        return VerticalSpan(self, start_time, end_time, color)
 
     def set_visible_range(self, start_time: TIME, end_time: TIME):
         self.run_script(f'''

@@ -91,7 +91,7 @@ if (!window.Chart) {
         makeCandlestickSeries() {
             this.markers = []
             this.horizontal_lines = []
-            this.candleData = []
+            this.data = []
             this.precision = 2
             let up = 'rgba(39, 157, 130, 100)'
             let down = 'rgba(200, 97, 100, 100)'
@@ -336,59 +336,46 @@ if (!window.Chart) {
 }
 
 function syncCharts(childChart, parentChart) {
-    syncCrosshairs(childChart.chart, parentChart.chart)
-    syncRanges(childChart, parentChart)
-}
-function syncCrosshairs(childChart, parentChart) {
-    function crosshairHandler (e, thisChart, otherChart, otherHandler) {
-        thisChart.applyOptions({crosshair: { horzLine: {
-            visible: true,
-            labelVisible: true,
-        }}})
-        otherChart.applyOptions({crosshair: { horzLine: {
-            visible: false,
-            labelVisible: false,
-        }}})
 
-        otherChart.unsubscribeCrosshairMove(otherHandler)
-        if (e.time !== undefined) {
-          let xx = otherChart.timeScale().timeToCoordinate(e.time);
-          otherChart.setCrosshairXY(xx,300,true);
-        } else if (e.point !== undefined){
-          otherChart.setCrosshairXY(e.point.x,300,false);
+    function crosshairHandler(chart, series, point) {
+        if (!point) {
+            chart.clearCrosshairPosition()
+            return
         }
-        otherChart.subscribeCrosshairMove(otherHandler)
+        chart.setCrosshairPosition(point.value || point.close, point.time, series);
     }
-    let parent = 0
-    let child = 0
-    let parentCrosshairHandler = (e) => {
-        parent ++
-        if (parent < 10) return
-        child = 0
-        crosshairHandler(e, parentChart, childChart, childCrosshairHandler)
+
+    function getPoint(series, param) {
+	    if (!param.time) return null;
+	    return param.seriesData.get(series) || null;
     }
-    let childCrosshairHandler = (e) => {
-        child ++
-        if (child < 10) return
-        parent = 0
-        crosshairHandler(e, childChart, parentChart, parentCrosshairHandler)
-    }
-    parentChart.subscribeCrosshairMove(parentCrosshairHandler)
-    childChart.subscribeCrosshairMove(childCrosshairHandler)
-}
-function syncRanges(childChart, parentChart) {
+
     let setChildRange = (timeRange) => childChart.chart.timeScale().setVisibleLogicalRange(timeRange)
     let setParentRange = (timeRange) => parentChart.chart.timeScale().setVisibleLogicalRange(timeRange)
 
-    parentChart.wrapper.addEventListener('mouseover', (event) => {
-        childChart.chart.timeScale().unsubscribeVisibleLogicalRangeChange(setParentRange)
-        parentChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setChildRange)
-    })
-    childChart.wrapper.addEventListener('mouseover', (event) => {
-        parentChart.chart.timeScale().unsubscribeVisibleLogicalRangeChange(setChildRange)
-        childChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setParentRange)
-    })
+    let setParentCrosshair = (param) => {
+        crosshairHandler(parentChart.chart, parentChart.series, getPoint(childChart.series, param))
+    }
+    let setChildCrosshair = (param) => {
+        crosshairHandler(childChart.chart, childChart.series, getPoint(parentChart.series, param))
+    }
+
+    let selected = parentChart
+    function addMouseOverListener(thisChart, otherChart, thisCrosshair, otherCrosshair, thisRange, otherRange) {
+        thisChart.wrapper.addEventListener('mouseover', (event) => {
+            if (selected === thisChart) return
+            selected = thisChart
+            otherChart.chart.timeScale().unsubscribeVisibleLogicalRangeChange(thisRange)
+            otherChart.chart.unsubscribeCrosshairMove(thisCrosshair)
+            thisChart.chart.timeScale().subscribeVisibleLogicalRangeChange(otherRange)
+            thisChart.chart.subscribeCrosshairMove(otherCrosshair)
+        })
+    }
+    addMouseOverListener(parentChart, childChart, setParentCrosshair, setChildCrosshair, setParentRange, setChildRange)
+    addMouseOverListener(childChart, parentChart, setChildCrosshair, setParentCrosshair, setChildRange, setParentRange)
+
     parentChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setChildRange)
+    parentChart.chart.subscribeCrosshairMove(setChildCrosshair)
 }
 
 function stampToDate(stampOrBusiness) {
@@ -409,11 +396,11 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, chart, ray
         [startDate, endDate] = [endDate, startDate];
     }
     let startIndex
-    if (stampToDate(startDate).getTime() < stampToDate(chart.candleData[0].time).getTime()) {
+    if (stampToDate(startDate).getTime() < stampToDate(chart.data[0].time).getTime()) {
         startIndex = 0
     }
     else {
-        startIndex = chart.candleData.findIndex(item => stampToDate(item.time).getTime() === stampToDate(startDate).getTime())
+        startIndex = chart.data.findIndex(item => stampToDate(item.time).getTime() === stampToDate(startDate).getTime())
     }
 
     if (startIndex === -1) {
@@ -421,14 +408,14 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, chart, ray
     }
     let endIndex
     if (ray) {
-        endIndex = chart.candleData.length+1000
+        endIndex = chart.data.length+1000
         startValue = endValue
     }
     else {
-        endIndex = chart.candleData.findIndex(item => stampToDate(item.time).getTime() === stampToDate(endDate).getTime())
+        endIndex = chart.data.findIndex(item => stampToDate(item.time).getTime() === stampToDate(endDate).getTime())
         if (endIndex === -1) {
-            let barsBetween = (endDate-lastBar(chart.candleData).time)/chart.interval
-            endIndex = chart.candleData.length-1+barsBetween
+            let barsBetween = (endDate-lastBar(chart.data).time)/chart.interval
+            endIndex = chart.data.length-1+barsBetween
         }
     }
 
@@ -438,12 +425,12 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, chart, ray
     let currentDate = null
     let iPastData = 0
     for (let i = 0; i <= numBars; i++) {
-        if (chart.candleData[startIndex+i]) {
-            currentDate = chart.candleData[startIndex+i].time
+        if (chart.data[startIndex+i]) {
+            currentDate = chart.data[startIndex+i].time
         }
         else {
             iPastData ++
-            currentDate = lastBar(chart.candleData).time+(iPastData*chart.interval)
+            currentDate = lastBar(chart.data).time+(iPastData*chart.interval)
         }
 
         const currentValue = reversed ? startValue + rate_of_change * (numBars - i) : startValue + rate_of_change * i;

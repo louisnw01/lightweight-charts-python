@@ -90,6 +90,9 @@ if (!window.TopBar) {
             menu.style.border = '2px solid '+pane.borderColor
             menu.style.borderTop = 'none'
             menu.style.alignItems = 'flex-start'
+            menu.style.maxHeight = '80%'
+            menu.style.overflowY = 'auto'
+            menu.style.scrollbar
 
             let menuOpen = false
             items.forEach(text => {

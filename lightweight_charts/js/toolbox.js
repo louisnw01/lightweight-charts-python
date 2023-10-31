@@ -161,8 +161,8 @@ if (!window.ToolBox) {
 
                 currentTime = this.chart.chart.timeScale().coordinateToTime(param.point.x)
                 if (!currentTime) {
-                    let barsToMove = param.logical - this.chart.candleData.length-1
-                    currentTime = lastBar(this.chart.candleData).time+(barsToMove*this.chart.interval)
+                    let barsToMove = param.logical - this.chart.data.length-1
+                    currentTime = lastBar(this.chart.data).time+(barsToMove*this.chart.interval)
                 }
                 let currentPrice = this.chart.series.coordinateToPrice(param.point.y)
 
@@ -179,7 +179,7 @@ if (!window.ToolBox) {
                     this.makingDrawing = true
                     trendLine = new TrendLine(this.chart, 'rgb(15, 139, 237)', ray)
                     firstPrice = this.chart.series.coordinateToPrice(param.point.y)
-                    firstTime = !ray ? this.chart.chart.timeScale().coordinateToTime(param.point.x) : lastBar(this.chart.candleData).time
+                    firstTime = !ray ? this.chart.chart.timeScale().coordinateToTime(param.point.x) : lastBar(this.chart.data).time
                     this.chart.chart.applyOptions({handleScroll: false})
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerTrend)
                 }
@@ -337,17 +337,17 @@ if (!window.ToolBox) {
                 let priceDiff = priceAtCursor - originalPrice
                 let barsToMove = param.logical - originalIndex
 
-                let startBarIndex = this.chart.candleData.findIndex(item => item.time === hoveringOver.from[0])
-                let endBarIndex = this.chart.candleData.findIndex(item => item.time === hoveringOver.to[0])
+                let startBarIndex = this.chart.data.findIndex(item => item.time === hoveringOver.from[0])
+                let endBarIndex = this.chart.data.findIndex(item => item.time === hoveringOver.to[0])
 
                 let startDate
                 let endBar
                 if (hoveringOver.ray) {
-                    endBar = this.chart.candleData[startBarIndex + barsToMove]
+                    endBar = this.chart.data[startBarIndex + barsToMove]
                     startDate = hoveringOver.to[0]
                 } else {
-                    startDate = this.chart.candleData[startBarIndex + barsToMove].time
-                    endBar = endBarIndex === -1 ? null : this.chart.candleData[endBarIndex + barsToMove]
+                    startDate = this.chart.data[startBarIndex + barsToMove].time
+                    endBar = endBarIndex === -1 ? null : this.chart.data[endBarIndex + barsToMove]
                 }
 
                 let endDate = endBar ? endBar.time : hoveringOver.to[0] + (barsToMove * this.chart.interval)
@@ -378,8 +378,8 @@ if (!window.ToolBox) {
                 }
 
                 if (!currentTime) {
-                    let barsToMove = param.logical - this.chart.candleData.length-1
-                    currentTime = lastBar(this.chart.candleData).time + (barsToMove*this.chart.interval)
+                    let barsToMove = param.logical - this.chart.data.length-1
+                    currentTime = lastBar(this.chart.data).time + (barsToMove*this.chart.interval)
                 }
 
                 hoveringOver.calculateAndSet(firstTime, firstPrice, currentTime, currentPrice)
