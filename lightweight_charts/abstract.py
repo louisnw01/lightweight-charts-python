@@ -233,7 +233,7 @@ class SeriesCommon(Pane):
         series = self._series_datetime_format(series, exclude_lowercase=self.name)
         if self.name in series.index:
             series.rename({self.name: 'value'}, inplace=True)
-        if self._last_bar and series['time'] != self._last_bar['time']:
+        if self._last_bar is not None and series['time'] != self._last_bar['time']:
             self.data.loc[self.data.index[-1]] = self._last_bar
             self.data = pd.concat([self.data, series.to_frame().T], ignore_index=True)
         self._last_bar = series

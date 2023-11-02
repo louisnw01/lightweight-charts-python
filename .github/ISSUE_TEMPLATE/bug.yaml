@@ -27,7 +27,7 @@ body:
     attributes:
       label: Reproducible Example
       description: >
-        Please provide a minimal reproducible example, using generic (`ohlcv.csv`) data where applicable which demonstrates the current behaviour. The code should be complete and not require any further adjustments.
+        Please provide a minimal reproducible example, using generic (`ohlcv.csv`) data where applicable which demonstrates the current behaviour. The code should be complete and not require any further adjustments. DO NOT provide: Incomplete code, unnecessarily long code, code which requires access to a broker/API, or code which uses additional functions/classes/libraries. In almost ALL cases the example should not exceed 50 lines.
       placeholder: >
         from lightweight_charts import Chart...
       render: python
