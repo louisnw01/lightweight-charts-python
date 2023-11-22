@@ -210,7 +210,7 @@ class SeriesCommon(Pane):
 
     def _single_datetime_format(self, arg):
         if isinstance(arg, (str, int, float)) or not pd.api.types.is_datetime64_any_dtype(arg):
-            arg = pd.to_datetime(arg)
+            arg = pd.to_datetime(arg, unit='ms')
         arg = self._interval * (arg.timestamp() // self._interval)+self.offset
         return arg
 
@@ -620,6 +620,11 @@ class Candlestick(SeriesCommon):
         :param cumulative_volume: Adds the given volume onto the latest bar.
         """
         series = self._series_datetime_format(series)
+        if series['time'] < self._last_bar['time']:
+            raise ValueError(
+                f'Trying to update tick of time "{pd.to_datetime(series["time"])}", '
+                f'which occurs before the last bar time of '
+                f'"{pd.to_datetime(self._last_bar["time"])}".')
         bar = pd.Series()
         if series['time'] == self._last_bar['time']:
             bar = self._last_bar
