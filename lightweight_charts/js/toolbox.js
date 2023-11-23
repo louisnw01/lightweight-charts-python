@@ -403,7 +403,6 @@ if (!window.ToolBox) {
         renderDrawings() {
             this.drawings.forEach((item) => {
                 if ('price' in item) return
-                console.log('rendering')
                 let startDate = Math.round(item.from[0]/this.chart.interval)*this.chart.interval
                 let endDate = Math.round(item.to[0]/this.chart.interval)*this.chart.interval
                 item.calculateAndSet(startDate, item.from[1], endDate, item.to[1])
@@ -453,8 +452,8 @@ if (!window.ToolBox) {
                         item.priceLine.lineStyle, item.priceLine.axisLabelVisible)
                 }
                 else {
-                    let startDate = Math.round(item.from[0]/this.chart.interval)*this.chart.interval
-                    let endDate = Math.round(item.to[0]/this.chart.interval)*this.chart.interval
+                    let startDate = Math.round((item.from[0]/this.chart.interval)*this.chart.interval)
+                    let endDate = Math.round((item.to[0]/this.chart.interval)*this.chart.interval)
 
                     drawing = new TrendLine(this.chart, item.color, item.ray)
                     drawing.calculateAndSet(startDate, item.from[1], endDate, item.to[1])

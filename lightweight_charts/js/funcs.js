@@ -404,7 +404,7 @@ function calculateTrendLine(startDate, startValue, endDate, endValue, chart, ray
     }
 
     if (startIndex === -1) {
-        return []
+        throw new Error(`Could not calculate start index from time ${stampToDate(startDate)}.`)
     }
     let endIndex
     if (ray) {
