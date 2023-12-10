@@ -273,7 +273,7 @@ ___
 
 
 
-```{py:method} legend(visible: bool, ohlc: bool, percent: bool, lines: bool, color: COLOR, font_size: int, font_family: str, text: str)
+```{py:method} legend(visible: bool, ohlc: bool, percent: bool, lines: bool, color: COLOR, font_size: int, font_family: str, text: str, color_based_on_candle: bool)
 
 Configures the legend of the chart.
 ```

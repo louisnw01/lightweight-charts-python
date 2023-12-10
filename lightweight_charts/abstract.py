@@ -904,19 +904,25 @@ class AbstractChart(Candlestick, Pane):
 
     def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, lines: bool = True,
                color: str = 'rgb(191, 195, 203)', font_size: int = 11, font_family: str = 'Monaco',
-               text: str = ''):
+               text: str = '', color_based_on_candle: bool = False):
         """
         Configures the legend of the chart.
         """
         l_id = f'{self.id}.legend'
         if not visible:
-            self.run_script(f'{l_id}.div.style.display = "none"')
+            self.run_script(f'''
+            {l_id}.div.style.display = "none"
+            {l_id}.ohlcEnabled = false
+            {l_id}.percentEnabled = false
+            {l_id}.linesEnabled = false
+            ''')
             return
         self.run_script(f'''
         {l_id}.div.style.display = 'flex'
         {l_id}.ohlcEnabled = {jbool(ohlc)}
         {l_id}.percentEnabled = {jbool(percent)}
         {l_id}.linesEnabled = {jbool(lines)}
+        {l_id}.colorBasedOnCandle = {jbool(color_based_on_candle)}
         {l_id}.div.style.color = '{color}'
         {l_id}.color = '{color}'
         {l_id}.div.style.fontSize = '{font_size}px'

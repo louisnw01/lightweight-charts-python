@@ -185,6 +185,7 @@ if (!window.Chart) {
             this.ohlcEnabled = false
             this.percentEnabled = false
             this.linesEnabled = false
+            this.colorBasedOnCandle = false
 
             this.div = document.createElement('div')
             this.div.style.position = 'absolute'
@@ -219,40 +220,61 @@ if (!window.Chart) {
             }
 
             chart.chart.subscribeCrosshairMove((param) => {
-                if (param.time) {
-                    let data = param.seriesData.get(chart.series);
-                    let finalString = '<span style="line-height: 1.8;">'
-                    if (data) {
-                        this.candle.style.color = ''
-                        let ohlc = `O ${legendItemFormat(data.open, chart.precision)} 
-                                | H ${legendItemFormat(data.high, chart.precision)} 
-                                | L ${legendItemFormat(data.low, chart.precision)}
-                                | C ${legendItemFormat(data.close, chart.precision)} `
-                        let percentMove = ((data.close - data.open) / data.open) * 100
-                        let percent = `| ${percentMove >= 0 ? '+' : ''}${percentMove.toFixed(2)} %`
-                        finalString += this.ohlcEnabled ? ohlc : ''
-                        finalString += this.percentEnabled ? percent : ''
-
-                        let volumeData = param.seriesData.get(chart.volumeSeries)
-                        if (volumeData) finalString += this.ohlcEnabled ? `<br>V ${shorthandFormat(volumeData.value)}` : ''
+                let options = chart.series.options()
+                if (!param.time) {
+                    this.candle.style.color = 'transparent'
+                    this.candle.innerHTML = this.candle.innerHTML.replace(options['upColor'], '').replace(options['downColor'], '')
+                    return
+                }
+                let data = param.seriesData.get(chart.series);
+                this.candle.style.color = ''
+                let str = '<span style="line-height: 1.8;">'
+                if (data) {
+                    if (this.ohlcEnabled) {
+                        str += `O ${legendItemFormat(data.open, chart.precision)} `
+                        str += `| H ${legendItemFormat(data.high, chart.precision)} `
+                        str += `| L ${legendItemFormat(data.low, chart.precision)} `
+                        str += `| C ${legendItemFormat(data.close, chart.precision)} `
                     }
-                    this.candle.innerHTML = finalString + '</span>'
-                    this.lines.forEach((line) => {
-                        if (!param.seriesData.get(line.line.series)) return
-                        let price = param.seriesData.get(line.line.series).value
 
-                        if (line.line.type === 'histogram') {
-                            price = shorthandFormat(price)
+                    if (this.percentEnabled) {
+                        let percentMove = ((data.close - data.open) / data.open) * 100
+                        let color = percentMove > 0 ? options['upColor'] : options['downColor']
+                        let percentStr = `${percentMove >= 0 ? '+' : ''}${percentMove.toFixed(2)} %`
+
+                        if (this.colorBasedOnCandle) {
+                            str += `| <span style="color: ${color};">${percentStr}</span>`
                         }
                         else {
-                            price = legendItemFormat(price, line.line.precision)
+                            str += '| ' + percentStr
                         }
-                        line.div.innerHTML = `<span style="color: ${line.solid};">▨</span>    ${line.line.name} : ${price}`
-                    })
-
-                } else {
-                    this.candle.style.color = 'transparent'
+                    }
+                    let volumeData = param.seriesData.get(chart.volumeSeries)
+                    if (volumeData) {
+                        str += this.ohlcEnabled ? `<br>V ${shorthandFormat(volumeData.value)}` : ''
+                    }
                 }
+                this.candle.innerHTML = str + '</span>'
+
+                this.lines.forEach((line) => {
+                    if (!this.linesEnabled) {
+                        line.row.style.display = 'none'
+                        return
+                    }
+                    line.row.style.display = 'flex'
+                    if (!param.seriesData.get(line.line.series)) return
+                    let price = param.seriesData.get(line.line.series).value
+
+                    if (line.line.type === 'histogram') {
+                        price = shorthandFormat(price)
+                    }
+                    else {
+                        price = legendItemFormat(price, line.line.precision)
+                    }
+                    line.div.innerHTML = `<span style="color: ${line.solid};">▨</span>    ${line.line.name} : ${price}`
+                })
+
+
             });
         }
 
