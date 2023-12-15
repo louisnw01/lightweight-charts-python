@@ -403,9 +403,10 @@ class PolygonChart(Chart):
             timeframe_options: tuple = ('1min', '5min', '30min', 'D', 'W'),
             security_options: tuple = ('Stock', 'Option', 'Index', 'Forex', 'Crypto'),
             toolbox: bool = True, width: int = 800, height: int = 600, x: int = None, y: int = None,
-            on_top: bool = False, maximize: bool = False, debug: bool = False
+            on_top: bool = False, maximize: bool = False, debug: bool = False,
+            title: str = '', screen: int = None,
     ):
-        super().__init__(width, height, x, y, on_top, maximize, debug, toolbox)
+        super().__init__(width, height, x, y, title,screen,on_top, maximize, debug, toolbox)
 
         self.num_bars = num_bars
         self.end_date = end_date
