@@ -7,7 +7,7 @@ if __name__ == '__main__':
     df1 = pd.read_csv('ohlc.csv')
 
     # Columns: time | price
-    df2 = pd.read_csv('ticks.csv')
+    df2 = pd.read_csv('ticks.csv', parse_dates=['time'])
 
     chart = Chart()
 

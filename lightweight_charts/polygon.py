@@ -406,7 +406,7 @@ class PolygonChart(Chart):
             on_top: bool = False, maximize: bool = False, debug: bool = False,
             title: str = '', screen: int = None,
     ):
-        super().__init__(width, height, x, y, title,screen,on_top, maximize, debug, toolbox)
+        super().__init__(width, height, x, y, title, screen, on_top, maximize, debug, toolbox)
 
         self.num_bars = num_bars
         self.end_date = end_date
