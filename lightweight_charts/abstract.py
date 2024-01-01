@@ -2,7 +2,7 @@ import asyncio
 import os
 from base64 import b64decode
 from datetime import datetime
-from typing import Union, Literal, List
+from typing import Union, Literal, List, Optional
 import pandas as pd
 
 from .table import Table
@@ -645,19 +645,25 @@ class Candlestick(SeriesCommon):
         self.update(bar, _from_tick=True)
 
     def price_scale(
-            self, mode: PRICE_SCALE_MODE = 'normal', align_labels: bool = True, border_visible: bool = False,
-            border_color: str = None, text_color: str = None, entire_text_only: bool = False,
-            ticks_visible: bool = False, scale_margin_top: float = 0.2, scale_margin_bottom: float = 0.2):
+        self, auto_scale: bool = True, mode: PRICE_SCALE_MODE = 'normal', invert_scale: bool = False,
+            align_labels: bool = True, scale_margin_top: float = 0.2, scale_margin_bottom: float = 0.2,
+            border_visible: bool = False, border_color: Optional[str] = None, text_color: Optional[str] = None,
+            entire_text_only: bool = False, visible: bool = True, ticks_visible: bool = False, minimum_width: int = 0
+        ):
         self.run_script(f'''
             {self.id}.series.priceScale().applyOptions({{
+                autoScale: {jbool(auto_scale)}
                 mode: {price_scale_mode(mode)},
+                invertScale: {jbool(invert_scale)}
                 alignLabels: {jbool(align_labels)},
+                scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}}
                 borderVisible: {jbool(border_visible)},
                 {f'borderColor: "{border_color}",' if border_color else ''}
                 {f'textColor: "{text_color}",' if text_color else ''}
                 entireTextOnly: {jbool(entire_text_only)},
+                visible: {jbool(visible)},
                 ticksVisible: {jbool(ticks_visible)},
-                scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}}
+                minimumWidth: {str(minimum_width)}
             }})''')
 
     def candle_style(
