@@ -19,7 +19,7 @@ tables
 2. [`Line`](#Line)
 3. [`Histogram`](#Histogram)
 3. [`HorizontalLine`](#HorizontalLine)
-4. [Charts](#charts)
+4. [`Charts`](#charts)
 5. [`Events`](./events.md)
 6. [`Toolbox`](#ToolBox)
 7. [`Table`](#Table)
