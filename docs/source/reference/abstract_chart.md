@@ -12,11 +12,6 @@ ___
 Sets the initial data for the chart.
 
 
-        self, auto_scale: bool = True, mode: PRICE_SCALE_MODE = 'normal', invert_scale: bool = False,
-            align_labels: bool = True, scale_margin_top: float = 0.2, scale_margin_bottom: float = 0.2,
-            border_visible: bool = False, border_color: Optional[str] = None, text_color: Optional[str] = None,
-            entire_text_only: bool = False, visible: bool = True, ticks_visible: bool = False, minimum_width: int = 0
-
 Columns should be named:
 : `time | open | high | low | close | volume`
 
