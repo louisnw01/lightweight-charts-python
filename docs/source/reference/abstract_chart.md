@@ -11,7 +11,7 @@ ___
 ```{py:method} set(data: pd.DataFrame, render_drawings: bool = False)
 Sets the initial data for the chart.
 
--
+
 Columns should be named:
 : `time | open | high | low | close | volume`
 
