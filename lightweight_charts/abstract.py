@@ -652,18 +652,18 @@ class Candlestick(SeriesCommon):
         ):
         self.run_script(f'''
             {self.id}.series.priceScale().applyOptions({{
-                autoScale: {jbool(auto_scale)}
+                autoScale: {jbool(auto_scale)},
                 mode: {price_scale_mode(mode)},
-                invertScale: {jbool(invert_scale)}
+                invertScale: {jbool(invert_scale)},
                 alignLabels: {jbool(align_labels)},
-                scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}}
+                scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}},
                 borderVisible: {jbool(border_visible)},
                 {f'borderColor: "{border_color}",' if border_color else ''}
                 {f'textColor: "{text_color}",' if text_color else ''}
                 entireTextOnly: {jbool(entire_text_only)},
                 visible: {jbool(visible)},
                 ticksVisible: {jbool(ticks_visible)},
-                minimumWidth: {str(minimum_width)}
+                minimumWidth: {minimum_width}
             }})''')
 
     def candle_style(
