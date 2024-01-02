@@ -11,7 +11,7 @@ ___
 ```{py:method} set(data: pd.DataFrame, render_drawings: bool = False)
 Sets the initial data for the chart.
 
-
+-
 Columns should be named:
 : `time | open | high | low | close | volume`
 
@@ -205,7 +205,7 @@ ___
 
 
 
-```{py:method} price_scale(auto_scale: bool = True, mode: PRICE_SCALE_MODE = 'normal', invert_scale: bool = False, align_labels: bool = True, scale_margin_top: float = 0.2, scale_margin_bottom: float = 0.2, border_visible: bool = False, border_color: Optional[str] = None, text_color: Optional[str] = None, entire_text_only: bool = False, visible: bool = True, ticks_visible: bool = False, minimum_width: int = 0)
+```{py:method} price_scale(auto_scale: bool, mode: PRICE_SCALE_MODE, invert_scale: bool, align_labels: bool, scale_margin_top: float, scale_margin_bottom: float, border_visible: bool, border_color: COLOR, text_color: COLOR, entire_text_only: bool, visible: bool, ticks_visible: bool, minimum_width: float)
 
 Price scale options for the chart.
 ```
