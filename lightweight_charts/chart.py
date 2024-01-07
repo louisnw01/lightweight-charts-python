@@ -3,7 +3,7 @@ import multiprocessing as mp
 import webview
 
 from lightweight_charts import abstract
-from .util import parse_event_message
+from .util import parse_event_message, FLOAT
 
 
 class CallbackAPI:
@@ -76,7 +76,7 @@ class Chart(abstract.AbstractChart):
     def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None, title: str = '',
                  screen: int = None, on_top: bool = False, maximize: bool = False, debug: bool = False,
                  toolbox: bool = False, inner_width: float = 1.0, inner_height: float = 1.0,
-                 scale_candles_only: bool = False):
+                 scale_candles_only: bool = False, position: FLOAT = 'left'):
         self._i = Chart._window_num
         self._loaded = Chart._loaded_list[self._i]
         abstract.Window._return_q = Chart._return_q
@@ -85,7 +85,7 @@ class Chart(abstract.AbstractChart):
 
         window = abstract.Window(lambda s: self._q.put((self._i, s)), 'pywebview.api.callback')
         if self._i == 0:
-            super().__init__(window, inner_width, inner_height, scale_candles_only, toolbox)
+            super().__init__(window, inner_width, inner_height, scale_candles_only, toolbox, position=position)
             Chart._main_window_handlers = self.win.handlers
             self._process = mp.Process(target=PyWV, args=(
                 self._q, self._start, self._exit, Chart._loaded_list,
@@ -95,7 +95,7 @@ class Chart(abstract.AbstractChart):
             self._process.start()
         else:
             window.handlers = Chart._main_window_handlers
-            super().__init__(window, inner_width, inner_height, scale_candles_only, toolbox)
+            super().__init__(window, inner_width, inner_height, scale_candles_only, toolbox, position=position)
             self._q.put(('create_window', (width, height, x, y, screen, on_top, maximize, title)))
 
     def show(self, block: bool = False):
