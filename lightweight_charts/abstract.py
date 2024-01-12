@@ -210,7 +210,10 @@ class SeriesCommon(Pane):
 
     def _single_datetime_format(self, arg):
         if isinstance(arg, (str, int, float)) or not pd.api.types.is_datetime64_any_dtype(arg):
-            arg = pd.to_datetime(arg, unit='ms')
+            try:
+                arg = pd.to_datetime(arg, unit='ms')
+            except ValueError:
+                arg = pd.to_datetime(arg)
         arg = self._interval * (arg.timestamp() // self._interval)+self.offset
         return arg
 

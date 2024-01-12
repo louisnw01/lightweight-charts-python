@@ -43,6 +43,7 @@ class SwitcherWidget(Widget):
         if option not in self.options:
             raise ValueError(f"option '{option}' does not exist within {self.options}.")
         self.run_script(f'{self.id}.onItemClicked("{option}")')
+        self.value = option
 
 
 class MenuWidget(Widget):

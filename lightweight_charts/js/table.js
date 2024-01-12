@@ -18,7 +18,7 @@ if (!window.Table) {
             this.reSize(width, height)
             this.container.style.display = 'flex'
             this.container.style.flexDirection = 'column'
-            this.container.style.justifyContent = 'space-between'
+            // this.container.style.justifyContent = 'space-between'
 
             this.container.style.borderRadius = '5px'
             this.container.style.color = 'white'
