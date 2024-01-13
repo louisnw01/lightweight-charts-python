@@ -1,4 +1,4 @@
-# `Charts`
+# Charts
 
 This page contains a reference to all chart objects that can be used within the library.
 
