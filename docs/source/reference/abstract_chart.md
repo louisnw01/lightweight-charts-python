@@ -27,7 +27,7 @@ ___
 
 
 
-```{py:method} update(series: pd.Series)
+```{py:method} update(series: pd.Series, render_drawings: bool = False)
 Updates the chart data from a bar.
 
 Series labels should be akin to [`set`](#AbstractChart.set).
@@ -105,7 +105,7 @@ ___
 
 
 
-```{py:method} vertical_span(start_time: TIME | list | tuple, end_time: TIME = None, color: COLOR = 'rgba(252, 219, 3, 0.2)')
+```{py:method} vertical_span(start_time: TIME | list | tuple, end_time: TIME = None, color: COLOR = 'rgba(252, 219, 3, 0.2)', round: bool = False)
 
 Creates and returns a `VerticalSpan` object.
 

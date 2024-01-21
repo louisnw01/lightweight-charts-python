@@ -357,12 +357,15 @@ class SeriesCommon(Pane):
         ''')
 
     def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None,
-                      color: str = 'rgba(252, 219, 3, 0.2)'):
+                      color: str = 'rgba(252, 219, 3, 0.2)', round: bool = False):
         """
         Creates a vertical line or span across the chart.\n
         Start time and end time can be used together, or end_time can be
         omitted and a single time or a list of times can be passed to start_time.
         """
+        if round:
+            start_time = self._single_datetime_format(start_time)
+            end_time = self._single_datetime_format(end_time) if end_time else None
         return VerticalSpan(self, start_time, end_time, color)
 
 
@@ -590,7 +593,7 @@ class Candlestick(SeriesCommon):
                 {self.id}.chart.priceScale("right").applyOptions({{autoScale: true}})
         ''')
 
-    def update(self, series: pd.Series, _from_tick=False):
+    def update(self, series: pd.Series, render_drawings=False, _from_tick=False):
         """
         Updates the data from a bar;
         if series['time'] is the same time as the last bar, the last bar will be overwritten.\n
@@ -607,7 +610,10 @@ class Candlestick(SeriesCommon):
             if (stampToDate(lastBar({self.id}.data).time).getTime() === stampToDate({series['time']}).getTime()) {{
                 {self.id}.data[{self.id}.data.length-1] = {bar}
             }}
-            else {self.id}.data.push({bar})
+            else {{
+                {self.id}.data.push({bar})
+                {f'{self.id}.toolBox.renderDrawings()' if render_drawings else ''}
+            }}
             {self.id}.series.update({bar})
         ''')
         if 'volume' not in series:

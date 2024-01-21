@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     chart.show()
 
-    last_close = df1.iloc[-1]
+    last_close = df1.iloc[-1]['close']
 
     for i, series in df2.iterrows():
         chart.update(series)

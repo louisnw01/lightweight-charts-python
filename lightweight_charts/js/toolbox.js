@@ -10,6 +10,7 @@ if (!window.ToolBox) {
             this.drawings = []
             this.chart.cursor = 'default'
             this.makingDrawing = false
+            this.mouseDown = false
 
             this.hoverBackgroundColor = 'rgba(80, 86, 94, 0.7)'
             this.clickBackgroundColor = 'rgba(90, 106, 104, 0.7)'
@@ -270,7 +271,7 @@ if (!window.ToolBox) {
                         document.body.style.cursor = this.chart.cursor
                         hoveringOver = null
                         contextMenu.listen(false)
-                        if (!mouseDown) {
+                        if (!this.mouseDown) {
                             document.removeEventListener('mousedown', checkForClick)
                             document.removeEventListener('mouseup', checkForRelease)
                         }
@@ -281,11 +282,11 @@ if (!window.ToolBox) {
             let originalIndex
             let originalTime
             let originalPrice
-            let mouseDown = false
+            this.mouseDown = false
             let clickedEnd = false
             let labelColor
             let checkForClick = (event) => {
-                mouseDown = true
+                this.mouseDown = true
                 document.body.style.cursor = 'grabbing'
                 this.chart.chart.applyOptions({handleScroll: false})
                 this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
@@ -312,7 +313,7 @@ if (!window.ToolBox) {
                 document.removeEventListener('mousedown', checkForClick)
             }
             let checkForRelease = (event) => {
-                mouseDown = false
+                this.mouseDown = false
                 document.body.style.cursor = this.chart.cursor
 
                 this.chart.chart.applyOptions({handleScroll: true})
@@ -330,7 +331,7 @@ if (!window.ToolBox) {
             let checkForDrag = (param) => {
                 if (!param.point) return
                 this.chart.chart.unsubscribeCrosshairMove(checkForDrag)
-                if (!mouseDown) return
+                if (!this.mouseDown) return
 
                 let priceAtCursor = this.chart.series.coordinateToPrice(param.point.y)
 
@@ -363,7 +364,7 @@ if (!window.ToolBox) {
             let crosshairHandlerTrend = (param) => {
                 if (!param.point) return
                 this.chart.chart.unsubscribeCrosshairMove(crosshairHandlerTrend)
-                if (!mouseDown) return
+                if (!this.mouseDown) return
 
                 let currentPrice = this.chart.series.coordinateToPrice(param.point.y)
                 let currentTime = this.chart.chart.timeScale().coordinateToTime(param.point.x)
@@ -391,7 +392,7 @@ if (!window.ToolBox) {
             let crosshairHandlerHorz = (param) => {
                 if (!param.point) return
                 this.chart.chart.unsubscribeCrosshairMove(crosshairHandlerHorz)
-                if (!mouseDown) return
+                if (!this.mouseDown) return
                 hoveringOver.updatePrice(this.chart.series.coordinateToPrice(param.point.y))
                 setTimeout(() => {
                     this.chart.chart.subscribeCrosshairMove(crosshairHandlerHorz)
@@ -401,6 +402,7 @@ if (!window.ToolBox) {
         }
 
         renderDrawings() {
+            if (this.mouseDown) return
             this.drawings.forEach((item) => {
                 if ('price' in item) return
                 let startDate = Math.round(item.from[0]/this.chart.interval)*this.chart.interval
@@ -414,9 +416,13 @@ if (!window.ToolBox) {
                 this.chart.series.removePriceLine(drawing.line)
             }
             else {
+                let range = this.chart.chart.timeScale().getVisibleLogicalRange()
+
                 this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: false})
                 this.chart.chart.removeSeries(drawing.line);
                 this.chart.chart.timeScale().applyOptions({shiftVisibleRangeOnNewBar: true})
+
+                this.chart.chart.timeScale().setVisibleLogicalRange(range)
             }
             this.drawings.splice(this.drawings.indexOf(drawing), 1)
             this.saveDrawings()
