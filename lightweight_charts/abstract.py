@@ -250,6 +250,31 @@ class SeriesCommon(Pane):
         ''')
         self.run_script(f'{self.id}.series.update({js_data(series)})')
 
+    def marker_list(self, markers: list):
+        """
+        Creates multiple markers.\n
+        :param markers: The list of markers to set. These should be in the format:\n
+        [
+            {"time": "2021-01-21", "position": "below", "shape": "circle", "color": "#2196F3", "text": ""},
+            {"time": "2021-01-22", "position": "below", "shape": "circle", "color": "#2196F3", "text": ""},
+            ...
+        ]
+        :return: a list of marker ids.
+        """
+        markers = markers.copy()
+        marker_ids = []
+        for i, marker in enumerate(markers):
+            markers[i]['time'] = self._single_datetime_format(markers[i]['time'])
+            markers[i]['position'] = marker_position(markers[i]['position'])
+            markers[i]['shape'] = marker_shape(markers[i]['shape'])
+            markers[i]['id'] = self.win._id_gen.generate()
+            marker_ids.append(markers[i]['id'])
+        self.run_script(f"""
+            {self.id}.markers.push(...{markers})
+            {self.id}.series.setMarkers({self.id}.markers)
+        """)
+        return marker_ids
+
     def marker(self, time: datetime = None, position: MARKER_POSITION = 'below',
                shape: MARKER_SHAPE = 'arrow_up', color: str = '#2196F3', text: str = ''
                ) -> str:
@@ -964,7 +989,6 @@ class AbstractChart(Candlestick, Pane):
 
             self.run_script(f'''
                     {self.id}.commandFunctions.unshift((event) => {{
-                        console.log(event.key)
                         if ({key_condition}) {{
                             event.preventDefault()
                             window.callbackFunction(`{modifier_key, keys}_~_{key}`)
