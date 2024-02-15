@@ -659,7 +659,7 @@ class Candlestick(SeriesCommon):
                 f'Trying to update tick of time "{pd.to_datetime(series["time"])}", '
                 f'which occurs before the last bar time of '
                 f'"{pd.to_datetime(self._last_bar["time"])}".')
-        bar = pd.Series()
+        bar = pd.Series(dtype='float64')
         if series['time'] == self._last_bar['time']:
             bar = self._last_bar
             bar['high'] = max(self._last_bar['high'], series['price'])
