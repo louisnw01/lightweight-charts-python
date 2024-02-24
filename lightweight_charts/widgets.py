@@ -1,4 +1,5 @@
 import asyncio
+import html
 
 from .util import parse_event_message
 from lightweight_charts import abstract
@@ -33,12 +34,14 @@ if QWebEngineView:
             emit_callback(self.win, message)
 
 try:
-    from streamlit.components.v1 import html
+    from streamlit.components.v1 import html as sthtml
 except ImportError:
-    html = None
+    sthtml = None
 
 try:
     from IPython.display import HTML, display
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning, module="IPython.core.display")
 except ImportError:
     HTML = None
 
@@ -129,9 +132,9 @@ class StreamlitChart(StaticLWC):
         super().__init__(width, height, inner_width, inner_height, scale_candles_only, toolbox)
 
     def _load(self):
-        if html is None:
+        if sthtml is None:
             raise ModuleNotFoundError('streamlit.components.v1.html was not found, and must be installed to use StreamlitChart.')
-        html(f'{self._html}</script></body></html>', width=self.width, height=self.height)
+        sthtml(f'{self._html}</script></body></html>', width=self.width, height=self.height)
 
 
 class JupyterChart(StaticLWC):
@@ -153,4 +156,6 @@ class JupyterChart(StaticLWC):
     def _load(self):
         if HTML is None:
             raise ModuleNotFoundError('IPython.display.HTML was not found, and must be installed to use JupyterChart.')
-        display(HTML(f'{self._html}</script></body></html>'))
+        html_code = html.escape(f"{self._html}</script></body></html>")
+        iframe = f'<iframe width="{self.width}" height="{self.height}" frameBorder="0" srcdoc="{html_code}"></iframe>'
+        display(HTML(iframe))
