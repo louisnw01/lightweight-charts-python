@@ -152,6 +152,13 @@ ___
 
 
 
+```{py:method} marker_list(markers: list) -> List[str]
+
+Creates multiple markers and returns a list of marker ids.
+
+```
+
+
 ```{py:method} remove_marker(marker_id: str)
 
 Removes the marker with the given id.
@@ -342,7 +349,7 @@ ___
 
 
 
-````{py:method} create_subchart(position: FLOAT, width: float, height: float, sync: bool | str, scale_candles_only: bool, toolbox: bool) -> AbstractChart 
+````{py:method} create_subchart(position: FLOAT, width: float, height: float, sync: bool | str, sync_crosshairs_only: bool, scale_candles_only: bool, toolbox: bool) -> AbstractChart 
 
 Creates and returns a Chart object, placing it adjacent to the previous Chart. This allows for the use of multiple chart panels within the same window.
 
@@ -354,6 +361,9 @@ Creates and returns a Chart object, placing it adjacent to the previous Chart. T
 
 `sync`
 : If given as `True`, the Subchart's timescale and crosshair will follow that of the declaring Chart. If a `str` is passed, the Chart will follow the panel with the given id.  Chart ids  can be accessed from the `chart.id` attribute. 
+
+`sync_crosshairs_only`
+: If given as `True`, only the crosshairs will be synced and movement will remain independant.
 
 ```{important}
 `width` and `height` should be given as a number between 0 and 1.

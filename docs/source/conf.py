@@ -3,7 +3,7 @@ import os.path
 project = 'lightweight-charts-python'
 copyright = '2023, louisnw'
 author = 'louisnw'
-release = '1.0.18'
+release = '1.0.20'
 
 extensions = [
     "myst_parser",
