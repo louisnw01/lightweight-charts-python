@@ -49,9 +49,19 @@ class SwitcherWidget(Widget):
 class MenuWidget(Widget):
     def __init__(self, topbar, options, default, separator, align, func):
         super().__init__(topbar, value=default, func=func)
+        self.options = list(options)
         self.run_script(f'''
         {self.id} = {topbar.id}.makeMenu({list(options)}, "{default}", {jbool(separator)}, "{self.id}", "{align}")
         ''')
+
+    def set(self, option):
+        if option not in self.options:
+            raise ValueError(f"Option {option} not in menu options ({self.options})")
+        self.value = option
+        self.run_script(f'''
+            {self.id}.updateMenu("{option}")
+        ''')
+        self.win.handlers[self.id](option)
 
 
 class ButtonWidget(Widget):
