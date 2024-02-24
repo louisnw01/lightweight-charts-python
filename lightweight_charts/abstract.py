@@ -98,13 +98,14 @@ class Window:
                      heading_background_colors, return_clicked_cells, func)
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
-                        sync_id: str = None, scale_candles_only: bool = False, toolbox: bool = False
+                        sync_id: str = None, scale_candles_only: bool = False,
+                        sync_crosshairs_only: bool = False, toolbox: bool = False
                         ) -> 'AbstractChart':
         subchart = AbstractChart(self, width, height, scale_candles_only, toolbox, position=position)
         if not sync_id:
             return subchart
         self.run_script(f'''
-        syncCharts({subchart.id}, {sync_id})
+        syncCharts({subchart.id}, {sync_id}, {jbool(sync_crosshairs_only)})
         {subchart.id}.chart.timeScale().setVisibleLogicalRange(
             {sync_id}.chart.timeScale().getVisibleLogicalRange()
         )
@@ -1021,7 +1022,9 @@ class AbstractChart(Candlestick, Pane):
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
                         sync: Union[str, bool] = None, scale_candles_only: bool = False,
+                        sync_crosshairs_only: bool = False,
                         toolbox: bool = False) -> 'AbstractChart':
         if sync is True:
             sync = self.id
-        return self.win.create_subchart(position, width, height, sync, scale_candles_only, toolbox)
+        return self.win.create_subchart(position, width, height, sync,
+                                        scale_candles_only, sync_crosshairs_only, toolbox)

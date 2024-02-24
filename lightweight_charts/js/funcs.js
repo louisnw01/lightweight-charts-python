@@ -310,7 +310,7 @@ if (!window.Chart) {
             return num.toString().padStart(8, ' ');
         }
 
-        legendHandler(param) {
+        legendHandler(param, usingPoint= false) {
             let options = this.chart.series.options()
 
             if (!param.time) {
@@ -318,8 +318,6 @@ if (!window.Chart) {
                 this.candle.innerHTML = this.candle.innerHTML.replace(options['upColor'], '').replace(options['downColor'], '')
                 return
             }
-
-            let usingPoint = !param.point && param.time
 
             let data, logical
 
@@ -353,7 +351,14 @@ if (!window.Chart) {
                         str += '| ' + percentStr
                     }
                 }
-                let volumeData = param.seriesData.get(this.chart.volumeSeries)
+
+                let volumeData;
+                if (usingPoint) {
+                    volumeData = this.chart.volumeSeries.dataByIndex(logical)
+                }
+                else {
+                    volumeData = param.seriesData.get(this.chart.volumeSeries)
+                }
                 if (volumeData) {
                     str += this.ohlcEnabled ? `<br>V ${this.shorthandFormat(volumeData.value)}` : ''
                 }
@@ -390,7 +395,7 @@ if (!window.Chart) {
     window.Legend = Legend
 }
 
-function syncCharts(childChart, parentChart) {
+function syncCharts(childChart, parentChart, crosshairOnly= false) {
 
     function crosshairHandler(chart, point) {
         if (!point) {
@@ -398,7 +403,7 @@ function syncCharts(childChart, parentChart) {
             return
         }
         chart.chart.setCrosshairPosition(point.value || point.close, point.time, chart.series);
-        chart.legend.legendHandler(point)
+        chart.legend.legendHandler(point, true)
     }
 
     function getPoint(series, param) {
@@ -406,8 +411,15 @@ function syncCharts(childChart, parentChart) {
 	    return param.seriesData.get(series) || null;
     }
 
-    let setChildRange = (timeRange) => childChart.chart.timeScale().setVisibleLogicalRange(timeRange)
-    let setParentRange = (timeRange) => parentChart.chart.timeScale().setVisibleLogicalRange(timeRange)
+    let setChildRange, setParentRange;
+    if (crosshairOnly) {
+        setChildRange = (timeRange) => { }
+        setParentRange = (timeRange) => { }
+    }
+    else {
+        setChildRange = (timeRange) => childChart.chart.timeScale().setVisibleLogicalRange(timeRange)
+        setParentRange = (timeRange) => parentChart.chart.timeScale().setVisibleLogicalRange(timeRange)
+    }
 
     let setParentCrosshair = (param) => {
         crosshairHandler(parentChart, getPoint(childChart.series, param))
