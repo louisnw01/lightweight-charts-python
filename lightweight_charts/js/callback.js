@@ -225,8 +225,6 @@ function makeSearchBox(chart) {
     chart.chart.subscribeCrosshairMove((param) => {
         if (param.point) yPrice = param.point.y;
     })
-    window.selectedChart = chart
-    chart.wrapper.addEventListener('mouseover', (event) => window.selectedChart = chart)
     chart.commandFunctions.push((event) => {
         if (selectedChart !== chart) return false
         if (searchWindow.style.display === 'none') {

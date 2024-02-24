@@ -70,6 +70,10 @@ if (!window.Chart) {
                     if (this.commandFunctions[i](event)) break
                 }
             })
+
+            window.selectedChart = this
+            this.wrapper.addEventListener('mouseover', (e) => window.selectedChart = this)
+
             if (!autoSize) return
             window.addEventListener('resize', () => this.reSize())
         }
@@ -78,14 +82,20 @@ if (!window.Chart) {
             this.chart.resize(window.innerWidth * this.scale.width, (window.innerHeight * this.scale.height) - topBarOffset)
             this.wrapper.style.width = `${100 * this.scale.width}%`
             this.wrapper.style.height = `${100 * this.scale.height}%`
-            if (this.legend) {
-                if (this.scale.height === 0 || this.scale.width === 0) {
-                    this.legend.div.style.display = 'none'
-                }
-                else {
-                    this.legend.div.style.display = 'flex'
+
+            if (this.scale.height === 0 || this.scale.width === 0) {
+                this.legend.div.style.display = 'none'
+                if (this.toolBox) {
+                    this.toolBox.elem.style.display = 'none'
                 }
             }
+            else {
+                this.legend.div.style.display = 'flex'
+                if (this.toolBox) {
+                    this.toolBox.elem.style.display = 'flex'
+                }
+            }
+
 
         }
         makeCandlestickSeries() {

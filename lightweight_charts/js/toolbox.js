@@ -117,6 +117,11 @@ if (!window.ToolBox) {
                 this.chart.activeIcon.action(true)
             })
             this.chart.commandFunctions.push((event) => {
+
+                if (this.chart !== window.selectedChart) {
+                    return
+                }
+
                 if (event.altKey && event.code === keyCmd) {
                     event.preventDefault()
                     if (this.chart.activeIcon) {
