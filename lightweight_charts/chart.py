@@ -77,6 +77,16 @@ class Chart(abstract.AbstractChart):
                  screen: int = None, on_top: bool = False, maximize: bool = False, debug: bool = False,
                  toolbox: bool = False, inner_width: float = 1.0, inner_height: float = 1.0,
                  scale_candles_only: bool = False, position: FLOAT = 'left'):
+
+        if Chart._exit.is_set():
+            Chart._q, Chart._emit_q, Chart._return_q = (mp.Queue() for _ in range(3))
+            Chart._loaded_list = [mp.Event() for _ in range(Chart.MAX_WINDOWS)]
+            Chart._main_window_handlers = None
+            Chart._window_num = 0
+            Chart._q, Chart._emit_q, Chart._return_q = (mp.Queue() for _ in range(3))
+            Chart._exit.clear(), Chart._start.clear()
+            Chart.is_alive = False
+
         self._i = Chart._window_num
         self._loaded = Chart._loaded_list[self._i]
         abstract.Window._return_q = Chart._return_q
