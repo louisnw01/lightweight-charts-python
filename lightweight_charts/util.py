@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from random import choices
 from typing import Literal, Union
+from numpy import isin
 import pandas as pd
 
 
@@ -19,7 +20,7 @@ class Pane:
 class IDGen(list):
     ascii = 'abcdefghijklmnopqrstuvwxyz'
 
-    def generate(self):
+    def generate(self) -> str:
         var = ''.join(choices(self.ascii, k=8))
         if var not in self:
             self.append(var)
@@ -44,6 +45,21 @@ def js_data(data: Union[pd.DataFrame, pd.Series]):
     return json.dumps(filtered_records, indent=2)
 
 
+def snake_to_camel(s: str):
+    components = s.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
+
+def js_json(d: dict):
+    filtered_dict = {}
+    for key, val in d.items():
+        if key in ('self') or val in (None,):
+            continue
+        if '_' in key:
+            key = snake_to_camel(key)
+        filtered_dict[key] = val
+    return f"JSON.parse('{json.dumps(filtered_dict)}')"
+
+
 def jbool(b: bool): return 'true' if b is True else 'false' if b is False else None
 
 
@@ -53,32 +69,27 @@ MARKER_POSITION = Literal['above', 'below', 'inside']
 
 MARKER_SHAPE = Literal['arrow_up', 'arrow_down', 'circle', 'square']
 
-CROSSHAIR_MODE = Literal['normal', 'magnet']
+CROSSHAIR_MODE = Literal['normal', 'magnet', 'hidden']
 
 PRICE_SCALE_MODE = Literal['normal', 'logarithmic', 'percentage', 'index100']
 
-TIME = Union[datetime, pd.Timestamp, str]
+TIME = Union[datetime, pd.Timestamp, str, float]
 
 NUM = Union[float, int]
 
 FLOAT = Literal['left', 'right', 'top', 'bottom']
 
 
-def line_style(line: LINE_STYLE):
-    js = 'LightweightCharts.LineStyle.'
-    return js+line[:line.index('_')].title() + line[line.index('_') + 1:].title() if '_' in line else js+line.title()
-
-
-def crosshair_mode(mode: CROSSHAIR_MODE):
-    return f'LightweightCharts.CrosshairMode.{mode.title()}' if mode else None
-
-
-def price_scale_mode(mode: PRICE_SCALE_MODE):
-    return f"LightweightCharts.PriceScaleMode.{'IndexedTo100' if mode == 'index100' else mode.title() if mode else None}"
+def as_enum(value, string_types):
+    types = string_types.__args__
+    return -1 if value not in types else types.index(value)
 
 
 def marker_shape(shape: MARKER_SHAPE):
-    return shape[:shape.index('_')]+shape[shape.index('_')+1:].title() if '_' in shape else shape
+    return {
+        'arrow_up': 'arrowUp',
+        'arrow_down': 'arrowDown',
+    }.get(shape) or shape
 
 
 def marker_position(p: MARKER_POSITION):
@@ -86,8 +97,7 @@ def marker_position(p: MARKER_POSITION):
         'above': 'aboveBar',
         'below': 'belowBar',
         'inside': 'inBar',
-        None: None,
-    }[p]
+    }.get(p)
 
 
 class Emitter:
@@ -127,12 +137,10 @@ class JSEmitter:
 class Events:
     def __init__(self, chart):
         self.new_bar = Emitter()
-        from lightweight_charts.abstract import JS
         self.search = JSEmitter(chart, f'search{chart.id}',
             lambda o: chart.run_script(f'''
-            {JS['callback']}
-            makeSpinner({chart.id})
-            {chart.id}.search = makeSearchBox({chart.id})
+            Handler.makeSpinner({chart.id})
+            {chart.id}.search = Handler.makeSearchBox({chart.id})
             ''')
         )
         self.range_change = JSEmitter(chart, f'range_change{chart.id}',

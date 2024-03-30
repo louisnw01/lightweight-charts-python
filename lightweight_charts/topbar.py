@@ -8,7 +8,7 @@ ALIGN = Literal['left', 'right']
 
 
 class Widget(Pane):
-    def __init__(self, topbar, value, func=None):
+    def __init__(self, topbar, value, func: callable = None):
         super().__init__(topbar.win)
         self.value = value
 
@@ -75,10 +75,8 @@ class TopBar(Pane):
     def _create(self):
         if self._created:
             return
-        from lightweight_charts.abstract import JS
         self._created = True
-        self.run_script(JS['callback'])
-        self.run_script(f'{self.id} = new TopBar({self._chart.id})')
+        self.run_script(f'{self.id} = {self._chart.id}.createTopBar()')
 
     def __getitem__(self, item):
         if widget := self._widgets.get(item):

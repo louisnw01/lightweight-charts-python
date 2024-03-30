@@ -2,62 +2,32 @@ import asyncio
 import os
 from base64 import b64decode
 from datetime import datetime
-from typing import Union, Literal, List, Optional
+from typing import Callable, Union, Literal, List, Optional
 import pandas as pd
 
 from .table import Table
 from .toolbox import ToolBox
 from .topbar import TopBar
 from .util import (
-    IDGen, jbool, Pane, Events, TIME, NUM, FLOAT,
-    LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, PRICE_SCALE_MODE,
-    line_style, marker_position, marker_shape, crosshair_mode, price_scale_mode, js_data,
+    IDGen, as_enum, jbool, Pane, Events, TIME, NUM, FLOAT,
+    LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, PRICE_SCALE_MODE, js_json,
+    marker_position, marker_shape, js_data,
 )
 
-JS = {}
 current_dir = os.path.dirname(os.path.abspath(__file__))
-for file in ('pkg', 'funcs', 'callback', 'toolbox', 'table'):
-    with open(os.path.join(current_dir, 'js', f'{file}.js'), 'r', encoding='utf-8') as f:
-        JS[file] = f.read()
-
-TEMPLATE = f"""
-<!DOCTYPE html>
-<html lang="">
-<head>
-    <title>lightweight-charts-python</title>
-    <script>{JS['pkg']}</script>
-    <meta name="viewport" content ="width=device-width, initial-scale=1">
-    <style>
-    body {{
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-            Cantarell, "Helvetica Neue", sans-serif;
-    }}
-    #wrapper {{
-        width: 100vw;
-        height: 100vh;
-        background-color: #000000;
-    }}
-    </style>
-</head>
-<body>
-    <div id="wrapper"></div>
-    <script>
-    {JS['funcs']}
-    {JS['table']}
-    </script>
-</body>
-</html>
-"""
+INDEX = os.path.join(current_dir, 'js', 'test.html')
 
 
 class Window:
     _id_gen = IDGen()
     handlers = {}
 
-    def __init__(self, script_func: callable = None, js_api_code: str = None, run_script: callable = None):
+    def __init__(
+        self,
+        script_func: Optional[Callable] = None,
+        js_api_code: Optional[str] = None,
+        run_script: Optional[Callable] = None
+    ):
         self.loaded = False
         self.script_func = script_func
         self.scripts = []
@@ -80,58 +50,69 @@ class Window:
         """
         For advanced users; evaluates JavaScript within the Webview.
         """
+        if self.script_func is None:
+            raise AttributeError("script_func has not been set")
         if self.loaded:
             self.script_func(script)
             return
         self.scripts.append(script) if not run_last else self.final_scripts.append(script)
 
+    def run_script_and_get(self, script: str):
+        self.run_script(f'_~_~RETURN~_~_{script}')
+        return self._return_q.get()
+
     def create_table(
-            self, width: NUM, height: NUM, headings: tuple, widths: tuple = None,
-            alignments: tuple = None, position: FLOAT = 'left', draggable: bool = False,
-            background_color: str = '#121417', border_color: str = 'rgb(70, 70, 70)',
-            border_width: int = 1, heading_text_colors: tuple = None,
-            heading_background_colors: tuple = None, return_clicked_cells: bool = False,
-            func: callable = None
+            self,
+            width: NUM,
+            height: NUM,
+            headings: tuple,
+            widths: Optional[tuple] = None,
+            alignments: Optional[tuple] = None,
+            position: FLOAT = 'left',
+            draggable: bool = False,
+            background_color: str = '#121417',
+            border_color: str = 'rgb(70, 70, 70)',
+            border_width: int = 1,
+            heading_text_colors: Optional[tuple] = None,
+            heading_background_colors: Optional[tuple] = None,
+            return_clicked_cells: bool = False,
+            func: Optional[Callable] = None
     ) -> 'Table':
         return Table(self, width, height, headings, widths, alignments, position, draggable,
                      background_color, border_color, border_width, heading_text_colors,
                      heading_background_colors, return_clicked_cells, func)
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
-                        sync_id: str = None, scale_candles_only: bool = False,
+                        sync_id: Optional[str] = None, scale_candles_only: bool = False,
                         sync_crosshairs_only: bool = False, toolbox: bool = False
                         ) -> 'AbstractChart':
         subchart = AbstractChart(self, width, height, scale_candles_only, toolbox, position=position)
         if not sync_id:
             return subchart
         self.run_script(f'''
-        syncCharts({subchart.id}, {sync_id}, {jbool(sync_crosshairs_only)})
+        Handler.syncCharts({subchart.id}, {sync_id}, {jbool(sync_crosshairs_only)})
         {subchart.id}.chart.timeScale().setVisibleLogicalRange(
             {sync_id}.chart.timeScale().getVisibleLogicalRange()
         )
         ''', run_last=True)
         return subchart
-
-    def style(self, background_color: str = '#0c0d0f', hover_background_color: str = '#3c434c',
-              click_background_color: str = '#50565E',
-              active_background_color: str = 'rgba(0, 122, 255, 0.7)',
-              muted_background_color: str = 'rgba(0, 122, 255, 0.3)',
-              border_color: str = '#3C434C', color: str = '#d8d9db', active_color: str = '#ececed'):
-        self.run_script(f'''
-        window.pane = {{
-            backgroundColor: '{background_color}',
-            hoverBackgroundColor: '{hover_background_color}',
-            clickBackgroundColor: '{click_background_color}',
-            activeBackgroundColor: '{active_background_color}',
-            mutedBackgroundColor: '{muted_background_color}',
-            borderColor: '{border_color}',
-            color: '{color}',
-            activeColor: '{active_color}', 
-        }}''')
+    #TODO test func below with polygon and others
+    def style(
+        self,
+        background_color: str = '#0c0d0f',
+        hover_background_color: str = '#3c434c',
+        click_background_color: str = '#50565E',
+        active_background_color: str = 'rgba(0, 122, 255, 0.7)',
+        muted_background_color: str = 'rgba(0, 122, 255, 0.3)',
+        border_color: str = '#3C434C',
+        color: str = '#d8d9db',
+        active_color: str = '#ececed'
+    ):
+        self.run_script(f'Handler.setRootStyles({js_json(locals())});')
 
 
 class SeriesCommon(Pane):
-    def __init__(self, chart: 'AbstractChart', name: str = None):
+    def __init__(self, chart: 'AbstractChart', name: str = ''):
         super().__init__(chart.win)
         self._chart = chart
         if hasattr(chart, '_interval'):
@@ -169,15 +150,13 @@ class SeriesCommon(Pane):
             self.offset = value
             break
 
-        self.run_script(
-            f'if ({self.id}.toolBox) {self.id}.interval = {self._interval}'
-        )
-
     def _push_to_legend(self):
-        self.run_script(f'''
-        {self._chart.id}.lines.push({self.id})
-        {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeLineRow({self.id}))
-        ''')
+        return
+        #TODO you dont need this? All series should have a series row?
+        # self.run_script(f'''
+        # {self._chart.id}._seriesList.push({self.id})
+        # {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeSeriesRow({self.id}))
+        # ''')
 
     @staticmethod
     def _format_labels(data, labels, index, exclude_lowercase):
@@ -209,7 +188,7 @@ class SeriesCommon(Pane):
         series['time'] = self._single_datetime_format(series['time'])
         return series
 
-    def _single_datetime_format(self, arg):
+    def _single_datetime_format(self, arg) -> float:
         if isinstance(arg, (str, int, float)) or not pd.api.types.is_datetime64_any_dtype(arg):
             try:
                 arg = pd.to_datetime(arg, unit='ms')
@@ -218,7 +197,7 @@ class SeriesCommon(Pane):
         arg = self._interval * (arg.timestamp() // self._interval)+self.offset
         return arg
 
-    def set(self, df: pd.DataFrame = None, format_cols: bool = True):
+    def set(self, df: Optional[pd.DataFrame] = None, format_cols: bool = True):
         if df is None or df.empty:
             self.run_script(f'{self.id}.series.setData([])')
             self.data = pd.DataFrame()
@@ -231,7 +210,7 @@ class SeriesCommon(Pane):
             df = df.rename(columns={self.name: 'value'})
         self.data = df.copy()
         self._last_bar = df.iloc[-1]
-        self.run_script(f'{self.id}.data = {js_data(df)}; {self.id}.series.setData({self.id}.data); ')
+        self.run_script(f'{self.id}.series.setData({js_data(df)}); ')
 
     def update(self, series: pd.Series):
         series = self._series_datetime_format(series, exclude_lowercase=self.name)
@@ -241,14 +220,6 @@ class SeriesCommon(Pane):
             self.data.loc[self.data.index[-1]] = self._last_bar
             self.data = pd.concat([self.data, series.to_frame().T], ignore_index=True)
         self._last_bar = series
-        bar = js_data(series)
-        self.run_script(f'''
-            if (stampToDate(lastBar({self.id}.data).time).getTime() === stampToDate({series['time']}).getTime()) {{
-                {self.id}.data[{self.id}.data.length-1] = {bar}
-            }}
-            else {self.id}.data.push({bar})
-            {self.id}.series.update({bar})
-        ''')
         self.run_script(f'{self.id}.series.update({js_data(series)})')
 
     def marker_list(self, markers: list):
@@ -276,7 +247,7 @@ class SeriesCommon(Pane):
         """)
         return marker_ids
 
-    def marker(self, time: datetime = None, position: MARKER_POSITION = 'below',
+    def marker(self, time: Optional[datetime] = None, position: MARKER_POSITION = 'below',
                shape: MARKER_SHAPE = 'arrow_up', color: str = '#2196F3', text: str = ''
                ) -> str:
         """
@@ -319,14 +290,14 @@ class SeriesCommon(Pane):
 
     def horizontal_line(self, price: NUM, color: str = 'rgb(122, 146, 202)', width: int = 2,
                         style: LINE_STYLE = 'solid', text: str = '', axis_label_visible: bool = True,
-                        func: callable = None
+                        func: Optional[Callable] = None
                         ) -> 'HorizontalLine':
         """
         Creates a horizontal line at the given price.
         """
         return HorizontalLine(self, price, color, width, style, text, axis_label_visible, func)
 
-    def remove_horizontal_line(self, price: NUM = None):
+    def remove_horizontal_line(self, price: NUM):
         """
         Removes a horizontal line at the given price.
         """
@@ -363,10 +334,10 @@ class SeriesCommon(Pane):
         Sets the precision and minMove.\n
         :param precision: The number of decimal places.
         """
+        min_move = 1 / (10**precision)
         self.run_script(f'''
-        {self.id}.precision = {precision}
         {self.id}.series.applyOptions({{
-            priceFormat: {{precision: {precision}, minMove: {1 / (10 ** precision)}}}
+            priceFormat: {{precision: {precision}, minMove: {min_move}}}
         }})''')
         self.num_decimals = precision
 
@@ -382,8 +353,13 @@ class SeriesCommon(Pane):
         if ('volumeSeries' in {self.id}) {self.id}.volumeSeries.applyOptions({{visible: {jbool(arg)}}})
         ''')
 
-    def vertical_span(self, start_time: Union[TIME, tuple, list], end_time: TIME = None,
-                      color: str = 'rgba(252, 219, 3, 0.2)', round: bool = False):
+    def vertical_span(
+        self,
+        start_time: Union[TIME, tuple, list],
+        end_time: Optional[TIME] = None,
+        color: str = 'rgba(252, 219, 3, 0.2)',
+        round: bool = False
+    ):
         """
         Creates a vertical line or span across the chart.\n
         Start time and end time can be used together, or end_time can be
@@ -402,7 +378,7 @@ class HorizontalLine(Pane):
         self.run_script(f'''
         {self.id} = new HorizontalLine(
             {chart.id}, '{self.id}', {price}, '{color}', {width},
-            {line_style(style)}, {jbool(axis_label_visible)}, '{text}'
+            {as_enum(style, LINE_STYLE)}, {jbool(axis_label_visible)}, '{text}'
         )''')
         if not func:
             return
@@ -437,7 +413,7 @@ class HorizontalLine(Pane):
 
 
 class VerticalSpan(Pane):
-    def __init__(self, series: 'SeriesCommon', start_time: Union[TIME, tuple, list], end_time: TIME = None,
+    def __init__(self, series: 'SeriesCommon', start_time: Union[TIME, tuple, list], end_time: Optional[TIME] = None,
                  color: str = 'rgba(252, 219, 3, 0.2)'):
         self._chart = series._chart
         super().__init__(self._chart.win)
@@ -475,31 +451,29 @@ class VerticalSpan(Pane):
 
 class Line(SeriesCommon):
     def __init__(self, chart, name, color, style, width, price_line, price_label, crosshair_marker=True):
+
         super().__init__(chart, name)
         self.color = color
+
         self.run_script(f'''
-        {self.id} = {{
-            type: "line",
-            series: {chart.id}.chart.addLineSeries({{
-                color: '{color}',
-                lineStyle: {line_style(style)},
-                lineWidth: {width},
-                lastValueVisible: {jbool(price_label)},
-                priceLineVisible: {jbool(price_line)},
-                crosshairMarkerVisible: {jbool(crosshair_marker)},
-                {"""autoscaleInfoProvider: () => ({
-                    priceRange: {
-                        minValue: 1_000_000_000,
-                        maxValue: 0,
-                        },
-                    }),""" if chart._scale_candles_only else ''}
-                }}),
-            markers: [],
-            horizontal_lines: [],
-            name: '{name}',
-            color: '{color}',
-            precision: 2,
-            }}
+            {self.id} = {self._chart.id}.createLineSeries(
+                "{name}",
+                {{
+                    color: '{color}',
+                    lineStyle: {as_enum(style, LINE_STYLE)},
+                    lineWidth: {width},
+                    lastValueVisible: {jbool(price_label)},
+                    priceLineVisible: {jbool(price_line)},
+                    crosshairMarkerVisible: {jbool(crosshair_marker)},
+                    {"""autoscaleInfoProvider: () => ({
+                            priceRange: {
+                                minValue: 1_000_000_000,
+                                maxValue: 0,
+                            },
+                        }),
+                    """ if chart._scale_candles_only else ''}
+                }}
+            )
         null''')
 
     def _set_trend(self, start_time, start_value, end_time, end_value, ray=False, round=False):
@@ -582,9 +556,9 @@ class Candlestick(SeriesCommon):
 
         self.candle_data = pd.DataFrame()
 
-        self.run_script(f'{self.id}.makeCandlestickSeries()')
+        # self.run_script(f'{self.id}.makeCandlestickSeries()')
 
-    def set(self, df: pd.DataFrame = None, render_drawings=False):
+    def set(self, df: Optional[pd.DataFrame] = None, render_drawings=False):
         """
         Sets the initial data for the chart.\n
         :param df: columns: date/time, open, high, low, close, volume (if volume enabled).
@@ -599,9 +573,10 @@ class Candlestick(SeriesCommon):
         self.candle_data = df.copy()
         self._last_bar = df.iloc[-1]
 
-        self.run_script(f'{self.id}.data = {js_data(df)}; {self.id}.series.setData({self.id}.data)')
-        toolbox_action = 'clearDrawings' if not render_drawings else 'renderDrawings'
-        self.run_script(f"if ('toolBox' in {self._chart.id}) {self._chart.id}.toolBox.{toolbox_action}()")
+        self.run_script(f'{self.id}.series.setData({js_data(df)})')
+        # TODO are we not using renderdrawings then?
+        # toolbox_action = 'clearDrawings' if not render_drawings else 'renderDrawings'
+        # self.run_script(f"if ({self._chart.id}.toolBox) {self._chart.id}.toolBox.{toolbox_action}()")
         if 'volume' not in df:
             return
         volume = df.drop(columns=['open', 'high', 'low', 'close']).rename(columns={'volume': 'value'})
@@ -630,18 +605,9 @@ class Candlestick(SeriesCommon):
             self.candle_data.loc[self.candle_data.index[-1]] = self._last_bar
             self.candle_data = pd.concat([self.candle_data, series.to_frame().T], ignore_index=True)
             self._chart.events.new_bar._emit(self)
+
         self._last_bar = series
-        bar = js_data(series)
-        self.run_script(f'''
-            if (stampToDate(lastBar({self.id}.data).time).getTime() === stampToDate({series['time']}).getTime()) {{
-                {self.id}.data[{self.id}.data.length-1] = {bar}
-            }}
-            else {{
-                {self.id}.data.push({bar})
-                {f'{self.id}.toolBox.renderDrawings()' if render_drawings else ''}
-            }}
-            {self.id}.series.update({bar})
-        ''')
+        self.run_script(f'{self.id}.series.update({js_data(series)})')
         if 'volume' not in series:
             return
         volume = series.drop(['open', 'high', 'low', 'close']).rename({'volume': 'value'})
@@ -656,10 +622,7 @@ class Candlestick(SeriesCommon):
         """
         series = self._series_datetime_format(series)
         if series['time'] < self._last_bar['time']:
-            raise ValueError(
-                f'Trying to update tick of time "{pd.to_datetime(series["time"])}", '
-                f'which occurs before the last bar time of '
-                f'"{pd.to_datetime(self._last_bar["time"])}".')
+            raise ValueError(f'Trying to update tick of time "{pd.to_datetime(series["time"])}", which occurs before the last bar time of "{pd.to_datetime(self._last_bar["time"])}".')
         bar = pd.Series(dtype='float64')
         if series['time'] == self._last_bar['time']:
             bar = self._last_bar
@@ -688,7 +651,7 @@ class Candlestick(SeriesCommon):
         self.run_script(f'''
             {self.id}.series.priceScale().applyOptions({{
                 autoScale: {jbool(auto_scale)},
-                mode: {price_scale_mode(mode)},
+                mode: {as_enum(mode, PRICE_SCALE_MODE)},
                 invertScale: {jbool(invert_scale)},
                 alignLabels: {jbool(align_labels)},
                 scaleMargins: {{top: {scale_margin_top}, bottom: {scale_margin_bottom}}},
@@ -703,29 +666,17 @@ class Candlestick(SeriesCommon):
 
     def candle_style(
             self, up_color: str = 'rgba(39, 157, 130, 100)', down_color: str = 'rgba(200, 97, 100, 100)',
-            wick_enabled: bool = True, border_enabled: bool = True, border_up_color: str = '',
+            wick_visible: bool = True, border_visible: bool = True, border_up_color: str = '',
             border_down_color: str = '', wick_up_color: str = '', wick_down_color: str = ''):
         """
         Candle styling for each of its parts.\n
         If only `up_color` and `down_color` are passed, they will color all parts of the candle.
         """
-        if border_enabled:
-            border_up_color = border_up_color if border_up_color else up_color
-            border_down_color = border_down_color if border_down_color else down_color
-        if wick_enabled:
-            wick_up_color = wick_up_color if wick_up_color else up_color
-            wick_down_color = wick_down_color if wick_down_color else down_color
-        self.run_script(f"""
-        {self.id}.series.applyOptions({{
-            upColor: "{up_color}",
-            downColor: "{down_color}",
-            wickVisible: {jbool(wick_enabled)},
-            borderVisible: {jbool(border_enabled)},
-            {f'borderUpColor: "{border_up_color}",' if border_enabled else ''}
-            {f'borderDownColor: "{border_down_color}",' if border_enabled else ''}
-            {f'wickUpColor: "{wick_up_color}",' if wick_enabled else ''}
-            {f'wickDownColor: "{wick_down_color}",' if wick_enabled else ''}
-        }})""")
+        border_up_color = border_up_color if border_up_color else up_color
+        border_down_color = border_down_color if border_down_color else down_color
+        wick_up_color = wick_up_color if wick_up_color else up_color
+        wick_down_color = wick_down_color if wick_down_color else down_color
+        self.run_script(f"{self.id}.series.applyOptions({js_json(locals())})")
 
     def volume_config(self, scale_margin_top: float = 0.8, scale_margin_bottom: float = 0.0,
                       up_color='rgba(83,141,131,0.8)', down_color='rgba(200,127,130,0.8)'):
@@ -761,7 +712,7 @@ class AbstractChart(Candlestick, Pane):
         self.polygon: PolygonAPI = PolygonAPI(self)
 
         self.run_script(
-            f'{self.id} = new Chart("{self.id}", {width}, {height}, "{position}", {jbool(autosize)})')
+            f'{self.id} = new Handler("{self.id}", {width}, {height}, "{position}", {jbool(autosize)})')
 
         Candlestick.__init__(self, self)
 
@@ -831,7 +782,7 @@ class AbstractChart(Candlestick, Pane):
         }})
         ''')
 
-    def resize(self, width: float = None, height: float = None):
+    def resize(self, width: Optional[float] = None, height: Optional[float] = None):
         """
         Resizes the chart within the window.
         Dimensions should be given as a float between 0 and 1.
@@ -846,37 +797,20 @@ class AbstractChart(Candlestick, Pane):
 
     def time_scale(self, right_offset: int = 0, min_bar_spacing: float = 0.5,
                    visible: bool = True, time_visible: bool = True, seconds_visible: bool = False,
-                   border_visible: bool = True, border_color: str = None):
+                   border_visible: bool = True, border_color: Optional[str] = None):
         """
         Options for the timescale of the chart.
         """
-        self.run_script(f'''
-               {self.id}.chart.applyOptions({{
-                   timeScale: {{
-                       rightOffset: {right_offset},
-                       minBarSpacing: {min_bar_spacing},
-                       visible: {jbool(visible)},
-                       timeVisible: {jbool(time_visible)},
-                       secondsVisible: {jbool(seconds_visible)},
-                       borderVisible: {jbool(border_visible)},
-                       {f'borderColor: "{border_color}",' if border_color else ''}
-                   }}
-               }})''')
+        self.run_script(f'''{self.id}.chart.applyOptions({{timeScale: {js_json(locals())}}})''')
 
-    def layout(self, background_color: str = '#000000', text_color: str = None,
-               font_size: int = None, font_family: str = None):
+    def layout(self, background_color: str = '#000000', text_color: Optional[str] = None,
+               font_size: Optional[int] = None, font_family: Optional[str] = None):
         """
         Global layout options for the chart.
         """
         self.run_script(f"""
-        document.getElementById('wrapper').style.backgroundColor = '{background_color}'
-        {self.id}.chart.applyOptions({{
-        layout: {{
-            background: {{color: "{background_color}"}},
-            {f'textColor: "{text_color}",' if text_color else ''}
-            {f'fontSize: {font_size},' if font_size else ''}
-            {f'fontFamily: "{font_family}",' if font_family else ''}
-        }}}})""")
+        document.getElementById('container').style.backgroundColor = '{background_color}'
+        {self.id}.chart.applyOptions({{ layout: {js_json(locals())} }})""")
 
     def grid(self, vert_enabled: bool = True, horz_enabled: bool = True,
              color: str = 'rgba(29, 30, 38, 5)', style: LINE_STYLE = 'solid'):
@@ -889,20 +823,20 @@ class AbstractChart(Candlestick, Pane):
                vertLines: {{
                    visible: {jbool(vert_enabled)},
                    color: "{color}",
-                   style: {line_style(style)},
+                   style: {as_enum(style, LINE_STYLE)},
                }},
                horzLines: {{
                    visible: {jbool(horz_enabled)},
                    color: "{color}",
-                   style: {line_style(style)},
+                   style: {as_enum(style, LINE_STYLE)},
                }},
            }}
            }})""")
 
     def crosshair(self, mode: CROSSHAIR_MODE = 'normal', vert_visible: bool = True,
-                  vert_width: int = 1, vert_color: str = None, vert_style: LINE_STYLE = 'large_dashed',
+                  vert_width: int = 1, vert_color: Optional[str] = None, vert_style: LINE_STYLE = 'large_dashed',
                   vert_label_background_color: str = 'rgb(46, 46, 46)', horz_visible: bool = True,
-                  horz_width: int = 1, horz_color: str = None, horz_style: LINE_STYLE = 'large_dashed',
+                  horz_width: int = 1, horz_color: Optional[str] = None, horz_style: LINE_STYLE = 'large_dashed',
                   horz_label_background_color: str = 'rgb(55, 55, 55)'):
         """
         Crosshair formatting for its vertical and horizontal axes.
@@ -910,19 +844,19 @@ class AbstractChart(Candlestick, Pane):
         self.run_script(f'''
         {self.id}.chart.applyOptions({{
             crosshair: {{
-                mode: {crosshair_mode(mode)},
+                mode: {as_enum(mode, CROSSHAIR_MODE)},
                 vertLine: {{
                     visible: {jbool(vert_visible)},
                     width: {vert_width},
                     {f'color: "{vert_color}",' if vert_color else ''}
-                    style: {line_style(vert_style)},
+                    style: {as_enum(vert_style, LINE_STYLE)},
                     labelBackgroundColor: "{vert_label_background_color}"
                 }},
                 horzLine: {{
                     visible: {jbool(horz_visible)},
                     width: {horz_width},
                     {f'color: "{horz_color}",' if horz_color else ''}
-                    style: {line_style(horz_style)},
+                    style: {as_enum(horz_style, LINE_STYLE)},
                     labelBackgroundColor: "{horz_label_background_color}"
                 }}
             }}}})''')
@@ -935,11 +869,9 @@ class AbstractChart(Candlestick, Pane):
           {self.id}.chart.applyOptions({{
               watermark: {{
                   visible: true,
-                  fontSize: {font_size},
                   horzAlign: 'center',
                   vertAlign: 'center',
-                  color: '{color}',
-                  text: '{text}',
+                  ...{js_json(locals())}
               }}
           }})''')
 
@@ -975,7 +907,7 @@ class AbstractChart(Candlestick, Pane):
         self.run_script(f"{self.id}.spinner.style.display = '{'block' if visible else 'none'}'")
 
     def hotkey(self, modifier_key: Literal['ctrl', 'alt', 'shift', 'meta', None],
-               keys: Union[str, tuple, int], func: callable):
+               keys: Union[str, tuple, int], func: Callable):
         if not isinstance(keys, tuple):
             keys = (keys,)
         for key in keys:
@@ -1000,12 +932,21 @@ class AbstractChart(Candlestick, Pane):
         self.win.handlers[f'{modifier_key, keys}'] = func
 
     def create_table(
-            self, width: NUM, height: NUM, headings: tuple, widths: tuple = None,
-            alignments: tuple = None, position: FLOAT = 'left', draggable: bool = False,
-            background_color: str = '#121417', border_color: str = 'rgb(70, 70, 70)',
-            border_width: int = 1, heading_text_colors: tuple = None,
-            heading_background_colors: tuple = None, return_clicked_cells: bool = False,
-            func: callable = None
+            self,
+            width: NUM,
+            height: NUM,
+            headings: tuple,
+            widths: Optional[tuple] = None,
+            alignments: Optional[tuple] = None,
+            position: FLOAT = 'left',
+            draggable: bool = False,
+            background_color: str = '#121417',
+            border_color: str = 'rgb(70, 70, 70)',
+            border_width: int = 1,
+            heading_text_colors: Optional[tuple] = None,
+            heading_background_colors: Optional[tuple] = None,
+            return_clicked_cells: bool = False,
+            func: Optional[Callable] = None
     ) -> Table:
         return self.win.create_table(width, height, headings, widths, alignments, position, draggable,
                                      background_color, border_color, border_width, heading_text_colors,
@@ -1016,12 +957,11 @@ class AbstractChart(Candlestick, Pane):
         Takes a screenshot. This method can only be used after the chart window is visible.
         :return: a bytes object containing a screenshot of the chart.
         """
-        self.run_script(f'_~_~RETURN~_~_{self.id}.chart.takeScreenshot().toDataURL()')
-        serial_data = self.win._return_q.get()
+        serial_data = self.win.run_script_and_get(f'{self.id}.chart.takeScreenshot().toDataURL()')
         return b64decode(serial_data.split(',')[1])
 
     def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
-                        sync: Union[str, bool] = None, scale_candles_only: bool = False,
+                        sync: Optional[Union[str, bool]] = None, scale_candles_only: bool = False,
                         sync_crosshairs_only: bool = False,
                         toolbox: bool = False) -> 'AbstractChart':
         if sync is True:
