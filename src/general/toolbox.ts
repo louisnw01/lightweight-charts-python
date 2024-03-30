@@ -160,6 +160,10 @@ export class ToolBox {
         // })
     // }
 
+    addNewDrawing(d: Drawing) {
+        this._drawingTool.addNewDrawing(d);
+    }
+
     clearDrawings() {
         this._drawingTool.clearDrawings();
     }

@@ -59,9 +59,11 @@ class PyWV:
             background_color='#000000')
         )
 
+        self.windows[-1].events.loaded += lambda: self.loaded_event.set()
+
 
     def loop(self):
-        self.loaded_event.set()
+        # self.loaded_event.set()
         while self.is_alive:
             i, arg = self.queue.get()
 

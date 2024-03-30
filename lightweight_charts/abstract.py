@@ -82,15 +82,22 @@ class Window:
                      background_color, border_color, border_width, heading_text_colors,
                      heading_background_colors, return_clicked_cells, func)
 
-    def create_subchart(self, position: FLOAT = 'left', width: float = 0.5, height: float = 0.5,
-                        sync_id: Optional[str] = None, scale_candles_only: bool = False,
-                        sync_crosshairs_only: bool = False, toolbox: bool = False
-                        ) -> 'AbstractChart':
+    def create_subchart(
+            self,
+            position: FLOAT = 'left',
+            width: float = 0.5,
+            height: float = 0.5,
+            sync_id: Optional[str] = None,
+            scale_candles_only: bool = False,
+            sync_crosshairs_only: bool = False,
+            toolbox: bool = False
+    ) -> 'AbstractChart':
         subchart = AbstractChart(self, width, height, scale_candles_only, toolbox, position=position)
         if not sync_id:
             return subchart
         self.run_script(f'''
         Handler.syncCharts({subchart.id}, {sync_id}, {jbool(sync_crosshairs_only)})
+        // TODO this should be in syncCharts
         {subchart.id}.chart.timeScale().setVisibleLogicalRange(
             {sync_id}.chart.timeScale().getVisibleLogicalRange()
         )
@@ -296,15 +303,15 @@ class SeriesCommon(Pane):
         Creates a horizontal line at the given price.
         """
         return HorizontalLine(self, price, color, width, style, text, axis_label_visible, func)
-
-    def remove_horizontal_line(self, price: NUM):
-        """
-        Removes a horizontal line at the given price.
-        """
-        self.run_script(f'''
-        {self.id}.horizontal_lines.forEach(function (line) {{
-            if ({price} === line.price) line.deleteLine()
-        }})''')
+        # TODO should these methods be removed
+    # def remove_horizontal_line(self, price: NUM):
+    #     """
+    #     Removes a horizontal line at the given price.
+    #     """
+    #     self.run_script(f'''
+    #     {self.id}.horizontal_lines.forEach(function (line) {{
+    #         if ({price} === line._point.price) line.detach()
+    #     }})''')
 
     def clear_markers(self):
         """
@@ -312,14 +319,14 @@ class SeriesCommon(Pane):
         """
         self.run_script(f'''{self.id}.markers = []; {self.id}.series.setMarkers([])''')
 
-    def clear_horizontal_lines(self):
-        """
-        Clears the horizontal lines displayed on the data.\n
-        """
-        self.run_script(f'''
-        {self.id}.horizontal_lines.forEach(function (line) {{{self.id}.series.removePriceLine(line.line);}});
-        {self.id}.horizontal_lines = [];
-        ''')
+    # def clear_horizontal_lines(self):
+    #     """
+    #     Clears the horizontal lines displayed on the data.\n
+    #     """
+    #     self.run_script(f'''
+    #     {self.id}.horizontal_lines.forEach(function (line) {{{self.id}.series.removePriceLine(line.line);}});
+    #     {self.id}.horizontal_lines = [];
+    #     ''')
 
     def price_line(self, label_visible: bool = True, line_visible: bool = True, title: str = ''):
         self.run_script(f'''
@@ -370,16 +377,27 @@ class SeriesCommon(Pane):
             end_time = self._single_datetime_format(end_time) if end_time else None
         return VerticalSpan(self, start_time, end_time, color)
 
-
+# TODO drawings should be in a seperate folder, and inherbit a abstract Drawing class
 class HorizontalLine(Pane):
     def __init__(self, chart, price, color, width, style, text, axis_label_visible, func):
         super().__init__(chart.win)
         self.price = price
         self.run_script(f'''
+
         {self.id} = new HorizontalLine(
-            {chart.id}, '{self.id}', {price}, '{color}', {width},
-            {as_enum(style, LINE_STYLE)}, {jbool(axis_label_visible)}, '{text}'
-        )''')
+                        {{price: {price}}},
+                        {{
+                            lineColor: '{color}',
+                            lineStyle: {as_enum(style, LINE_STYLE)},
+                        }},
+                        callbackName={f"'{self.id}'" if func else 'null'}
+                    )
+        {chart.id}.series.attachPrimitive({self.id})
+        ''')
+        # {self.id} = new HorizontalLine(
+        #     {chart.id}, '{self.id}', {price}, '{color}', {width},
+        #     {as_enum(style, LINE_STYLE)}, {jbool(axis_label_visible)}, '{text}'
+        # )''')
         if not func:
             return
 
@@ -392,24 +410,24 @@ class HorizontalLine(Pane):
             await func(chart, self)
 
         self.win.handlers[self.id] = wrapper_async if asyncio.iscoroutinefunction(func) else wrapper
-        self.run_script(f'if ("toolBox" in {chart.id}) {chart.id}.toolBox.drawings.push({self.id})')
+        self.run_script(f'{chart.id}.toolBox?.addNewDrawing({self.id})')
 
-    def update(self, price):
+    def update(self, price: float):
         """
         Moves the horizontal line to the given price.
         """
-        self.run_script(f'{self.id}.updatePrice({price})')
+        self.run_script(f'{self.id}.updatePoints({{price: {price}}})')
+        # self.run_script(f'{self.id}.updatePrice({price})')
         self.price = price
 
-    def label(self, text: str):
+    def label(self, text: str): # TODO
         self.run_script(f'{self.id}.updateLabel("{text}")')
 
-    def delete(self):
+    def delete(self):   # TODO test all methods
         """
         Irreversibly deletes the horizontal line.
         """
-        self.run_script(f'{self.id}.deleteLine()')
-        del self
+        self.run_script(f'{self.id}.detach()')
 
 
 class VerticalSpan(Pane):

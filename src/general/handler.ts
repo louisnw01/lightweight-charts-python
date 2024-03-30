@@ -2,6 +2,7 @@ import {
     ColorType,
     CrosshairMode,
     DeepPartial,
+    HistogramStyleOptions,
     IChartApi,
     ISeriesApi,
     LineStyleOptions,
@@ -9,14 +10,12 @@ import {
     LogicalRangeChangeEventHandler,
     MouseEventHandler,
     MouseEventParams,
-    SeriesMarker,
     SeriesOptionsCommon,
     SeriesType,
     Time,
     createChart
 } from "lightweight-charts";
 
-import { HorizontalLine } from "../horizontal-line/horizontal-line";
 import { GlobalParams, globalParamInit } from "./global-params";
 import { Legend } from "./legend";
 import { ToolBox } from "./toolbox";
@@ -41,8 +40,6 @@ export class Handler {
 
     public chart: IChartApi;
     public scale: Scale;
-    public horizontal_lines: HorizontalLine[] = [];
-    public markers: SeriesMarker<"">[] = [];
     public precision: number = 2;
 
     public series: ISeriesApi<SeriesType>;
@@ -181,8 +178,16 @@ export class Handler {
         return {
             name: name,
             series: line,
-            horizontal_lines: [],
-            markers: [],
+        }
+    }
+
+    createHistogramSeries(name: string, options: DeepPartial<HistogramStyleOptions & SeriesOptionsCommon>) {
+        const line = this.chart.addHistogramSeries({...options});
+        this._seriesList.push(line);
+        this.legend.makeSeriesRow(name, line)
+        return {
+            name: name,
+            series: line,
         }
     }
 
@@ -215,8 +220,8 @@ export class Handler {
         }
 
         function getPoint(series: ISeriesApi<SeriesType>, param: MouseEventParams) {
-    	    if (!param.time) return null;
-    	    return param.seriesData.get(series) || null;
+            if (!param.time) return null;
+            return param.seriesData.get(series) || null;
         }
 
         const setChildRange = (timeRange: LogicalRange | null) => { if(timeRange) childChart.chart.timeScale().setVisibleLogicalRange(timeRange); }

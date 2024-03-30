@@ -1,3 +1,4 @@
+import { HorizontalLine } from "../horizontal-line/horizontal-line";
 import { Table } from "./table";
 
 export interface GlobalParams extends Window {
@@ -9,6 +10,7 @@ export interface GlobalParams extends Window {
     cursor: string;
     Handler: any;
     Table: typeof Table;
+    HorizontalLine: typeof HorizontalLine;
 }
 
 interface paneStyle {
@@ -46,6 +48,7 @@ export function globalParamInit() {
     }
     window.cursor = 'default';
     window.Table = Table;
+    window.HorizontalLine = HorizontalLine;
 }
 
 
