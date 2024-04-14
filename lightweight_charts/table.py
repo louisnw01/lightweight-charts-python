@@ -1,3 +1,4 @@
+import asyncio
 import random
 from typing import Union, Optional, Callable
 
@@ -80,10 +81,19 @@ class Table(Pane, dict):
         self._formatters = {}
         self.headings = headings
         self.is_shown = True
-        if return_clicked_cells:
-            self.win.handlers[self.id] = lambda rId, cId: func(self[rId], cId)
-        else:
-            self.win.handlers[self.id] = lambda rId: func(self[rId])
+        def wrapper(rId, cId=None):
+            if return_clicked_cells:
+                func(self[rId], cId)
+            else:
+                func(self[rId])
+
+        async def async_wrapper(rId, cId=None):
+            if return_clicked_cells:
+                await func(self[rId], cId)
+            else:
+                await func(self[rId])
+
+        self.win.handlers[self.id] = async_wrapper if asyncio.iscoroutinefunction(func) else wrapper
         self.return_clicked_cells = return_clicked_cells
 
         self.run_script(f'''
