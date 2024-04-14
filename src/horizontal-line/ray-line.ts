@@ -2,8 +2,7 @@ import {
     DeepPartial,
     MouseEventParams
 } from "lightweight-charts";
-import { Point } from "../drawing/data-source";
-import { Drawing } from "../drawing/drawing";
+import { DiffPoint, Point } from "../drawing/data-source";
 import { DrawingOptions } from "../drawing/options";
 import { HorizontalLine } from "./horizontal-line";
 
@@ -20,8 +19,8 @@ export class RayLine extends HorizontalLine {
         this.requestUpdate();
     }
 
-    _onDrag(diff: any) {
-        Drawing._addDiffToPoint(this._point, diff.time, diff.logical, diff.price);
+    _onDrag(diff: DiffPoint) {
+        this._addDiffToPoint(this._point, diff.logical, diff.price);
         this.requestUpdate();
     }
 

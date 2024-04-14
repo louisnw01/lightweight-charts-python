@@ -5,9 +5,9 @@ import { TwoPointDrawingPaneView } from './pane-view';
 
 
 export abstract class TwoPointDrawing extends Drawing {
-    _p1: Point;
-    _p2: Point;
     _paneViews: TwoPointDrawingPaneView[] = [];
+
+    protected _hovered: boolean = false;
 
     constructor(
         p1: Point,
@@ -15,8 +15,8 @@ export abstract class TwoPointDrawing extends Drawing {
         options?: Partial<DrawingOptions>
     ) {
         super()
-        this._p1 = p1;
-        this._p2 = p2;
+        this.points.push(p1);
+        this.points.push(p2);
         this._options = {
             ...defaultOptions,
             ...options,
@@ -31,9 +31,8 @@ export abstract class TwoPointDrawing extends Drawing {
         this.updatePoints(null, point);
     }
 
-    public updatePoints(...points: (Point|null)[]) {
-        this._p1 = points[0] || this._p1;
-        this._p2 = points[1] || this._p2;
-        this.requestUpdate();
-    }
+    get p1() { return this.points[0]; }
+    get p2() { return this.points[1]; }
+
+    get hovered() { return this._hovered; }
 }

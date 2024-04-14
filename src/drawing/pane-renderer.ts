@@ -17,15 +17,13 @@ export abstract class DrawingPaneRenderer implements ISeriesPrimitivePaneRendere
 export abstract class TwoPointDrawingPaneRenderer extends DrawingPaneRenderer {
     _p1: ViewPoint;
     _p2: ViewPoint;
-    _text1: string;
-    _text2: string;
+    protected _hovered: boolean;
 
-    constructor(p1: ViewPoint, p2: ViewPoint, text1: string, text2: string, options: DrawingOptions) {
+    constructor(p1: ViewPoint, p2: ViewPoint, options: DrawingOptions, hovered: boolean) {
         super(options);
         this._p1 = p1;
         this._p2 = p2;
-        this._text1 = text1;
-        this._text2 = text2;
+        this._hovered = hovered;
     }
 
     abstract draw(target: CanvasRenderingTarget2D): void;

@@ -1,4 +1,8 @@
+import { Box } from "../box/box";
 import { HorizontalLine } from "../horizontal-line/horizontal-line";
+import { RayLine } from "../horizontal-line/ray-line";
+import { TrendLine } from "../trend-line/trend-line";
+import { VerticalLine } from "../vertical-line/vertical-line";
 import { Table } from "./table";
 
 export interface GlobalParams extends Window {
@@ -10,7 +14,13 @@ export interface GlobalParams extends Window {
     cursor: string;
     Handler: any;
     Table: typeof Table;
+
     HorizontalLine: typeof HorizontalLine;
+    TrendLine: typeof TrendLine;
+    Box: typeof Box;
+    RayLine: typeof RayLine;
+    VerticalLine: typeof VerticalLine;
+
 }
 
 interface paneStyle {
@@ -48,7 +58,12 @@ export function globalParamInit() {
     }
     window.cursor = 'default';
     window.Table = Table;
+
     window.HorizontalLine = HorizontalLine;
+    window.TrendLine = TrendLine;
+    window.Box = Box;
+    window.RayLine = RayLine;
+    window.VerticalLine = VerticalLine;
 }
 
 

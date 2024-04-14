@@ -5,7 +5,7 @@ import {
 
 import { TrendLinePaneView } from './pane-view';
 import { Point } from '../drawing/data-source';
-import { Drawing, InteractionState } from '../drawing/drawing';
+import { InteractionState } from '../drawing/drawing';
 import { DrawingOptions } from '../drawing/options';
 import { TwoPointDrawing } from '../drawing/two-point-drawing';
 
@@ -27,14 +27,14 @@ export class TrendLine extends TwoPointDrawing {
 
             case InteractionState.NONE:
                 document.body.style.cursor = "default";
-                this._options.showCircles = false;
+                this._hovered = false;
                 this.requestUpdate();
                 this._unsubscribe("mousedown", this._handleMouseDownInteraction);
                 break;
 
             case InteractionState.HOVERING:
                 document.body.style.cursor = "pointer";
-                this._options.showCircles = true;
+                this._hovered = true;
                 this.requestUpdate();
                 this._subscribe("mousedown", this._handleMouseDownInteraction);
                 this._unsubscribe("mouseup", this._handleMouseDownInteraction);
@@ -55,10 +55,10 @@ export class TrendLine extends TwoPointDrawing {
 
      _onDrag(diff: any) {
         if (this._state == InteractionState.DRAGGING || this._state == InteractionState.DRAGGINGP1) {
-            Drawing._addDiffToPoint(this._p1, diff.time, diff.logical, diff.price);
+            this._addDiffToPoint(this.p1, diff.logical, diff.price);
         }
         if (this._state == InteractionState.DRAGGING || this._state == InteractionState.DRAGGINGP2) {
-            Drawing._addDiffToPoint(this._p2, diff.time, diff.logical, diff.price);
+            this._addDiffToPoint(this.p2, diff.logical, diff.price);
         }
     }
 

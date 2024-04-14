@@ -5,15 +5,15 @@ import {
 import { Point } from "../drawing/data-source";
 import { Drawing, InteractionState } from "../drawing/drawing";
 import { DrawingOptions } from "../drawing/options";
-import { HorizontalLinePaneView } from "./pane-view";
+import { VerticalLinePaneView } from "./pane-view";
 import { GlobalParams } from "../general/global-params";
 
 
 declare const window: GlobalParams;
 
-export class HorizontalLine extends Drawing {
-    _type = 'HorizontalLine';
-    _paneViews: HorizontalLinePaneView[];
+export class VerticalLine extends Drawing {
+    _type = 'VerticalLine';
+    _paneViews: VerticalLinePaneView[];
     _point: Point;
     private _callbackName: string | null;
 
@@ -22,14 +22,12 @@ export class HorizontalLine extends Drawing {
     constructor(point: Point, options: DeepPartial<DrawingOptions>, callbackName=null) {
         super(options)
         this._point = point;
-        this._point.time = null;    // time is null for horizontal lines
-        this._paneViews = [new HorizontalLinePaneView(this)];
-
+        this._paneViews = [new VerticalLinePaneView(this)];
         this._callbackName = callbackName;
     }
 
     public updatePoints(...points: (Point | null)[]) {
-        for (const p of points) if (p) this._point.price = p.price;
+        for (const p of points) if (p) this._point = p;
         this.requestUpdate();
     }
 
@@ -57,15 +55,22 @@ export class HorizontalLine extends Drawing {
     }
 
     _onDrag(diff: any) {
-        this._addDiffToPoint(this._point, 0, diff.price);
+        this._addDiffToPoint(this._point, diff.logical, 0);
         this.requestUpdate();
     }
 
     _mouseIsOverDrawing(param: MouseEventParams, tolerance = 4) {
         if (!param.point) return false;
-        const y = this.series.priceToCoordinate(this._point.price);
-        if (!y) return false;
-        return (Math.abs(y-param.point.y) < tolerance);
+        const timeScale = this.chart.timeScale()
+        let x;
+        if (this._point.time) {
+            x = timeScale.timeToCoordinate(this._point.time);
+        }
+        else {
+            x = timeScale.logicalToCoordinate(this._point.logical);
+        }
+        if (!x) return false;
+        return (Math.abs(x-param.point.x) < tolerance);
     }
 
     protected _onMouseDown() {

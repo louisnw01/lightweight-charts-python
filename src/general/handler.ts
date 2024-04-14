@@ -52,8 +52,14 @@ export class Handler {
 
     public _seriesList: ISeriesApi<SeriesType>[] = [];
 
-
-    constructor(chartId: string, innerWidth: number, innerHeight: number, position: string, autoSize: boolean) {
+    // TODO make some subcharts in the vite dev window and mess with the CSS to see if you can not need the position param. also see if you can remove resizing each time the window resizes?
+    constructor(
+        chartId: string,
+        innerWidth: number,
+        innerHeight: number,
+        position: string,
+        autoSize: boolean
+    ) {
         this.reSize = this.reSize.bind(this)
 
         this.id = chartId
@@ -224,8 +230,15 @@ export class Handler {
             return param.seriesData.get(series) || null;
         }
 
-        const setChildRange = (timeRange: LogicalRange | null) => { if(timeRange) childChart.chart.timeScale().setVisibleLogicalRange(timeRange); }
-        const setParentRange = (timeRange: LogicalRange | null) => { if(timeRange) parentChart.chart.timeScale().setVisibleLogicalRange(timeRange); }
+        const childTimeScale = childChart.chart.timeScale();
+        const parentTimeScale = parentChart.chart.timeScale();
+
+        const setChildRange = (timeRange: LogicalRange | null) => {
+            if(timeRange) childTimeScale.setVisibleLogicalRange(timeRange);
+        }
+        const setParentRange = (timeRange: LogicalRange | null) => {
+            if(timeRange) parentTimeScale.setVisibleLogicalRange(timeRange);
+        }
 
         const setParentCrosshair = (param: MouseEventParams) => {
             crosshairHandler(parentChart, getPoint(childChart.series, param))
@@ -235,7 +248,14 @@ export class Handler {
         }
 
         let selected = parentChart
-        function addMouseOverListener(thisChart: Handler, otherChart: Handler, thisCrosshair: MouseEventHandler<Time>, otherCrosshair: MouseEventHandler<Time>, thisRange: LogicalRangeChangeEventHandler, otherRange: LogicalRangeChangeEventHandler) {
+        function addMouseOverListener(
+            thisChart: Handler,
+            otherChart: Handler,
+            thisCrosshair: MouseEventHandler<Time>,
+            otherCrosshair: MouseEventHandler<Time>,
+            thisRange: LogicalRangeChangeEventHandler,
+            otherRange: LogicalRangeChangeEventHandler)
+        {
             thisChart.wrapper.addEventListener('mouseover', () => {
                 if (selected === thisChart) return
                 selected = thisChart
@@ -246,10 +266,28 @@ export class Handler {
                 thisChart.chart.timeScale().subscribeVisibleLogicalRangeChange(otherRange)
             })
         }
-        addMouseOverListener(parentChart, childChart, setParentCrosshair, setChildCrosshair, setParentRange, setChildRange)
-        addMouseOverListener(childChart, parentChart, setChildCrosshair, setParentCrosshair, setChildRange, setParentRange)
+        addMouseOverListener(
+            parentChart,
+            childChart,
+            setParentCrosshair,
+            setChildCrosshair,
+            setParentRange,
+            setChildRange
+        )
+        addMouseOverListener(
+            childChart,
+            parentChart,
+            setChildCrosshair,
+            setParentCrosshair,
+            setChildRange,
+            setParentRange
+        )
 
         parentChart.chart.subscribeCrosshairMove(setChildCrosshair)
+
+        const parentRange = parentTimeScale.getVisibleLogicalRange()
+        if (parentRange) childTimeScale.setVisibleLogicalRange(parentRange)
+
         if (crosshairOnly) return;
         parentChart.chart.timeScale().subscribeVisibleLogicalRangeChange(setChildRange)
     }

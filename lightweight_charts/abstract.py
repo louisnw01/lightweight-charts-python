@@ -7,11 +7,12 @@ import pandas as pd
 
 from .table import Table
 from .toolbox import ToolBox
+from .drawings import HorizontalLine, TwoPointDrawing, VerticalSpan
 from .topbar import TopBar
 from .util import (
-    IDGen, as_enum, jbool, Pane, Events, TIME, NUM, FLOAT,
-    LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE, PRICE_SCALE_MODE, js_json,
-    marker_position, marker_shape, js_data,
+    Pane, Events, IDGen, as_enum, jbool, js_json, TIME, NUM, FLOAT,
+    LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE,
+    PRICE_SCALE_MODE, marker_position, marker_shape, js_data,
 )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,8 +44,16 @@ class Window:
         if self.loaded:
             return
         self.loaded = True
-        [self.run_script(script) for script in self.scripts]
-        [self.run_script(script) for script in self.final_scripts]
+
+        # TODO this wont work for anything which isnt pywebview :( put it in the chart class ?
+        while not self.run_script_and_get('document.readyState == "complete"'):
+            continue    # scary, but works
+
+        initial_script = ''
+        self.scripts.extend(self.final_scripts)
+        for script in self.scripts:
+            initial_script += f'\n{script}'
+        self.script_func(initial_script)
 
     def run_script(self, script: str, run_last: bool = False):
         """
@@ -54,53 +63,60 @@ class Window:
             raise AttributeError("script_func has not been set")
         if self.loaded:
             self.script_func(script)
-            return
-        self.scripts.append(script) if not run_last else self.final_scripts.append(script)
+        elif run_last:
+            self.final_scripts.append(script)
+        else:
+            self.scripts.append(script)
 
     def run_script_and_get(self, script: str):
         self.run_script(f'_~_~RETURN~_~_{script}')
         return self._return_q.get()
 
     def create_table(
-            self,
-            width: NUM,
-            height: NUM,
-            headings: tuple,
-            widths: Optional[tuple] = None,
-            alignments: Optional[tuple] = None,
-            position: FLOAT = 'left',
-            draggable: bool = False,
-            background_color: str = '#121417',
-            border_color: str = 'rgb(70, 70, 70)',
-            border_width: int = 1,
-            heading_text_colors: Optional[tuple] = None,
-            heading_background_colors: Optional[tuple] = None,
-            return_clicked_cells: bool = False,
-            func: Optional[Callable] = None
+        self,
+        width: NUM,
+        height: NUM,
+        headings: tuple,
+        widths: Optional[tuple] = None,
+        alignments: Optional[tuple] = None,
+        position: FLOAT = 'left',
+        draggable: bool = False,
+        background_color: str = '#121417',
+        border_color: str = 'rgb(70, 70, 70)',
+        border_width: int = 1,
+        heading_text_colors: Optional[tuple] = None,
+        heading_background_colors: Optional[tuple] = None,
+        return_clicked_cells: bool = False,
+        func: Optional[Callable] = None
     ) -> 'Table':
-        return Table(self, width, height, headings, widths, alignments, position, draggable,
-                     background_color, border_color, border_width, heading_text_colors,
-                     heading_background_colors, return_clicked_cells, func)
+        return Table(*locals().values())
 
     def create_subchart(
-            self,
-            position: FLOAT = 'left',
-            width: float = 0.5,
-            height: float = 0.5,
-            sync_id: Optional[str] = None,
-            scale_candles_only: bool = False,
-            sync_crosshairs_only: bool = False,
-            toolbox: bool = False
+        self,
+        position: FLOAT = 'left',
+        width: float = 0.5,
+        height: float = 0.5,
+        sync_id: Optional[str] = None,
+        scale_candles_only: bool = False,
+        sync_crosshairs_only: bool = False,
+        toolbox: bool = False
     ) -> 'AbstractChart':
-        subchart = AbstractChart(self, width, height, scale_candles_only, toolbox, position=position)
+        subchart = AbstractChart(
+            self,
+            width,
+            height,
+            scale_candles_only,
+            toolbox,
+            position=position
+        )
         if not sync_id:
             return subchart
         self.run_script(f'''
-        Handler.syncCharts({subchart.id}, {sync_id}, {jbool(sync_crosshairs_only)})
-        // TODO this should be in syncCharts
-        {subchart.id}.chart.timeScale().setVisibleLogicalRange(
-            {sync_id}.chart.timeScale().getVisibleLogicalRange()
-        )
+            Handler.syncCharts(
+                {subchart.id},
+                {sync_id},
+                {jbool(sync_crosshairs_only)}
+            )
         ''', run_last=True)
         return subchart
     #TODO test func below with polygon and others
@@ -377,95 +393,6 @@ class SeriesCommon(Pane):
             end_time = self._single_datetime_format(end_time) if end_time else None
         return VerticalSpan(self, start_time, end_time, color)
 
-# TODO drawings should be in a seperate folder, and inherbit a abstract Drawing class
-class HorizontalLine(Pane):
-    def __init__(self, chart, price, color, width, style, text, axis_label_visible, func):
-        super().__init__(chart.win)
-        self.price = price
-        self.run_script(f'''
-
-        {self.id} = new HorizontalLine(
-                        {{price: {price}}},
-                        {{
-                            lineColor: '{color}',
-                            lineStyle: {as_enum(style, LINE_STYLE)},
-                        }},
-                        callbackName={f"'{self.id}'" if func else 'null'}
-                    )
-        {chart.id}.series.attachPrimitive({self.id})
-        ''')
-        # {self.id} = new HorizontalLine(
-        #     {chart.id}, '{self.id}', {price}, '{color}', {width},
-        #     {as_enum(style, LINE_STYLE)}, {jbool(axis_label_visible)}, '{text}'
-        # )''')
-        if not func:
-            return
-
-        def wrapper(p):
-            self.price = float(p)
-            func(chart, self)
-
-        async def wrapper_async(p):
-            self.price = float(p)
-            await func(chart, self)
-
-        self.win.handlers[self.id] = wrapper_async if asyncio.iscoroutinefunction(func) else wrapper
-        self.run_script(f'{chart.id}.toolBox?.addNewDrawing({self.id})')
-
-    def update(self, price: float):
-        """
-        Moves the horizontal line to the given price.
-        """
-        self.run_script(f'{self.id}.updatePoints({{price: {price}}})')
-        # self.run_script(f'{self.id}.updatePrice({price})')
-        self.price = price
-
-    def label(self, text: str): # TODO
-        self.run_script(f'{self.id}.updateLabel("{text}")')
-
-    def delete(self):   # TODO test all methods
-        """
-        Irreversibly deletes the horizontal line.
-        """
-        self.run_script(f'{self.id}.detach()')
-
-
-class VerticalSpan(Pane):
-    def __init__(self, series: 'SeriesCommon', start_time: Union[TIME, tuple, list], end_time: Optional[TIME] = None,
-                 color: str = 'rgba(252, 219, 3, 0.2)'):
-        self._chart = series._chart
-        super().__init__(self._chart.win)
-        start_time, end_time = pd.to_datetime(start_time), pd.to_datetime(end_time)
-        self.run_script(f'''
-        {self.id} = {self._chart.id}.chart.addHistogramSeries({{
-                color: '{color}',
-                priceFormat: {{type: 'volume'}},
-                priceScaleId: 'vertical_line',
-                lastValueVisible: false,
-                priceLineVisible: false,
-        }})
-        {self.id}.priceScale('').applyOptions({{
-            scaleMargins: {{top: 0, bottom: 0}}
-        }})
-        ''')
-        if end_time is None:
-            if isinstance(start_time, pd.DatetimeIndex):
-                data = [{'time': time.timestamp(), 'value': 1} for time in start_time]
-            else:
-                data = [{'time': start_time.timestamp(), 'value': 1}]
-            self.run_script(f'{self.id}.setData({data})')
-        else:
-            self.run_script(f'''
-            {self.id}.setData(calculateTrendLine(
-            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1, {series.id}))
-            ''')
-
-    def delete(self):
-        """
-        Irreversibly deletes the vertical span.
-        """
-        self.run_script(f'{self._chart.id}.chart.removeSeries({self.id})')
-
 
 class Line(SeriesCommon):
     def __init__(self, chart, name, color, style, width, price_line, price_label, crosshair_marker=True):
@@ -494,20 +421,20 @@ class Line(SeriesCommon):
             )
         null''')
 
-    def _set_trend(self, start_time, start_value, end_time, end_value, ray=False, round=False):
-        if round:
-            start_time = self._single_datetime_format(start_time)
-            end_time = self._single_datetime_format(end_time)
-        else:
-            start_time, end_time = pd.to_datetime((start_time, end_time)).astype('int64') // 10 ** 9
+    # def _set_trend(self, start_time, start_value, end_time, end_value, ray=False, round=False):
+    #     if round:
+    #         start_time = self._single_datetime_format(start_time)
+    #         end_time = self._single_datetime_format(end_time)
+    #     else:
+    #         start_time, end_time = pd.to_datetime((start_time, end_time)).astype('int64') // 10 ** 9
 
-        self.run_script(f'''
-        {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: false}})
-        {self.id}.series.setData(
-            calculateTrendLine({start_time}, {start_value}, {end_time}, {end_value},
-                                {self._chart.id}, {jbool(ray)}))
-        {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: true}})
-        ''')
+    #     self.run_script(f'''
+    #     {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: false}})
+    #     {self.id}.series.setData(
+    #         calculateTrendLine({start_time}, {start_value}, {end_time}, {end_value},
+    #                             {self._chart.id}, {jbool(ray)}))
+    #     {self._chart.id}.chart.timeScale().applyOptions({{shiftVisibleRangeOnNewBar: true}})
+    #     ''')
 
     def delete(self):
         """
@@ -576,11 +503,11 @@ class Candlestick(SeriesCommon):
 
         # self.run_script(f'{self.id}.makeCandlestickSeries()')
 
-    def set(self, df: Optional[pd.DataFrame] = None, render_drawings=False):
+    def set(self, df: Optional[pd.DataFrame] = None, keep_drawings=False):
         """
         Sets the initial data for the chart.\n
         :param df: columns: date/time, open, high, low, close, volume (if volume enabled).
-        :param render_drawings: Re-renders any drawings made through the toolbox. Otherwise, they will be deleted.
+        :param keep_drawings: keeps any drawings made through the toolbox. Otherwise, they will be deleted.
         """
         if df is None or df.empty:
             self.run_script(f'{self.id}.series.setData([])')
@@ -592,9 +519,8 @@ class Candlestick(SeriesCommon):
         self._last_bar = df.iloc[-1]
 
         self.run_script(f'{self.id}.series.setData({js_data(df)})')
-        # TODO are we not using renderdrawings then?
-        # toolbox_action = 'clearDrawings' if not render_drawings else 'renderDrawings'
-        # self.run_script(f"if ({self._chart.id}.toolBox) {self._chart.id}.toolBox.{toolbox_action}()")
+        # TODO keep drawings doesnt do anything
+        self.run_script(f"if ({self._chart.id}.toolBox) {self._chart.id}.toolBox.clearDrawings()")
         if 'volume' not in df:
             return
         volume = df.drop(columns=['open', 'high', 'low', 'close']).rename(columns={'volume': 'value'})
@@ -612,7 +538,7 @@ class Candlestick(SeriesCommon):
                 {self.id}.chart.priceScale("right").applyOptions({{autoScale: true}})
         ''')
 
-    def update(self, series: pd.Series, render_drawings=False, _from_tick=False):
+    def update(self, series: pd.Series, _from_tick=False):
         """
         Updates the data from a bar;
         if series['time'] is the same time as the last bar, the last bar will be overwritten.\n
@@ -661,11 +587,21 @@ class Candlestick(SeriesCommon):
         self.update(bar, _from_tick=True)
 
     def price_scale(
-        self, auto_scale: bool = True, mode: PRICE_SCALE_MODE = 'normal', invert_scale: bool = False,
-            align_labels: bool = True, scale_margin_top: float = 0.2, scale_margin_bottom: float = 0.2,
-            border_visible: bool = False, border_color: Optional[str] = None, text_color: Optional[str] = None,
-            entire_text_only: bool = False, visible: bool = True, ticks_visible: bool = False, minimum_width: int = 0
-        ):
+        self,
+        auto_scale: bool = True,
+        mode: PRICE_SCALE_MODE = 'normal',
+        invert_scale: bool = False,
+        align_labels: bool = True,
+        scale_margin_top: float = 0.2,
+        scale_margin_bottom: float = 0.2,
+        border_visible: bool = False,
+        border_color: Optional[str] = None,
+        text_color: Optional[str] = None,
+        entire_text_only: bool = False,
+        visible: bool = True,
+        ticks_visible: bool = False,
+        minimum_width: int = 0
+    ):
         self.run_script(f'''
             {self.id}.series.priceScale().applyOptions({{
                 autoScale: {jbool(auto_scale)},
@@ -776,18 +712,41 @@ class AbstractChart(Candlestick, Pane):
         """
         return self._lines.copy()
 
-    def trend_line(self, start_time: TIME, start_value: NUM, end_time: TIME, end_value: NUM,
-                   round: bool = False, color: str = '#1E80F0', width: int = 2,
-                   style: LINE_STYLE = 'solid',
-                   ) -> Line:
-        line = Line(self, '', color, style, width, False, False, False)
-        line._set_trend(start_time, start_value, end_time, end_value, round=round)
-        return line
+    def trend_line(
+        self,
+        start_time: TIME,
+        start_value: NUM,
+        end_time: TIME,
+        end_value: NUM,
+        round: bool = False,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE = 'solid',
+    ) -> TwoPointDrawing:
+        return TwoPointDrawing("TrendLine", *locals().values())
 
-    def ray_line(self, start_time: TIME, value: NUM, round: bool = False,
-                 color: str = '#1E80F0', width: int = 2,
-                 style: LINE_STYLE = 'solid'
-                 ) -> Line:
+    def box(
+        self,
+        start_time: TIME,
+        start_value: NUM,
+        end_time: TIME,
+        end_value: NUM,
+        round: bool = False,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE = 'solid',
+    ) -> TwoPointDrawing:
+        return TwoPointDrawing("Box", *locals().values())
+
+    def ray_line(
+        self,
+        start_time: TIME,
+        value: NUM,
+        round: bool = False,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE = 'solid'
+    ) -> Line:
         line = Line(self, '', color, style, width, False, False, False)
         line._set_trend(start_time, value, start_time, value, ray=True, round=round)
         return line
@@ -851,11 +810,20 @@ class AbstractChart(Candlestick, Pane):
            }}
            }})""")
 
-    def crosshair(self, mode: CROSSHAIR_MODE = 'normal', vert_visible: bool = True,
-                  vert_width: int = 1, vert_color: Optional[str] = None, vert_style: LINE_STYLE = 'large_dashed',
-                  vert_label_background_color: str = 'rgb(46, 46, 46)', horz_visible: bool = True,
-                  horz_width: int = 1, horz_color: Optional[str] = None, horz_style: LINE_STYLE = 'large_dashed',
-                  horz_label_background_color: str = 'rgb(55, 55, 55)'):
+    def crosshair(
+        self,
+        mode: CROSSHAIR_MODE = 'normal',
+        vert_visible: bool = True,
+        vert_width: int = 1,
+        vert_color: Optional[str] = None,
+        vert_style: LINE_STYLE = 'large_dashed',
+        vert_label_background_color: str = 'rgb(46, 46, 46)',
+        horz_visible: bool = True,
+        horz_width: int = 1,
+        horz_color: Optional[str] = None,
+        horz_style: LINE_STYLE = 'large_dashed',
+        horz_label_background_color: str = 'rgb(55, 55, 55)'
+    ):
         """
         Crosshair formatting for its vertical and horizontal axes.
         """
@@ -877,7 +845,8 @@ class AbstractChart(Candlestick, Pane):
                     style: {as_enum(horz_style, LINE_STYLE)},
                     labelBackgroundColor: "{horz_label_background_color}"
                 }}
-            }}}})''')
+            }}
+        }})''')
 
     def watermark(self, text: str, font_size: int = 44, color: str = 'rgba(180, 180, 200, 0.5)'):
         """
@@ -950,25 +919,25 @@ class AbstractChart(Candlestick, Pane):
         self.win.handlers[f'{modifier_key, keys}'] = func
 
     def create_table(
-            self,
-            width: NUM,
-            height: NUM,
-            headings: tuple,
-            widths: Optional[tuple] = None,
-            alignments: Optional[tuple] = None,
-            position: FLOAT = 'left',
-            draggable: bool = False,
-            background_color: str = '#121417',
-            border_color: str = 'rgb(70, 70, 70)',
-            border_width: int = 1,
-            heading_text_colors: Optional[tuple] = None,
-            heading_background_colors: Optional[tuple] = None,
-            return_clicked_cells: bool = False,
-            func: Optional[Callable] = None
+        self,
+        width: NUM,
+        height: NUM,
+        headings: tuple,
+        widths: Optional[tuple] = None,
+        alignments: Optional[tuple] = None,
+        position: FLOAT = 'left',
+        draggable: bool = False,
+        background_color: str = '#121417',
+        border_color: str = 'rgb(70, 70, 70)',
+        border_width: int = 1,
+        heading_text_colors: Optional[tuple] = None,
+        heading_background_colors: Optional[tuple] = None,
+        return_clicked_cells: bool = False,
+        func: Optional[Callable] = None
     ) -> Table:
-        return self.win.create_table(width, height, headings, widths, alignments, position, draggable,
-                                     background_color, border_color, border_width, heading_text_colors,
-                                     heading_background_colors, return_clicked_cells, func)
+        args = locals()
+        del args['self']
+        return self.win.create_table(*args.values())
 
     def screenshot(self) -> bytes:
         """
@@ -984,5 +953,6 @@ class AbstractChart(Candlestick, Pane):
                         toolbox: bool = False) -> 'AbstractChart':
         if sync is True:
             sync = self.id
-        return self.win.create_subchart(position, width, height, sync,
-                                        scale_candles_only, sync_crosshairs_only, toolbox)
+        args = locals()
+        del args['self']
+        return self.win.create_subchart(*args.values())

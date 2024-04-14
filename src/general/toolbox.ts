@@ -7,9 +7,9 @@ import { GlobalParams } from "./global-params";
 import { StylePicker } from "../context-menu/style-picker";
 import { ColorPicker } from "../context-menu/color-picker";
 import { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
-import { TwoPointDrawing } from "../drawing/two-point-drawing";
 import { HorizontalLine } from "../horizontal-line/horizontal-line";
 import { RayLine } from "../horizontal-line/ray-line";
+import { VerticalLine } from "../vertical-line/vertical-line";
 
 
 interface Icon {
@@ -67,6 +67,7 @@ export class ToolBox {
         this.buttons.push(this._makeToolBoxElement(HorizontalLine, 'KeyH', ToolBox.HORZ_SVG));
         this.buttons.push(this._makeToolBoxElement(RayLine, 'KeyR', ToolBox.RAY_SVG));
         this.buttons.push(this._makeToolBoxElement(Box, 'KeyB', ToolBox.BOX_SVG));
+        this.buttons.push(this._makeToolBoxElement(VerticalLine, 'KeyV', ToolBox.RAY_SVG));
         for (const button of this.buttons) {
             div.appendChild(button);
         }
@@ -122,7 +123,7 @@ export class ToolBox {
         this._drawingTool?.beginDrawing(this.activeIcon.type);
     }
 
-    removeActiveAndSave() {
+    removeActiveAndSave = () => {
         window.setCursor('default');
         if (this.activeIcon) this.activeIcon.div.classList.remove('active-toolbox-button')
         this.activeIcon = null
@@ -168,39 +169,36 @@ export class ToolBox {
         this._drawingTool.clearDrawings();
     }
 
-    saveDrawings() {
+    saveDrawings = () => {
         const drawingMeta = []
         for (const d of this._drawingTool.drawings) {
-            if (d instanceof TwoPointDrawing) {
-                drawingMeta.push({
-                    type: d._type,
-                    p1: d._p1,
-                    p2: d._p2,
-                    color: d._options.lineColor,
-                    style: d._options.lineStyle,    // TODO should push all options, just dont have showcircles/ non public stuff as actual options
-                                                    //      would also fix the instanceOf in loadDrawings
-                })
-            }
-            // TODO else if d instanceof Drawing
+            drawingMeta.push({
+                points: d.points,
+                options: d._options
+            });
         }
         const string = JSON.stringify(drawingMeta);
         window.callbackFunction(`save_drawings${this._handlerID}_~_${string}`)
     }
 
-    loadDrawings(drawings: any[]) { // TODO any?
+    loadDrawings(drawings: any[]) { // TODO any
         drawings.forEach((d) => {
-            const options = {
-                lineColor: d.color,
-                lineStyle: d.style,
-            }
             switch (d.type) {
                 case "Box":
-                    this._drawingTool.addNewDrawing(new Box(d.p1, d.p2, options));
+                    this._drawingTool.addNewDrawing(new Box(d.points[0], d.points[1], d.options));
                     break;
                 case "TrendLine":
-                    this._drawingTool.addNewDrawing(new TrendLine(d.p1, d.p2, options));
+                    this._drawingTool.addNewDrawing(new TrendLine(d.points[0], d.points[1], d.options));
                     break;
-                // TODO case HorizontalLine
+                case "HorizontalLine":
+                    this._drawingTool.addNewDrawing(new HorizontalLine(d.points[0], d.options));
+                    break;
+                case "RayLine":
+                    this._drawingTool.addNewDrawing(new RayLine(d.points[0], d.options));
+                    break;
+                case "VerticalLine":
+                    this._drawingTool.addNewDrawing(new VerticalLine(d.points[0], d.options));
+                    break;
             }
         })
     }

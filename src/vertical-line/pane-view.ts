@@ -1,13 +1,13 @@
-import { HorizontalLinePaneRenderer } from './pane-renderer';
-import { HorizontalLine } from './horizontal-line';
+import { VerticalLinePaneRenderer } from './pane-renderer';
+import { VerticalLine } from './vertical-line';
 import { DrawingPaneView, ViewPoint } from '../drawing/pane-view';
 
 
-export class HorizontalLinePaneView extends DrawingPaneView {
-    _source: HorizontalLine;
+export class VerticalLinePaneView extends DrawingPaneView {
+    _source: VerticalLine;
     _point: ViewPoint = {x: null, y: null};
 
-    constructor(source: HorizontalLine) {
+    constructor(source: VerticalLine) {
         super(source);
         this._source = source;
     }
@@ -16,14 +16,12 @@ export class HorizontalLinePaneView extends DrawingPaneView {
         const point = this._source._point;
         const timeScale = this._source.chart.timeScale()
         const series = this._source.series;
-        if (this._source._type == "RayLine") {
-            this._point.x = timeScale.logicalToCoordinate(point.logical);
-        }
+        this._point.x = timeScale.logicalToCoordinate(point.logical)
         this._point.y = series.priceToCoordinate(point.price);
     }
 
     renderer() {
-        return new HorizontalLinePaneRenderer(
+        return new VerticalLinePaneRenderer(
             this._point,
             this._source._options
         );

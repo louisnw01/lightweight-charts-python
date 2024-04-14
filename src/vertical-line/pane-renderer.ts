@@ -4,7 +4,7 @@ import { DrawingPaneRenderer } from "../drawing/pane-renderer";
 import { ViewPoint } from "../drawing/pane-view";
 import { setLineStyle } from "../helpers/canvas-rendering";
 
-export class HorizontalLinePaneRenderer extends DrawingPaneRenderer {
+export class VerticalLinePaneRenderer extends DrawingPaneRenderer {
     _point: ViewPoint = {x: null, y: null};
 
     constructor(point: ViewPoint, options: DrawingOptions) {
@@ -14,20 +14,17 @@ export class HorizontalLinePaneRenderer extends DrawingPaneRenderer {
 
     draw(target: CanvasRenderingTarget2D) {
         target.useBitmapCoordinateSpace(scope => {
-            if (this._point.y == null) return;
+            if (this._point.x == null) return;
             const ctx = scope.context;
-
-            const scaledY = Math.round(this._point.y * scope.verticalPixelRatio);
-            const scaledX = this._point.x ? this._point.x * scope.horizontalPixelRatio : 0;
+            const scaledX = this._point.x * scope.horizontalPixelRatio;
 
             ctx.lineWidth = this._options.width;
             ctx.strokeStyle = this._options.lineColor;
             setLineStyle(ctx, this._options.lineStyle);
+
             ctx.beginPath();
-
-            ctx.moveTo(scaledX, scaledY);
-            ctx.lineTo(scope.bitmapSize.width, scaledY);
-
+            ctx.moveTo(scaledX, 0);
+            ctx.lineTo(scaledX, scope.bitmapSize.height);
             ctx.stroke();
         });
     }

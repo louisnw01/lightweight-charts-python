@@ -52,16 +52,7 @@ class Row(dict):
     def delete(self):
         self.run_script(f"{self._table.id}.deleteRow('{self.id}')")
         self._table.pop(self.id)
-
-    # # TODO this might be useful in abschart
-    # def _call(self, method_name: str, *args):
-    #     new_args = []
-    #     for arg in args:
-    #         if isinstance(arg, str):
-    #             arg = f"'{arg}'"
-    #         new_args.append(arg)
-    #     self.run_script(f"{self._table.id}.{method_name}({', '.join(new_args)})")
-
+        
 
 class Table(Pane, dict):
     VALUE = 'CELL__~__VALUE__~__PLACEHOLDER'

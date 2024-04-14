@@ -5,6 +5,7 @@ import {
     SeriesType,
 } from 'lightweight-charts';
 import { Drawing } from './drawing';
+import { HorizontalLine } from '../horizontal-line/horizontal-line';
 
 
 export class DrawingTool {
@@ -69,9 +70,10 @@ export class DrawingTool {
 
         if (this._activeDrawing == null) {
             if (this._drawingType == null) return;
-
+            // TODO this line wont work for horizontals ?
             this._activeDrawing = new this._drawingType(point, point);
             this._series.attachPrimitive(this._activeDrawing);
+            if (this._drawingType == HorizontalLine) this._onClick(param);
         }
         else {
             this._drawings.push(this._activeDrawing);

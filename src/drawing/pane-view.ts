@@ -33,11 +33,12 @@ export abstract class TwoPointDrawingPaneView extends DrawingPaneView {
     }
 
     update() {
+        if (!this._source.p1 || !this._source.p2) return;
         const series = this._source.series;
-        const y1 = series.priceToCoordinate(this._source._p1.price);
-        const y2 = series.priceToCoordinate(this._source._p2.price);
-        const x1 = this._getX(this._source._p1);
-        const x2 = this._getX(this._source._p2);
+        const y1 = series.priceToCoordinate(this._source.p1.price);
+        const y2 = series.priceToCoordinate(this._source.p2.price);
+        const x1 = this._getX(this._source.p1);
+        const x2 = this._getX(this._source.p2);
         this._p1 = { x: x1, y: y1 };
         this._p2 = { x: x2, y: y2 };
         if (!x1 || !x2 || !y1 || !y2) return;
@@ -47,9 +48,6 @@ export abstract class TwoPointDrawingPaneView extends DrawingPaneView {
 
     _getX(p: Point) {
         const timeScale = this._source.chart.timeScale();
-        if (!p.time) {
-            return timeScale.logicalToCoordinate(p.logical);
-        }
-        return timeScale.timeToCoordinate(p.time);
+        return timeScale.logicalToCoordinate(p.logical);
     }
 }

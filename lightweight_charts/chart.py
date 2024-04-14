@@ -81,7 +81,6 @@ class PyWV:
                 window.show()
             elif arg == 'hide':
                 window.hide()
-            # TODO make sure setup.py requires latest pywebview now
             else:
                 try:
                     if '_~_~RETURN~_~_' in arg:

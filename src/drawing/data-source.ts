@@ -1,12 +1,7 @@
 import {
-    IChartApi,
-    ISeriesApi,
     Logical,
-    SeriesOptionsMap,
     Time,
 } from 'lightweight-charts';
-
-import { DrawingOptions } from './options';
 
 export interface Point {
     time: Time | null;
@@ -14,10 +9,7 @@ export interface Point {
     price: number;
 }
 
-export interface DrawingDataSource {
-    chart: IChartApi;
-    series: ISeriesApi<keyof SeriesOptionsMap>;
-    options: DrawingOptions;
-    p1: Point;
-    p2: Point;
+export interface DiffPoint {
+    logical: number;
+    price: number;
 }

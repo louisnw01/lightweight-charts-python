@@ -2,12 +2,13 @@ import { ViewPoint } from "../drawing/pane-view";
 import { CanvasRenderingTarget2D } from "fancy-canvas";
 import { TwoPointDrawingPaneRenderer } from "../drawing/pane-renderer";
 import { BoxOptions } from "./box";
+import { setLineStyle } from "../helpers/canvas-rendering";
 
 export class BoxPaneRenderer extends TwoPointDrawingPaneRenderer {
     declare _options: BoxOptions;
 
-    constructor(p1: ViewPoint, p2: ViewPoint, text1: string, text2: string, options: BoxOptions) {
-        super(p1, p2, text1, text2, options)
+    constructor(p1: ViewPoint, p2: ViewPoint, options: BoxOptions, showCircles: boolean) {
+        super(p1, p2, options, showCircles)
     }
 
     draw(target: CanvasRenderingTarget2D) {
@@ -21,6 +22,7 @@ export class BoxPaneRenderer extends TwoPointDrawingPaneRenderer {
 
             ctx.lineWidth = this._options.width;
             ctx.strokeStyle = this._options.lineColor;
+            setLineStyle(ctx, this._options.lineStyle)
             ctx.fillStyle = this._options.fillColor;
 
             const mainX = Math.min(scaled.x1, scaled.x2);
@@ -31,7 +33,7 @@ export class BoxPaneRenderer extends TwoPointDrawingPaneRenderer {
             ctx.strokeRect(mainX, mainY, width, height);
             ctx.fillRect(mainX, mainY, width, height);
 
-            if (!this._options.showCircles) return;
+            if (!this._hovered) return;
             this._drawEndCircle(scope, mainX, mainY);
             this._drawEndCircle(scope, mainX+width, mainY);
             this._drawEndCircle(scope, mainX+width, mainY+height);
