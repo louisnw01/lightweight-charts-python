@@ -1,5 +1,18 @@
 # Alternative GUI's
 
+## Static Charts for Flask or FastAPI
+```python
+from lightweight_charts.widgets import StaticLWC
+import jinja2
+
+@app.route('/static-chart')
+def static_chart():
+    chart = StaticLWC()
+    df = pd.read_csv('ohlcv.csv')
+    chart.set(df)
+    chart.load()
+    return render_template(jinja2.Template(f'{chart._html}</script></body></html>'))
+```
 
 ## PyQt5 / PySide6
 
