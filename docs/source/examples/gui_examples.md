@@ -109,7 +109,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def static_chart():
-    df = pd.read_csv('./1_setting_data/ohlcv.csv')
+    df = pd.read_csv('ohlcv.csv')
 
     chart = FlaskChart(title='My Static Chart')
     chart.set(df)
