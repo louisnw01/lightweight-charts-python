@@ -46,7 +46,16 @@ class TwoPointDrawing(Drawing):
 
 
         def make_js_point(time, price):
-            return js_json({"time": time, "price": price})
+            formatted_time = self.chart._single_datetime_format(time)
+            return f'''{{
+                "time": {formatted_time},
+                "logical": {self.chart.id}.chart.timeScale()
+                            .coordinateToLogical(
+                                {self.chart.id}.chart.timeScale()
+                                .timeToCoordinate({formatted_time})
+                            ),
+                "price": {price}
+            }}'''
 
         self.run_script(f'''
         {self.id} = new {drawing_type}(
