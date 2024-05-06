@@ -2,6 +2,12 @@ import asyncio
 import multiprocessing as mp
 import webview
 
+# temporary until we fix to pywebview v5
+try:
+    from webview.errors import JavascriptException
+except ModuleNotFoundError:
+    JavascriptException = Exception
+
 from lightweight_charts import abstract
 from .util import parse_event_message, FLOAT
 
@@ -61,8 +67,12 @@ class PyWV:
                         self.return_queue.put(self.windows[i].evaluate_js(arg[14:]))
                     else:
                         self.windows[i].evaluate_js(arg)
-                except KeyError:
+                except KeyError as e:
                     return
+                except JavascriptException as e:
+                    pass
+                    # msg = eval(str(e))
+                    # raise JavascriptException(f"\n\nscript -> '{arg}',\nerror -> {msg['name']}[{msg['line']}:{msg['column']}]\n{msg['message']}")
 
 
 class Chart(abstract.AbstractChart):
