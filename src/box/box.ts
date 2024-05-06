@@ -32,7 +32,7 @@ export class Box extends TwoPointDrawing {
         super(p1, p2, options);
         this._options = {
             ...defaultBoxOptions,
-            ...this._options,
+            ...options,
         }
         this._paneViews = [new BoxPaneView(this)];
     }

@@ -64,6 +64,7 @@ class TwoPointDrawing(Drawing):
             {{
                 lineColor: '{color}',
                 lineStyle: {as_enum(style, LINE_STYLE)},
+                width: {width},
             }}
         )
         {chart.id}.series.attachPrimitive({self.id})
