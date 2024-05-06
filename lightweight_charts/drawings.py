@@ -22,10 +22,7 @@ class Drawing(Pane):
         """
         Irreversibly deletes the drawing.
         """
-        self.run_script(f'''
-        if ({self.chart.id}.toolBox) {self.chart.id}.toolBox.delete({self.id})
-        else {self.id}.detach()
-        ''')
+        self.run_script(f'{self.id}.detach()')
 
 class TwoPointDrawing(Drawing):
     def __init__(
