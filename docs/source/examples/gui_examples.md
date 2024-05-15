@@ -96,25 +96,3 @@ chart.set(df)
 
 chart.load()
 ```
-___
-
-## Flask
-
-```python
-from lightweight_charts.widgets import FlaskChart
-from flask import Flask
-import pandas as pd
-
-app = Flask(__name__)
-
-@app.route('/')
-def static_chart():
-    df = pd.read_csv('ohlcv.csv')
-
-    chart = FlaskChart(title='My Static Chart')
-    chart.set(df)
-    return chart.load()
-
-if __name__ == '__main__':
-    app.run()
-```

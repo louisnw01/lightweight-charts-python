@@ -11,7 +11,6 @@ setup(
     install_requires=[
         'pandas',
         'pywebview>=4.3',
-        'flask',
     ],
     package_data={
         'lightweight_charts': ['js/*.js'],
