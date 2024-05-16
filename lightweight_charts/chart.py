@@ -22,7 +22,7 @@ class CallbackAPI:
 
 class PyWV:
     def __init__(self, q, start_ev, exit_ev, loaded, emit_queue, return_queue, html, debug,
-                 width, height, x, y, screen, on_top, maximize, title, frameless):
+                 width, height, x, y, screen, on_top, maximize, title, frameless, easy_drag):
         self.queue = q
         self.return_queue = return_queue
         self.exit = exit_ev
@@ -31,13 +31,13 @@ class PyWV:
         self.html = html
 
         self.windows = []
-        self.create_window(width, height, x, y, screen, on_top, maximize, title, frameless)
+        self.create_window(width, height, x, y, screen, on_top, maximize, title, frameless, easy_drag)
 
         start_ev.wait()
         webview.start(debug=debug)
         self.exit.set()
 
-    def create_window(self, width, height, x, y, screen=None, on_top=False, maximize=False, title='', frameless=False):
+    def create_window(self, width, height, x, y, screen=None, on_top=False, maximize=False, title='', frameless=False, easy_drag=False):
         screen = webview.screens[screen] if screen is not None else None
         if maximize:
             if screen is None:
@@ -46,7 +46,7 @@ class PyWV:
             else:
                 width, height = screen.width, screen.height
         self.windows.append(webview.create_window(
-            title, html=self.html, js_api=self.callback_api, frameless=frameless,
+            title, html=self.html, js_api=self.callback_api, frameless=frameless, easy_drag=easy_drag,
             width=width, height=height, x=x, y=y, screen=screen,
             on_top=on_top,  background_color='#000000'))
         self.windows[-1].events.loaded += lambda: self.loop(self.loaded[len(self.windows)-1])
@@ -86,7 +86,7 @@ class Chart(abstract.AbstractChart):
     def __init__(self, width: int = 800, height: int = 600, x: int = None, y: int = None, title: str = '',
                  screen: int = None, on_top: bool = False, maximize: bool = False, debug: bool = False,
                  toolbox: bool = False, inner_width: float = 1.0, inner_height: float = 1.0,
-                 scale_candles_only: bool = False, position: FLOAT = 'left', frameless: bool = False):
+                 scale_candles_only: bool = False, position: FLOAT = 'left', frameless: bool = False, easy_drag: bool = False):
         self._i = Chart._window_num
         self._loaded = Chart._loaded_list[self._i]
         abstract.Window._return_q = Chart._return_q
@@ -100,13 +100,13 @@ class Chart(abstract.AbstractChart):
             self._process = mp.Process(target=PyWV, args=(
                 self._q, self._start, self._exit, Chart._loaded_list,
                 self._emit_q, self._return_q, abstract.TEMPLATE, debug,
-                width, height, x, y, screen, on_top, maximize, title, frameless
+                width, height, x, y, screen, on_top, maximize, title, frameless, easy_drag
             ), daemon=True)
             self._process.start()
         else:
             window.handlers = Chart._main_window_handlers
             super().__init__(window, inner_width, inner_height, scale_candles_only, toolbox, position=position)
-            self._q.put(('create_window', (width, height, x, y, screen, on_top, maximize, title, frameless)))
+            self._q.put(('create_window', (width, height, x, y, screen, on_top, maximize, title, frameless, easy_drag)))
 
     def show(self, block: bool = False):
         """
