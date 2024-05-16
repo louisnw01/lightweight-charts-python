@@ -19,4 +19,4 @@ if __name__ == '__main__':
     loader = unittest.TestLoader()
     cases = [loader.loadTestsFromTestCase(module) for module in TEST_CASES]
     suite = unittest.TestSuite(cases)
-    unittest.TextTestRunner().run(suite)
+    unittest.TextTestRunner(verbosity=2).run(suite)

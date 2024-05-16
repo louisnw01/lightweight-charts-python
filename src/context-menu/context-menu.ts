@@ -1,5 +1,21 @@
 import { Drawing } from "../drawing/drawing";
+import { DrawingTool } from "../drawing/drawing-tool";
 import { GlobalParams } from "../general/global-params";
+import { ColorPicker } from "./color-picker";
+import { StylePicker } from "./style-picker";
+
+
+export function camelToTitle(inputString: string) {
+    const result = [];
+    for (const c of inputString) {
+        if (result.length == 0) {
+            result.push(c.toUpperCase());
+        } else if (c == c.toUpperCase()) {
+            result.push(' '+c);
+        } else result.push(c);
+    }
+    return result.join('');
+}
 
 interface Item {
     elem: HTMLSpanElement;
@@ -13,8 +29,12 @@ declare const window: GlobalParams;
 export class ContextMenu {
     private div: HTMLDivElement
     private hoverItem: Item | null;
+    private items: HTMLElement[] = []
 
-    constructor() {
+    constructor(
+        private saveDrawings: Function,
+        private drawingTool: DrawingTool,
+    ) {
         this._onRightClick = this._onRightClick.bind(this);
         this.div = document.createElement('div');
         this.div.classList.add('context-menu');
@@ -35,6 +55,50 @@ export class ContextMenu {
 
     private _onRightClick(ev: MouseEvent) {
         if (!Drawing.hoveredObject) return;
+
+        for (const item of this.items) {
+            this.div.removeChild(item);
+        }
+        this.items = [];
+
+        for (const optionName of Object.keys(Drawing.hoveredObject._options)) {
+            let subMenu;
+            if (optionName.toLowerCase().includes('color')) {
+                subMenu = new ColorPicker(this.saveDrawings, optionName);
+            } else if (optionName === 'lineStyle') {
+                subMenu = new StylePicker(this.saveDrawings)
+            } else continue;
+
+            let onClick = (rect: DOMRect) => subMenu.openMenu(rect)
+            this.menuItem(camelToTitle(optionName), onClick, () => {
+                document.removeEventListener('click', subMenu.closeMenu)
+                subMenu._div.style.display = 'none'
+            })
+        }
+
+        let onClickDelete = () => this.drawingTool.delete(Drawing.lastHoveredObject);
+        this.separator()
+        this.menuItem('Delete Drawing', onClickDelete)
+
+        // const colorPicker = new ColorPicker(this.saveDrawings)
+        // const stylePicker = new StylePicker(this.saveDrawings)
+
+        // let onClickDelete = () => this._drawingTool.delete(Drawing.lastHoveredObject);
+        // let onClickColor = (rect: DOMRect) => colorPicker.openMenu(rect)
+        // let onClickStyle = (rect: DOMRect) => stylePicker.openMenu(rect)
+
+        // contextMenu.menuItem('Color Picker', onClickColor, () => {
+        //     document.removeEventListener('click', colorPicker.closeMenu)
+        //     colorPicker._div.style.display = 'none'
+        // })
+        // contextMenu.menuItem('Style', onClickStyle, () => {
+        //     document.removeEventListener('click', stylePicker.closeMenu)
+        //     stylePicker._div.style.display = 'none'
+        // })
+        // contextMenu.separator()
+        // contextMenu.menuItem('Delete Drawing', onClickDelete)
+
+
         ev.preventDefault();
         this.div.style.left = ev.clientX + 'px';
         this.div.style.top = ev.clientY + 'px';
@@ -70,6 +134,9 @@ export class ContextMenu {
             item.addEventListener('mouseover', () => timeout = setTimeout(() => action(item.getBoundingClientRect()), 100))
             item.addEventListener('mouseout', () => clearTimeout(timeout))
         }
+
+        this.items.push(item);
+
     }
     public separator() {
         const separator = document.createElement('div')
@@ -78,6 +145,8 @@ export class ContextMenu {
         separator.style.margin = '3px 0px'
         separator.style.backgroundColor = window.pane.borderColor
         this.div.appendChild(separator)
+
+        this.items.push(separator);
     }
 
 }

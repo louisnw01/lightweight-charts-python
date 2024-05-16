@@ -22,7 +22,9 @@ export class ColorPicker {
     private _opacityLabel: HTMLDivElement;
     private rgba: number[] | undefined;
 
-    constructor(saveDrawings: Function) {
+    constructor(saveDrawings: Function,
+        private colorOption: string,
+    ) {
         this.saveDrawings = saveDrawings
 
         this._div = document.createElement('div');
@@ -114,12 +116,12 @@ export class ColorPicker {
     updateColor() {
         if (!Drawing.lastHoveredObject || !this.rgba) return;
         const oColor = `rgba(${this.rgba[0]}, ${this.rgba[1]}, ${this.rgba[2]}, ${this.opacity})`
-        Drawing.lastHoveredObject.applyOptions({lineColor: oColor})
+        Drawing.lastHoveredObject.applyOptions({[this.colorOption]: oColor})
         this.saveDrawings()
     }
     openMenu(rect: DOMRect) {
         if (!Drawing.lastHoveredObject) return;
-        this.rgba = ColorPicker.extractRGBA(Drawing.lastHoveredObject._options.lineColor)
+        this.rgba = ColorPicker.extractRGBA(Drawing.lastHoveredObject._options[this.colorOption])
         this.opacity = this.rgba[3];
         this._updateOpacitySlider();
         this._div.style.top = (rect.top-30)+'px'

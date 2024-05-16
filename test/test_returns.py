@@ -15,7 +15,7 @@ class TestReturns(Tester):
         self.assertIsNotNone(screenshot_data)
 
     def test_save_drawings(self):
-        self.chart.exit()
+
 
         async def main():
             asyncio.create_task(self.chart.show_async());
@@ -28,7 +28,7 @@ class TestReturns(Tester):
             self.assertTrue(len(self.chart.toolbox.drawings) > 0)
             self.chart.exit()
 
-        self.chart = Chart(toolbox=True, debug=True)
+        self.chart = Chart(toolbox=True, width=100, height=100)
         self.chart.set(BARS)
         self.chart.topbar.textbox('symbol', 'SYM', align='right')
         self.chart.toolbox.save_drawings_under(self.chart.topbar['symbol'])

@@ -247,7 +247,7 @@ class PolygonAPI:
 
         df = await async_get_bar_data(ticker, timeframe, start_date, end_date, limit)
 
-        self._chart.set(df, render_drawings=_tickers.get(self._chart) == ticker)
+        self._chart.set(df, keep_drawings=_tickers.get(self._chart) == ticker)
         _tickers[self._chart] = ticker
 
         if not live:

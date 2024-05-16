@@ -7,7 +7,7 @@ import pandas as pd
 
 from .table import Table
 from .toolbox import ToolBox
-from .drawings import HorizontalLine, TwoPointDrawing, VerticalSpan
+from .drawings import Box, HorizontalLine, TrendLine, TwoPointDrawing, VerticalSpan
 from .topbar import TopBar
 from .util import (
     Pane, Events, IDGen, as_enum, jbool, js_json, TIME, NUM, FLOAT,
@@ -45,9 +45,9 @@ class Window:
             return
         self.loaded = True
 
-        # TODO this wont work for anything which isnt pywebview :( put it in the chart class ?
-        while not self.run_script_and_get('document.readyState == "complete"'):
-            continue    # scary, but works
+        if hasattr(self, '_return_q'):
+            while not self.run_script_and_get('document.readyState == "complete"'):
+                continue    # scary, but works
 
         initial_script = ''
         self.scripts.extend(self.final_scripts)
@@ -283,13 +283,13 @@ class SeriesCommon(Pane):
         :return: The id of the marker placed.
         """
         try:
-            time = self._last_bar['time'] if not time else self._single_datetime_format(time)
+            formatted_time = self._last_bar['time'] if not time else self._single_datetime_format(time)
         except TypeError:
             raise TypeError('Chart marker created before data was set.')
         marker_id = self.win._id_gen.generate()
         self.run_script(f"""
             {self.id}.markers.push({{
-                time: {time if isinstance(time, float) else f"'{time}'"},
+                time: {time if isinstance(formatted_time, float) else f"'{formatted_time}'"},
                 position: '{marker_position(position)}',
                 color: '{color}',
                 shape: '{marker_shape(shape)}',
@@ -719,11 +719,11 @@ class AbstractChart(Candlestick, Pane):
         end_time: TIME,
         end_value: NUM,
         round: bool = False,
-        color: str = '#1E80F0',
+        line_color: str = '#1E80F0',
         width: int = 2,
         style: LINE_STYLE = 'solid',
     ) -> TwoPointDrawing:
-        return TwoPointDrawing("TrendLine", *locals().values())
+        return TrendLine(*locals().values())
 
     def box(
         self,
@@ -733,10 +733,11 @@ class AbstractChart(Candlestick, Pane):
         end_value: NUM,
         round: bool = False,
         color: str = '#1E80F0',
+        fill_color: str = 'rgba(255, 255, 255, 0.2)',
         width: int = 2,
         style: LINE_STYLE = 'solid',
     ) -> TwoPointDrawing:
-        return TwoPointDrawing("Box", *locals().values())
+        return Box(*locals().values())
 
     def ray_line(
         self,

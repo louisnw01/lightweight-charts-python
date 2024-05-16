@@ -63,8 +63,8 @@ class WxChart(abstract.AbstractChart):
         self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(500, self.win.on_js_load))
         self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self, e.GetString()))
         self.webview.AddScriptMessageHandler('wx_msg')
-        self.webview.SetPage(abstract.TEMPLATE, '')
-        self.webview.AddUserScript(abstract.JS['toolbox']) if toolbox else None
+        self.webview.LoadURL(f'file:///{abstract.INDEX}')
+        # self.webview.AddUserScript(abstract.JS['toolbox']) if toolbox else None
 
     def get_webview(self): return self.webview
 

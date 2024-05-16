@@ -4,8 +4,6 @@ import { Box } from "../box/box";
 import { Drawing } from "../drawing/drawing";
 import { ContextMenu } from "../context-menu/context-menu";
 import { GlobalParams } from "./global-params";
-import { StylePicker } from "../context-menu/style-picker";
-import { ColorPicker } from "../context-menu/color-picker";
 import { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
 import { HorizontalLine } from "../horizontal-line/horizontal-line";
 import { RayLine } from "../horizontal-line/ray-line";
@@ -42,7 +40,7 @@ export class ToolBox {
         this._commandFunctions = commandFunctions;
         this._drawingTool = new DrawingTool(chart, series, () => this.removeActiveAndSave());
         this.div = this._makeToolBox()
-        this._makeContextMenu();
+        new ContextMenu(this.saveDrawings, this._drawingTool);
 
         commandFunctions.push((event: KeyboardEvent) => {
             if ((event.metaKey || event.ctrlKey) && event.code === 'KeyZ') {
@@ -128,27 +126,6 @@ export class ToolBox {
         if (this.activeIcon) this.activeIcon.div.classList.remove('active-toolbox-button')
         this.activeIcon = null
         this.saveDrawings()
-    }
-
-    private _makeContextMenu() {
-        const contextMenu = new ContextMenu()
-        const colorPicker = new ColorPicker(this.saveDrawings)
-        const stylePicker = new StylePicker(this.saveDrawings)
-
-        let onClickDelete = () => this._drawingTool.delete(Drawing.lastHoveredObject);
-        let onClickColor = (rect: DOMRect) => colorPicker.openMenu(rect)
-        let onClickStyle = (rect: DOMRect) => stylePicker.openMenu(rect)
-
-        contextMenu.menuItem('Color Picker', onClickColor, () => {
-            document.removeEventListener('click', colorPicker.closeMenu)
-            colorPicker._div.style.display = 'none'
-        })
-        contextMenu.menuItem('Style', onClickStyle, () => {
-            document.removeEventListener('click', stylePicker.closeMenu)
-            stylePicker._div.style.display = 'none'
-        })
-        contextMenu.separator()
-        contextMenu.menuItem('Delete Drawing', onClickDelete)
     }
 
     // renderDrawings() {

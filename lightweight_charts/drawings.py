@@ -6,11 +6,11 @@ from typing import Union, Optional
 
 from lightweight_charts.util import js_json
 
-from .util import NUM, Pane, as_enum, LINE_STYLE, TIME
+from .util import NUM, Pane, as_enum, LINE_STYLE, TIME, snake_to_camel
 
 
 class Drawing(Pane):
-    def __init__(self, chart, color, width, style, func=None):
+    def __init__(self, chart, func=None):
         super().__init__(chart.win)
         self.chart = chart
 
@@ -34,13 +34,10 @@ class TwoPointDrawing(Drawing):
         end_time: TIME,
         end_value: NUM,
         round: bool,
-        color,
-        width,
-        style,
+        options: dict,
         func=None
     ):
-        super().__init__(chart, color, width, style, func)
-
+        super().__init__(chart, func)
 
         def make_js_point(time, price):
             formatted_time = self.chart._single_datetime_format(time)
@@ -54,14 +51,14 @@ class TwoPointDrawing(Drawing):
                 "price": {price}
             }}'''
 
+        options_string = '\n'.join(f'{key}: {val},' for key, val in options.items())
+
         self.run_script(f'''
         {self.id} = new {drawing_type}(
             {make_js_point(start_time, start_value)},
             {make_js_point(end_time, end_value)},
             {{
-                lineColor: '{color}',
-                lineStyle: {as_enum(style, LINE_STYLE)},
-                width: {width},
+                {options_string}
             }}
         )
         {chart.id}.series.attachPrimitive({self.id})
@@ -70,7 +67,7 @@ class TwoPointDrawing(Drawing):
 
 class HorizontalLine(Drawing):
     def __init__(self, chart, price, color, width, style, text, axis_label_visible, func):
-        super().__init__(chart, color, width, style, func)
+        super().__init__(chart, func)
         self.price = price
         self.run_script(f'''
 
@@ -113,7 +110,7 @@ class HorizontalLine(Drawing):
 
 class VerticalLine(Drawing):
     def __init__(self, chart, time, color, width, style, text, axis_label_visible, func):
-        super().__init__(chart, color, width, style, func)
+        super().__init__(chart, func)
         self.time = time
         self.run_script(f'''
 
@@ -136,7 +133,68 @@ class VerticalLine(Drawing):
     def label(self, text: str): # TODO
         self.run_script(f'{self.id}.updateLabel("{text}")')
 
-    
+
+class Box(TwoPointDrawing):
+    def __init__(self,
+        chart,
+        start_time: TIME,
+        start_value: NUM,
+        end_time: TIME,
+        end_value: NUM,
+        round: bool,
+        line_color: str,
+        fill_color: str,
+        width: int,
+        style: LINE_STYLE,
+        func=None):
+
+        super().__init__(
+            "Box",
+            chart,
+            start_time,
+            start_value,
+            end_time,
+            end_value,
+            round,
+            {
+                "lineColor": f'"{line_color}"',
+                "fillColor": f'"{fill_color}"',
+                "width": width,
+                "lineStyle": as_enum(style, LINE_STYLE)
+            },
+            func
+        )
+
+
+class TrendLine(TwoPointDrawing):
+    def __init__(self,
+        chart,
+        start_time: TIME,
+        start_value: NUM,
+        end_time: TIME,
+        end_value: NUM,
+        round: bool,
+        line_color: str,
+        width: int,
+        style: LINE_STYLE,
+        func=None):
+
+        super().__init__(
+            "TrendLine",
+            chart,
+            start_time,
+            start_value,
+            end_time,
+            end_value,
+            round,
+            {
+                "lineColor": f'"line_color"',
+                "width": width,
+                "lineStyle": as_enum(style, LINE_STYLE)
+            },
+            func
+        )
+
 class VerticalSpan(Pane):
     def __init__(self, series: 'SeriesCommon', start_time: Union[TIME, tuple, list], end_time: Optional[TIME] = None,
                  color: str = 'rgba(252, 219, 3, 0.2)'):
