@@ -25,8 +25,17 @@ if (!window.TopBar) {
             this.reSize = () => chart.reSize()
             this.reSize()
         }
-        makeSwitcher(items, activeItem, callbackName, align='left') {
-            let switcherElement = document.createElement('div');
+        makeSwitcher(name, items, activeItem, callbackName, align='left') {
+			let el = null
+			let switcherElement = null
+			el  = document.getElementById(name)
+			if (el) {
+				switcherElement = el
+				el.innerHTML = ''
+			} else {
+				switcherElement = document.createElement('div')
+				switcherElement.setAttribute("id", name)
+			}			
             switcherElement.style.margin = '4px 12px'
             let widget = {
                 elem: switcherElement,
@@ -67,7 +76,12 @@ if (!window.TopBar) {
                 activeItem = item;
                 window.callbackFunction(`${widget.callbackName}_~_${item}`);
             }
+			if (el) {
+				el.replaceWith(switcherElement)
+			} else {
             this.appendWidget(switcherElement, align, true)
+			}
+			switcherElement.widget = widget;
             return widget
         }
         makeTextBoxWidget(text, align='left') {
