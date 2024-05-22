@@ -70,14 +70,43 @@ if (!window.TopBar) {
             this.appendWidget(switcherElement, align, true)
             return widget
         }
-        makeTextBoxWidget(text, align='left') {
-            let textBox = document.createElement('div')
+        makeTextBoxWidget(initial_text, align='left', label='', callbackName=null) {
+            let textBox = document.createElement('input')
+			textBox.type = 'text'
             textBox.style.margin = '0px 18px'
             textBox.style.fontSize = '16px'
             textBox.style.color = pane.color
-            textBox.innerText = text
-            this.appendWidget(textBox, align, true)
-            return textBox
+            textBox.style.backgroundColor = pane.backgroundColor
+            textBox.value = initial_text
+			textBox.style.width = `${(textBox.value.length+2)}ch`;
+			if (callbackName && callbackName!='') {
+				textBox.style.border = '1px solid '+pane.color
+				textBox.addEventListener('input', () => {
+					textBox.style.width = `${(textBox.value.length+2)}ch`;
+				});
+                textBox.addEventListener('blur', () => {
+                    window.callbackFunction(`${callbackName}_~_${textBox.value}`)
+                });
+			} else {
+				textBox.style.border = '0px solid '+pane.backgroundColor
+				textBox.readOnly = true
+				textBox.disabled = true
+			}
+			if (label == '') {
+				this.appendWidget(textBox, align, true)
+				return textBox
+			} else {
+				textBox.style.margin = '0px 18px 0px 4px'
+				let labelBox = document.createElement('div')
+				labelBox.style.margin = '0px 4px 0px 18px'
+				labelBox.style.fontSize = '16px'
+				labelBox.style.color = pane.color
+				labelBox.style.backgroundColor = pane.backgroundColor
+				labelBox.innerText = label
+				labelBox.appendChild(textBox)
+				this.appendWidget(labelBox, align, true)
+				return labelBox
+			}
         }
 
         makeMenu(items, activeItem, separator, callbackName, align='right') {

@@ -24,13 +24,17 @@ class Widget(Pane):
 
 
 class TextWidget(Widget):
-    def __init__(self, topbar, initial_text, align):
-        super().__init__(topbar, value=initial_text)
-        self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}")')
+    def __init__(self, topbar, initial_text, align, label="", func = None):
+        super().__init__(topbar, value=initial_text, func=func)
+        if func is None:
+            self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}", "{label}")')
+        else:
+            self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}", "{label}", "{self.id}")' )
 
     def set(self, string):
         self.value = string
-        self.run_script(f'{self.id}.innerText = "{string}"')
+        n = str(len(string)+2) + "ch"
+        self.run_script(f'{self.id}.value = "{string}";{self.id}.style.width = "{n}";')
 
 
 class SwitcherWidget(Widget):
@@ -108,10 +112,13 @@ class TopBar(Pane):
         self._create()
         self._widgets[name] = MenuWidget(self, options, default if default else options[0], separator, align, func)
 
-    def textbox(self, name: str, initial_text: str = '',
-                align: ALIGN = 'left'):
+    def textbox(self, name: str, 
+                initial_text: str = '',
+                align: ALIGN = 'left', 
+                label: str = '',
+                func: callable = None):
         self._create()
-        self._widgets[name] = TextWidget(self, initial_text, align)
+        self._widgets[name] = TextWidget(self, initial_text, align, label, func)
 
     def button(self, name, button_text: str, separator: bool = True,
                align: ALIGN = 'left', func: callable = None):
