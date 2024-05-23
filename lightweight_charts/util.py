@@ -149,5 +149,56 @@ class Events:
             '''),
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg])
         )
-
+        self.mouse_move = JSEmitter(chart, f'mouse_move{chart.id}',
+            lambda o: chart.run_script(f'''
+            let checkMouseMove = (param) => {{
+                {chart.id}.chart.unsubscribeCrosshairMove(checkMouseMove)
+                if (
+                    param.point === undefined ||
+                    !param.time ||
+                    param.point.x < 0 ||
+                    param.point.y < 0
+                ) {{
+                    window.callbackFunction(`mouse_move{chart.id}_~_${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}}`)
+                }} else {{
+                let x = param.point.x;
+                let dateStr = param.time;
+                let data = param.seriesData.get({chart.id}.series);
+                let open = data.open;
+                let high = data.high;
+                let low = data.low;
+                let close = data.close;
+                window.callbackFunction(`mouse_move{chart.id}_~_${{x}};;;${{dateStr}};;;${{open}};;;${{high}};;;${{low}};;;${{close}}`)
+                }}
+                setTimeout(() => {chart.id}.chart.subscribeCrosshairMove(checkMouseMove), 50)
+            }}
+            {chart.id}.chart.subscribeCrosshairMove(checkMouseMove)
+            '''),
+            wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg]))
+        self.click = JSEmitter(chart, f'click{chart.id}',
+            lambda o: chart.run_script(f'''
+            let checkClick = (param) => {{
+                {chart.id}.chart.unsubscribeClick(checkClick)
+                if (
+                    param.point === undefined ||
+                    !param.time ||
+                    param.point.x < 0 ||
+                    param.point.y < 0
+                ) {{
+                    window.callbackFunction(`click{chart.id}_~_${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}}`)
+                }} else {{
+                let x = param.point.x;
+                let dateStr = param.time;
+                let data = param.seriesData.get({chart.id}.series);
+                let open = data.open;
+                let high = data.high;
+                let low = data.low;
+                let close = data.close;
+                window.callbackFunction(`click{chart.id}_~_${{x}};;;${{dateStr}};;;${{open}};;;${{high}};;;${{low}};;;${{close}}`)
+                }}
+                setTimeout(() => {chart.id}.chart.subscribeClick(checkClick), 50)
+            }}
+            {chart.id}.chart.subscribeClick(checkClick)
+            '''),
+            wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg]))
 
