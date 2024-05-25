@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from base64 import b64decode
 from datetime import datetime
@@ -147,6 +148,7 @@ class SeriesCommon(Pane):
         self.num_decimals = 2
         self.offset = 0
         self.data = pd.DataFrame()
+        self.markers = {}
 
     def _set_interval(self, df: pd.DataFrame):
         if not pd.api.types.is_datetime64_any_dtype(df['time']):
@@ -245,6 +247,9 @@ class SeriesCommon(Pane):
         self._last_bar = series
         self.run_script(f'{self.id}.series.update({js_data(series)})')
 
+    def _update_markers(self):
+        self.run_script(f'{self.id}.series.setMarkers({json.dumps(list(self.markers.values()))})')
+
     def marker_list(self, markers: list):
         """
         Creates multiple markers.\n
@@ -258,16 +263,17 @@ class SeriesCommon(Pane):
         """
         markers = markers.copy()
         marker_ids = []
-        for i, marker in enumerate(markers):
-            markers[i]['time'] = self._single_datetime_format(markers[i]['time'])
-            markers[i]['position'] = marker_position(markers[i]['position'])
-            markers[i]['shape'] = marker_shape(markers[i]['shape'])
-            markers[i]['id'] = self.win._id_gen.generate()
-            marker_ids.append(markers[i]['id'])
-        self.run_script(f"""
-            {self.id}.markers.push(...{markers})
-            {self.id}.series.setMarkers({self.id}.markers)
-        """)
+        for marker in markers:
+            marker_id = self.win._id_gen.generate()
+            self.markers[marker_id] = {
+                "time": self._single_datetime_format(marker['time']),
+                "position": marker_position(marker['position']),
+                "color": marker['color'],
+                "shape": marker_shape(marker['shape']),
+                "text": marker['text'],
+            }
+            marker_ids.append(marker_id)
+        self._update_markers()
         return marker_ids
 
     def marker(self, time: Optional[datetime] = None, position: MARKER_POSITION = 'below',
@@ -287,29 +293,23 @@ class SeriesCommon(Pane):
         except TypeError:
             raise TypeError('Chart marker created before data was set.')
         marker_id = self.win._id_gen.generate()
-        self.run_script(f"""
-            {self.id}.markers.push({{
-                time: {time if isinstance(formatted_time, float) else f"'{formatted_time}'"},
-                position: '{marker_position(position)}',
-                color: '{color}',
-                shape: '{marker_shape(shape)}',
-                text: '{text}',
-                id: '{marker_id}'
-                }});
-            {self.id}.series.setMarkers({self.id}.markers)""")
+
+        self.markers[marker_id] = {
+            "time": formatted_time,
+            "position": marker_position(position),
+            "color": color,
+            "shape": marker_shape(shape),
+            "text": text,
+        }
+        self._update_markers()
         return marker_id
 
     def remove_marker(self, marker_id: str):
         """
         Removes the marker with the given id.\n
         """
-        self.run_script(f'''
-           {self.id}.markers.forEach(function (marker) {{
-               if ('{marker_id}' === marker.id) {{
-                   {self.id}.markers.splice({self.id}.markers.indexOf(marker), 1)
-                   {self.id}.series.setMarkers({self.id}.markers)
-                   }}
-            }});''')
+        self.markers.pop(marker_id)
+        self._update_markers()
 
     def horizontal_line(self, price: NUM, color: str = 'rgb(122, 146, 202)', width: int = 2,
                         style: LINE_STYLE = 'solid', text: str = '', axis_label_visible: bool = True,
@@ -333,7 +333,7 @@ class SeriesCommon(Pane):
         """
         Clears the markers displayed on the data.\n
         """
-        self.run_script(f'''{self.id}.markers = []; {self.id}.series.setMarkers([])''')
+        self.markers.clear()
 
     # def clear_horizontal_lines(self):
     #     """
@@ -464,8 +464,6 @@ class Histogram(SeriesCommon):
                 priceScaleId: '{self.id}',
                 priceFormat: {{type: "volume"}},
             }}),
-            markers: [],
-            horizontal_lines: [],
             name: '{name}',
             color: '{color}',
             precision: 2,
