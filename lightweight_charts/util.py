@@ -143,17 +143,18 @@ class Events:
             {chart.id}.search = Handler.makeSearchBox({chart.id})
             ''')
         )
-        self.range_change = JSEmitter(chart, f'range_change{chart.id}',
+        salt = chart.id[chart.id.index('.')+1:]
+        self.range_change = JSEmitter(chart, f'range_change{salt}',
             lambda o: chart.run_script(f'''
-            let checkLogicalRange = (logical) => {{
-                {chart.id}.chart.timeScale().unsubscribeVisibleLogicalRangeChange(checkLogicalRange)
+            let checkLogicalRange{salt} = (logical) => {{
+                {chart.id}.chart.timeScale().unsubscribeVisibleLogicalRangeChange(checkLogicalRange{salt})
                 
                 let barsInfo = {chart.id}.series.barsInLogicalRange(logical)
-                if (barsInfo) window.callbackFunction(`range_change{chart.id}_~_${{barsInfo.barsBefore}};;;${{barsInfo.barsAfter}}`)
+                if (barsInfo) window.callbackFunction(`range_change{salt}_~_${{barsInfo.barsBefore}};;;${{barsInfo.barsAfter}}`)
                     
-                setTimeout(() => {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange), 50)
+                setTimeout(() => {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange{salt}), 50)
             }}
-            {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange)
+            {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange{salt})
             '''),
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg])
         )
