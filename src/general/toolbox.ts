@@ -128,16 +128,6 @@ export class ToolBox {
         this.saveDrawings()
     }
 
-    // renderDrawings() {
-        // if (this.mouseDown) return
-        // this.drawings.forEach((item) => {
-        //     if ('price' in item) return
-        //     let startDate = Math.round(item.from[0]/this.chart.interval)*this.chart.interval
-        //     let endDate = Math.round(item.to[0]/this.chart.interval)*this.chart.interval
-        //     item.calculateAndSet(startDate, item.from[1], endDate, item.to[1])
-        // })
-    // }
-
     addNewDrawing(d: Drawing) {
         this._drawingTool.addNewDrawing(d);
     }

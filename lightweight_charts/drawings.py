@@ -114,7 +114,7 @@ class VerticalLine(Drawing):
         self.time = time
         self.run_script(f'''
 
-        {self.id} = new HorizontalLine(
+        {self.id} = new VerticalLine(
             {{time: {time}}},
             {{
                 lineColor: '{color}',

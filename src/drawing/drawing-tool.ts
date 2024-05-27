@@ -1,6 +1,7 @@
 import {
     IChartApi,
     ISeriesApi,
+    Logical,
     MouseEventParams,
     SeriesType,
 } from 'lightweight-charts';
@@ -62,6 +63,28 @@ export class DrawingTool {
         this._drawings = [];
     }
 
+    repositionOnTime() {
+        for (const drawing of this.drawings) {
+            const newPoints = []
+            for (const point of drawing.points) {
+                if (!point) {
+                    newPoints.push(point);
+                    continue;
+                }
+                const logical = point.time ? this._chart.timeScale()
+                    .coordinateToLogical(
+                        this._chart.timeScale().timeToCoordinate(point.time) || 0
+                    ) : point.logical;
+                newPoints.push({
+                    time: point.time,
+                    logical: logical as Logical,
+                    price: point.price,
+                })
+            }
+            drawing.updatePoints(...newPoints);
+        }
+    }
+
     private _onClick(param: MouseEventParams) {
         if (!this._isDrawing) return;
 
@@ -70,7 +93,7 @@ export class DrawingTool {
 
         if (this._activeDrawing == null) {
             if (this._drawingType == null) return;
-            // TODO this line wont work for horizontals ?
+
             this._activeDrawing = new this._drawingType(point, point);
             this._series.attachPrimitive(this._activeDrawing);
             if (this._drawingType == HorizontalLine) this._onClick(param);

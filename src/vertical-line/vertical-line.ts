@@ -31,6 +31,10 @@ export class VerticalLine extends Drawing {
         this.requestUpdate();
     }
 
+    get points() {
+        return [this._point];
+    }
+
     _moveToState(state: InteractionState) {
         switch(state) {
             case InteractionState.NONE:

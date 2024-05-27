@@ -120,7 +120,7 @@ class Window:
             )
         ''', run_last=True)
         return subchart
-    #TODO test func below with polygon and others
+
     def style(
         self,
         background_color: str = '#0c0d0f',
@@ -174,14 +174,6 @@ class SeriesCommon(Pane):
                 break
             self.offset = value
             break
-
-    def _push_to_legend(self):
-        return
-        #TODO you dont need this? All series should have a series row?
-        # self.run_script(f'''
-        # {self._chart.id}._seriesList.push({self.id})
-        # {self._chart.id}.legend.lines.push({self._chart.id}.legend.makeSeriesRow({self.id}))
-        # ''')
 
     @staticmethod
     def _format_labels(data, labels, index, exclude_lowercase):
@@ -319,30 +311,12 @@ class SeriesCommon(Pane):
         Creates a horizontal line at the given price.
         """
         return HorizontalLine(self, price, color, width, style, text, axis_label_visible, func)
-        # TODO should these methods be removed
-    # def remove_horizontal_line(self, price: NUM):
-    #     """
-    #     Removes a horizontal line at the given price.
-    #     """
-    #     self.run_script(f'''
-    #     {self.id}.horizontal_lines.forEach(function (line) {{
-    #         if ({price} === line._point.price) line.detach()
-    #     }})''')
 
     def clear_markers(self):
         """
         Clears the markers displayed on the data.\n
         """
         self.markers.clear()
-
-    # def clear_horizontal_lines(self):
-    #     """
-    #     Clears the horizontal lines displayed on the data.\n
-    #     """
-    #     self.run_script(f'''
-    #     {self.id}.horizontal_lines.forEach(function (line) {{{self.id}.series.removePriceLine(line.line);}});
-    #     {self.id}.horizontal_lines = [];
-    #     ''')
 
     def price_line(self, label_visible: bool = True, line_visible: bool = True, title: str = ''):
         self.run_script(f'''
@@ -517,8 +491,7 @@ class Candlestick(SeriesCommon):
         self._last_bar = df.iloc[-1]
 
         self.run_script(f'{self.id}.series.setData({js_data(df)})')
-        # TODO keep drawings doesnt do anything
-        self.run_script(f"if ({self._chart.id}.toolBox) {self._chart.id}.toolBox.clearDrawings()")
+
         if 'volume' not in df:
             return
         volume = df.drop(columns=['open', 'high', 'low', 'close']).rename(columns={'volume': 'value'})
@@ -535,6 +508,11 @@ class Candlestick(SeriesCommon):
             if (!{self.id}.chart.priceScale("right").options.autoScale)
                 {self.id}.chart.priceScale("right").applyOptions({{autoScale: true}})
         ''')
+        # TODO keep drawings doesn't work consistenly w
+        if keep_drawings:
+            self.run_script(f'{self._chart.id}.toolBox?._drawingTool.repositionOnTime()')
+        else:
+            self.run_script(f"{self._chart.id}.toolBox?.clearDrawings()")
 
     def update(self, series: pd.Series, _from_tick=False):
         """

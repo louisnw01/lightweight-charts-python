@@ -28,6 +28,10 @@ export class HorizontalLine extends Drawing {
         this._callbackName = callbackName;
     }
 
+    public get points() {
+        return [this._point];
+    }
+
     public updatePoints(...points: (Point | null)[]) {
         for (const p of points) if (p) this._point.price = p.price;
         this.requestUpdate();

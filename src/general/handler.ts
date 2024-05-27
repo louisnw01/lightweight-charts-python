@@ -52,7 +52,7 @@ export class Handler {
 
     public _seriesList: ISeriesApi<SeriesType>[] = [];
 
-    // TODO make some subcharts in the vite dev window and mess with the CSS to see if you can not need the position param. also see if you can remove resizing each time the window resizes?
+    // TODO find a better solution rather than the 'position' parameter
     constructor(
         chartId: string,
         innerWidth: number,
