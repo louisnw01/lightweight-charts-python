@@ -317,6 +317,7 @@ class SeriesCommon(Pane):
         Clears the markers displayed on the data.\n
         """
         self.markers.clear()
+        self._update_markers()
 
     def price_line(self, label_visible: bool = True, line_visible: bool = True, title: str = ''):
         self.run_script(f'''
