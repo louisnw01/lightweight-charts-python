@@ -159,4 +159,15 @@ class Events:
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg])
         )
 
-
+        self.click = JSEmitter(chart, f'subscribe_click{salt}',
+            lambda o: chart.run_script(f'''
+            let clickHandler{salt} = (param) => {{
+                if (!param.point) return;
+                const time = {chart.id}.chart.timeScale().coordinateToTime(param.point.x)
+                const price = {chart.id}.series.coordinateToPrice(param.point.y);
+                window.callbackFunction(`subscribe_click{salt}_~_${{time}};;;${{price}}`)
+            }}
+            {chart.id}.chart.subscribeClick(clickHandler{salt})
+            '''),
+            wrapper=lambda func, c, *args: func(c, *[float(a) for a in args])
+        )
