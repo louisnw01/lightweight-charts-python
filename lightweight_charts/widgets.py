@@ -61,44 +61,20 @@ def emit_callback(window, string):
 class WxChart(abstract.AbstractChart):
     def __init__(self, parent, inner_width: float = 1.0, inner_height: float = 1.0,
                  scale_candles_only: bool = False, toolbox: bool = False):
-
-        # this isn't available at the moment
-
-        raise ModuleNotFoundError('WxChart is not available in lightweight charts 2.0; please downgrade to an earlier version.')
-
-
         if wx is None:
             raise ModuleNotFoundError('wx.html2 was not found, and must be installed to use WxChart.')
         self.webview: wx.html2.WebView = wx.html2.WebView.New(parent)
         super().__init__(abstract.Window(self.webview.RunScript, 'window.wx_msg.postMessage.bind(window.wx_msg)'),
                          inner_width, inner_height, scale_candles_only, toolbox)
 
-        self.first = True
-        def on_load(e):
-            if self.first is True:
-                self.first = False
-                print("first")
-                return
-            print('second')
-            # wx.CallLater(2000, self.win.on_js_load)
-            # wx.CallLater(2000, self.webview.RunScript('alert(Object.keys(window))'))
-
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, on_load)
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self, e.GetString()))
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(500, self.win.on_js_load))
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self.win, e.GetString()))
         self.webview.AddScriptMessageHandler('wx_msg')
-
-        # with open(abstract.INDEX, 'r') as f:
-        #     html = f.read()
-        #     self.webview.SetPage(html,  '/Users/louis/Projects/lightweight-charts-python/lightweight_charts/js/')
-
 
         self.webview.LoadURL("file://"+abstract.INDEX)
 
-        with open('/Users/louis/Projects/lightweight-charts-python/lightweight_charts/js/bundle.js', 'r') as f:
-            self.webview.AddUserScript(f.read())
-        # self.webview.AddUserScript(abstract.JS['toolbox']) if toolbox else None
-
-    def get_webview(self): return self.webview
+    def get_webview(self):
+        return self.webview
 
 
 class QtChart(abstract.AbstractChart):
@@ -141,11 +117,6 @@ class StaticLWC(abstract.AbstractChart):
     def __init__(self, width=None, height=None, inner_width=1, inner_height=1,
                  scale_candles_only: bool = False, toolbox=False, autosize=True):
 
-
-        # this isn't available at the moment
-
-        raise ModuleNotFoundError('Streamlit & Jupyter Charts are unavailable in lightweight charts 2.0; please downgrade to an earlier version.')
-
         with open(abstract.INDEX.replace("test.html", 'styles.css'), 'r') as f:
             css = f.read()
         with open(abstract.INDEX.replace("test.html", 'bundle.js'), 'r') as f:
@@ -153,13 +124,12 @@ class StaticLWC(abstract.AbstractChart):
         with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r') as f:
             lwc = f.read()
 
-
-
         with open(abstract.INDEX, 'r') as f:
-            self._html = f.read().replace('</body>\n</html>', f'<script type="module">{lwc}</script><script type="module">{js}')
-            self._html = self._html.replace("</style>", f"{css}</style>")
-            self._html = self._html.replace('<script type="module" src="./bundle.js"></script>',
-                f'')
+            self._html = f.read() \
+                .replace('<link rel="stylesheet" href="styles.css">', f"<style>{css}</style>") \
+                .replace(' src="./lightweight-charts.js">', f'>{lwc}') \
+                .replace(' src="./bundle.js">', f'>{js}') \
+                .replace('</body>\n</html>', '<script>')
 
         super().__init__(abstract.Window(run_script=self.run_script), inner_width, inner_height,
                          scale_candles_only, toolbox, autosize)
@@ -196,6 +166,10 @@ class StreamlitChart(StaticLWC):
 class JupyterChart(StaticLWC):
     def __init__(self, width: int = 800, height=350, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox: bool = False):
         super().__init__(width, height, inner_width, inner_height, scale_candles_only, toolbox, False)
+
+        # this isn't available at the moment
+
+        raise ModuleNotFoundError('JupyterChart is unavailable in lightweight charts 2.0; please downgrade to an earlier version.')
 
         self.run_script(f'''
             for (var i = 0; i < document.getElementsByClassName("tv-lightweight-charts").length; i++) {{

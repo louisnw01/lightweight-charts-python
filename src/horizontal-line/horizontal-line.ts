@@ -82,7 +82,6 @@ export class HorizontalLine extends Drawing {
     protected _childHandleMouseUpInteraction = () => {
         this._handleMouseUpInteraction();
         if (!this._callbackName) return;
-        console.log(window.callbackFunction);
         window.callbackFunction(`${this._callbackName}_~_${this._point.price.toFixed(8)}`);
     }
 }

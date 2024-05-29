@@ -1,10 +1,3 @@
-import { Box } from "../box/box";
-import { HorizontalLine } from "../horizontal-line/horizontal-line";
-import { RayLine } from "../horizontal-line/ray-line";
-import { TrendLine } from "../trend-line/trend-line";
-import { VerticalLine } from "../vertical-line/vertical-line";
-import { Table } from "./table";
-
 export interface GlobalParams extends Window {
     pane: paneStyle;    // TODO shouldnt need this cause of css variables
     handlerInFocus: string;
@@ -12,15 +5,6 @@ export interface GlobalParams extends Window {
     containerDiv: HTMLElement;
     setCursor: Function;
     cursor: string;
-    Handler: any;
-    Table: typeof Table;
-
-    HorizontalLine: typeof HorizontalLine;
-    TrendLine: typeof TrendLine;
-    Box: typeof Box;
-    RayLine: typeof RayLine;
-    VerticalLine: typeof VerticalLine;
-
 }
 
 interface paneStyle {
@@ -57,13 +41,11 @@ export function globalParamInit() {
         document.body.style.cursor = window.cursor;
     }
     window.cursor = 'default';
-    window.Table = Table;
+}
 
-    window.HorizontalLine = HorizontalLine;
-    window.TrendLine = TrendLine;
-    window.Box = Box;
-    window.RayLine = RayLine;
-    window.VerticalLine = VerticalLine;
+export const setCursor = (type: string | undefined) => {
+    if (type) window.cursor = type;
+    document.body.style.cursor = window.cursor;
 }
 
 

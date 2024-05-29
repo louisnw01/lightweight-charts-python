@@ -1,4 +1,5 @@
 import { Drawing } from "../drawing/drawing";
+import { DrawingOptions } from "../drawing/options";
 import { GlobalParams } from "../general/global-params";
 
 declare const window: GlobalParams;
@@ -23,7 +24,7 @@ export class ColorPicker {
     private rgba: number[] | undefined;
 
     constructor(saveDrawings: Function,
-        private colorOption: string,
+        private colorOption: keyof DrawingOptions,
     ) {
         this.saveDrawings = saveDrawings
 
@@ -121,7 +122,9 @@ export class ColorPicker {
     }
     openMenu(rect: DOMRect) {
         if (!Drawing.lastHoveredObject) return;
-        this.rgba = ColorPicker.extractRGBA(Drawing.lastHoveredObject._options[this.colorOption])
+        this.rgba = ColorPicker.extractRGBA(
+            Drawing.lastHoveredObject._options[this.colorOption] as string
+        )
         this.opacity = this.rgba[3];
         this._updateOpacitySlider();
         this._div.style.top = (rect.top-30)+'px'

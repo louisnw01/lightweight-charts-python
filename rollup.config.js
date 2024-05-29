@@ -3,10 +3,14 @@ import terser from '@rollup/plugin-terser';
 
 export default [
   {
-    input: 'src/general/handler.ts',
+    input: 'src/index.ts',
     output: {
       file: 'dist/bundle.js',
-      format: 'es',
+      format: 'iife',
+      name: 'Lib',
+      globals: {
+        'lightweight-charts': 'LightweightCharts'
+      },
     },
     external: ['lightweight-charts'],
     plugins: [

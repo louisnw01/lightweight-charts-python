@@ -113,7 +113,7 @@ class Window:
         if not sync_id:
             return subchart
         self.run_script(f'''
-            Handler.syncCharts(
+            Lib.Handler.syncCharts(
                 {subchart.id},
                 {sync_id},
                 {jbool(sync_crosshairs_only)}
@@ -132,7 +132,7 @@ class Window:
         color: str = '#d8d9db',
         active_color: str = '#ececed'
     ):
-        self.run_script(f'Handler.setRootStyles({js_json(locals())});')
+        self.run_script(f'Lib.Handler.setRootStyles({js_json(locals())});')
 
 
 class SeriesCommon(Pane):
@@ -643,7 +643,7 @@ class AbstractChart(Candlestick, Pane):
         self.polygon: PolygonAPI = PolygonAPI(self)
 
         self.run_script(
-            f'{self.id} = new Handler("{self.id}", {width}, {height}, "{position}", {jbool(autosize)})')
+            f'{self.id} = new Lib.Handler("{self.id}", {width}, {height}, "{position}", {jbool(autosize)})')
 
         Candlestick.__init__(self, self)
 
@@ -666,7 +666,8 @@ class AbstractChart(Candlestick, Pane):
         Creates and returns a Line object.
         """
         self._lines.append(Line(self, name, color, style, width, price_line, price_label))
-        self._lines[-1]._push_to_legend()
+        # TODO check legend still works without this
+        # self._lines[-1]._push_to_legend()
         return self._lines[-1]
 
     def create_histogram(
@@ -680,7 +681,7 @@ class AbstractChart(Candlestick, Pane):
         histogram = Histogram(
             self, name, color, price_line, price_label,
             scale_margin_top, scale_margin_bottom)
-        histogram._push_to_legend()
+        # histogram._push_to_legend()
         return histogram
 
     def lines(self) -> List[Line]:

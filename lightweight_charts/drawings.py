@@ -54,7 +54,7 @@ class TwoPointDrawing(Drawing):
         options_string = '\n'.join(f'{key}: {val},' for key, val in options.items())
 
         self.run_script(f'''
-        {self.id} = new {drawing_type}(
+        {self.id} = new Lib.{drawing_type}(
             {make_js_point(start_time, start_value)},
             {make_js_point(end_time, end_value)},
             {{
@@ -71,7 +71,7 @@ class HorizontalLine(Drawing):
         self.price = price
         self.run_script(f'''
 
-        {self.id} = new HorizontalLine(
+        {self.id} = new Lib.HorizontalLine(
             {{price: {price}}},
             {{
                 lineColor: '{color}',
@@ -114,7 +114,7 @@ class VerticalLine(Drawing):
         self.time = time
         self.run_script(f'''
 
-        {self.id} = new VerticalLine(
+        {self.id} = new Lib.VerticalLine(
             {{time: {time}}},
             {{
                 lineColor: '{color}',

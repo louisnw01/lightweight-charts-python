@@ -97,7 +97,7 @@ class Table(Pane, dict):
         self.return_clicked_cells = return_clicked_cells
 
         self.run_script(f'''
-        {self.id} = new Table(
+        {self.id} = new Lib.Table(
             {width},
             {height},
             {list(headings)},

@@ -1,5 +1,6 @@
 import { Drawing } from "../drawing/drawing";
 import { DrawingTool } from "../drawing/drawing-tool";
+import { DrawingOptions } from "../drawing/options";
 import { GlobalParams } from "../general/global-params";
 import { ColorPicker } from "./color-picker";
 import { StylePicker } from "./style-picker";
@@ -64,7 +65,7 @@ export class ContextMenu {
         for (const optionName of Object.keys(Drawing.hoveredObject._options)) {
             let subMenu;
             if (optionName.toLowerCase().includes('color')) {
-                subMenu = new ColorPicker(this.saveDrawings, optionName);
+                subMenu = new ColorPicker(this.saveDrawings, optionName as keyof DrawingOptions);
             } else if (optionName === 'lineStyle') {
                 subMenu = new StylePicker(this.saveDrawings)
             } else continue;

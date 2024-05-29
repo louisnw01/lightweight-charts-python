@@ -139,8 +139,8 @@ class Events:
         self.new_bar = Emitter()
         self.search = JSEmitter(chart, f'search{chart.id}',
             lambda o: chart.run_script(f'''
-            Handler.makeSpinner({chart.id})
-            {chart.id}.search = Handler.makeSearchBox({chart.id})
+            Lib.Handler.makeSpinner({chart.id})
+            {chart.id}.search = Lib.Handler.makeSearchBox({chart.id})
             ''')
         )
         salt = chart.id[chart.id.index('.')+1:]

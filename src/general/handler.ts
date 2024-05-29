@@ -308,13 +308,9 @@ export class Handler {
         chart.div.appendChild(searchWindow);
 
         chart.commandFunctions.push((event: KeyboardEvent) => {
-            console.log('1')
             if (window.handlerInFocus !== chart.id) return false
-            console.log(searchWindow.style)
             if (searchWindow.style.display === 'none') {
-                console.log('3')
                 if (/^[a-zA-Z0-9]$/.test(event.key)) {
-                    console.log('4')
                     searchWindow.style.display = 'flex';
                     sBox.focus();
                     return true
@@ -370,5 +366,3 @@ export class Handler {
         }
     }
 }
-
-window.Handler = Handler;
