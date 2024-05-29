@@ -36,7 +36,7 @@ def on_timeframe_selection(chart):
     if new_data.empty:
         return
     # The symbol has not changed, so we want to re-render the drawings.
-    chart.set(new_data, render_drawings=True)  
+    chart.set(new_data, keep_drawings=True)
 
 
 if __name__ == '__main__':
