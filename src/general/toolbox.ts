@@ -140,6 +140,7 @@ export class ToolBox {
         const drawingMeta = []
         for (const d of this._drawingTool.drawings) {
             drawingMeta.push({
+                type: d._type,
                 points: d.points,
                 options: d._options
             });

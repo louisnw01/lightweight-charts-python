@@ -73,19 +73,29 @@ class WxChart(abstract.AbstractChart):
         super().__init__(abstract.Window(self.webview.RunScript, 'window.wx_msg.postMessage.bind(window.wx_msg)'),
                          inner_width, inner_height, scale_candles_only, toolbox)
 
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(1000, self.win.on_js_load))
+        self.first = True
+        def on_load(e):
+            if self.first is True:
+                self.first = False
+                print("first")
+                return
+            print('second')
+            # wx.CallLater(2000, self.win.on_js_load)
+            # wx.CallLater(2000, self.webview.RunScript('alert(Object.keys(window))'))
+
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, on_load)
         self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self, e.GetString()))
         self.webview.AddScriptMessageHandler('wx_msg')
-
-        self.webview.LoadURL(f'file:///{abstract.INDEX}')
 
         # with open(abstract.INDEX, 'r') as f:
         #     html = f.read()
         #     self.webview.SetPage(html,  '/Users/louis/Projects/lightweight-charts-python/lightweight_charts/js/')
 
 
-        # with open('/Users/louis/Projects/lightweight-charts-python/lightweight_charts/js/bundle.js', 'r') as f:
-            # self.webview.AddUserScript(f.read())
+        self.webview.LoadURL("file://"+abstract.INDEX)
+
+        with open('/Users/louis/Projects/lightweight-charts-python/lightweight_charts/js/bundle.js', 'r') as f:
+            self.webview.AddUserScript(f.read())
         # self.webview.AddUserScript(abstract.JS['toolbox']) if toolbox else None
 
     def get_webview(self): return self.webview

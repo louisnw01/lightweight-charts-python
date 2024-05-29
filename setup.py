@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='lightweight_charts',
-    version='1.0.20',
+    version='2.0',
     packages=find_packages(),
     python_requires='>=3.8',
     install_requires=[
@@ -13,7 +13,7 @@ setup(
         'pywebview>=5.0.5',
     ],
     package_data={
-        'lightweight_charts': ['js/*.js'],
+        'lightweight_charts': ['js/*'],
     },
     author='louisnw',
     license='MIT',
