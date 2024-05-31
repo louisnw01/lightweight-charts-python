@@ -147,6 +147,36 @@ class VerticalLine(Drawing):
         self.run_script(f'{self.id}.applyOptions({{text: `{text}`}})')
 
 
+class RayLine(Drawing):
+    def __init__(self,
+        chart,
+        start_time: TIME,
+        value: NUM,
+        round: bool = False,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE = 'solid',
+        text: str = '',
+        func = None,
+    ):
+        super().__init__(chart, func)
+        self.run_script(f'''
+        {self.id} = new Lib.RayLine(
+            {{time: {self.chart._single_datetime_format(start_time)}, price: {value}}},
+            {{
+                lineColor: '{color}',
+                lineStyle: {as_enum(style, LINE_STYLE)},
+                width: {width},
+                text: `{text}`,
+            }},
+            callbackName={f"'{self.id}'" if func else 'null'}
+        )
+        {chart.id}.series.attachPrimitive({self.id})
+        ''')
+
+
+
+
 class Box(TwoPointDrawing):
     def __init__(self,
         chart,

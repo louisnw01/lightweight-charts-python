@@ -10,7 +10,7 @@ export class RayLine extends HorizontalLine {
     _type = 'RayLine';
 
     constructor(point: Point, options: DeepPartial<DrawingOptions>) {
-        super(point, options);
+        super({...point}, options);
         this._point.time = point.time;
     }
 

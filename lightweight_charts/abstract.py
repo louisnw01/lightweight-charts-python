@@ -8,7 +8,7 @@ import pandas as pd
 
 from .table import Table
 from .toolbox import ToolBox
-from .drawings import Box, HorizontalLine, TrendLine, TwoPointDrawing, VerticalLine, VerticalSpan
+from .drawings import Box, HorizontalLine, RayLine, TrendLine, TwoPointDrawing, VerticalLine, VerticalSpan
 from .topbar import TopBar
 from .util import (
     BulkRunScript, Pane, Events, IDGen, as_enum, jbool, js_json, TIME, NUM, FLOAT,
@@ -680,11 +680,9 @@ class AbstractChart(Candlestick, Pane):
         """
         Creates and returns a Histogram object.
         """
-        histogram = Histogram(
+        return Histogram(
             self, name, color, price_line, price_label,
             scale_margin_top, scale_margin_bottom)
-        # histogram._push_to_legend()
-        return histogram
 
     def lines(self) -> List[Line]:
         """
@@ -726,11 +724,11 @@ class AbstractChart(Candlestick, Pane):
         round: bool = False,
         color: str = '#1E80F0',
         width: int = 2,
-        style: LINE_STYLE = 'solid'
-    ) -> Line:
+        style: LINE_STYLE = 'solid',
+        text: str = ''
+    ) -> RayLine:
     # TODO
-        line = RayLine(self, '', color, style, width, False, False, False)
-        return line
+        return RayLine(*locals().values())
 
     def vertical_line(
         self,
