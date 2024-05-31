@@ -11,7 +11,7 @@ from .toolbox import ToolBox
 from .drawings import Box, HorizontalLine, TrendLine, TwoPointDrawing, VerticalSpan
 from .topbar import TopBar
 from .util import (
-    Pane, Events, IDGen, as_enum, jbool, js_json, TIME, NUM, FLOAT,
+    BulkRunScript, Pane, Events, IDGen, as_enum, jbool, js_json, TIME, NUM, FLOAT,
     LINE_STYLE, MARKER_POSITION, MARKER_SHAPE, CROSSHAIR_MODE,
     PRICE_SCALE_MODE, marker_position, marker_shape, js_data,
 )
@@ -34,6 +34,7 @@ class Window:
         self.script_func = script_func
         self.scripts = []
         self.final_scripts = []
+        self.bulk_run = BulkRunScript(script_func)
 
         if run_script:
             self.run_script = run_script
@@ -63,7 +64,10 @@ class Window:
         if self.script_func is None:
             raise AttributeError("script_func has not been set")
         if self.loaded:
-            self.script_func(script)
+            if self.bulk_run.enabled:
+                self.bulk_run.add_script(script)
+            else:
+                self.script_func(script)
         elif run_last:
             self.final_scripts.append(script)
         else:
@@ -666,8 +670,6 @@ class AbstractChart(Candlestick, Pane):
         Creates and returns a Line object.
         """
         self._lines.append(Line(self, name, color, style, width, price_line, price_label))
-        # TODO check legend still works without this
-        # self._lines[-1]._push_to_legend()
         return self._lines[-1]
 
     def create_histogram(

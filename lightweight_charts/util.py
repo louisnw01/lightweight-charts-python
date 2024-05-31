@@ -12,6 +12,7 @@ class Pane:
         from lightweight_charts import Window
         self.win: Window = window
         self.run_script = window.run_script
+        self.bulk_run = window.bulk_run
         if hasattr(self, 'id'):
             return
         self.id = Window._id_gen.generate()
@@ -171,3 +172,20 @@ class Events:
             '''),
             wrapper=lambda func, c, *args: func(c, *[float(a) for a in args])
         )
+
+class BulkRunScript:
+    def __init__(self, script_func):
+        self.enabled = False
+        self.scripts = []
+        self.script_func = script_func
+
+    def __enter__(self):
+        self.enabled = True
+
+    def __exit__(self, *args):
+        self.enabled = False
+        self.script_func('\n'.join(self.scripts))
+        self.scripts = []
+
+    def add_script(self, script):
+        self.scripts.append(script)
