@@ -29,7 +29,7 @@ export class Legend {
         this.legendHandler = this.legendHandler.bind(this)
 
         this.handler = handler;
-        this.ohlcEnabled = true;
+        this.ohlcEnabled = false;
         this.percentEnabled = false
         this.linesEnabled = false
         this.colorBasedOnCandle = false

@@ -16,7 +16,7 @@ export class VerticalLinePaneView extends DrawingPaneView {
         const point = this._source._point;
         const timeScale = this._source.chart.timeScale()
         const series = this._source.series;
-        this._point.x = timeScale.logicalToCoordinate(point.logical)
+        this._point.x = point.time ? timeScale.timeToCoordinate(point.time) : timeScale.logicalToCoordinate(point.logical)
         this._point.y = series.priceToCoordinate(point.price);
     }
 

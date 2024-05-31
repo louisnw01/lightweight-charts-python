@@ -7,6 +7,7 @@ import { Drawing, InteractionState } from "../drawing/drawing";
 import { DrawingOptions } from "../drawing/options";
 import { HorizontalLinePaneView } from "./pane-view";
 import { GlobalParams } from "../general/global-params";
+import { HorizontalLineAxisView } from "./axis-view";
 
 
 declare const window: GlobalParams;
@@ -16,6 +17,7 @@ export class HorizontalLine extends Drawing {
     _paneViews: HorizontalLinePaneView[];
     _point: Point;
     private _callbackName: string | null;
+    _priceAxisViews: HorizontalLineAxisView[];
 
     protected _startDragPoint: Point | null = null;
 
@@ -24,6 +26,7 @@ export class HorizontalLine extends Drawing {
         this._point = point;
         this._point.time = null;    // time is null for horizontal lines
         this._paneViews = [new HorizontalLinePaneView(this)];
+        this._priceAxisViews = [new HorizontalLineAxisView(this)];
 
         this._callbackName = callbackName;
     }
@@ -35,6 +38,15 @@ export class HorizontalLine extends Drawing {
     public updatePoints(...points: (Point | null)[]) {
         for (const p of points) if (p) this._point.price = p.price;
         this.requestUpdate();
+    }
+
+    updateAllViews() {
+        this._paneViews.forEach((pw) => pw.update());
+        this._priceAxisViews.forEach((tw) => tw.update());
+    }
+
+    priceAxisViews() {
+        return this._priceAxisViews;
     }
 
     _moveToState(state: InteractionState) {

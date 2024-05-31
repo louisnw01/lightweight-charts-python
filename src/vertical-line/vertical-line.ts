@@ -7,6 +7,7 @@ import { Drawing, InteractionState } from "../drawing/drawing";
 import { DrawingOptions } from "../drawing/options";
 import { VerticalLinePaneView } from "./pane-view";
 import { GlobalParams } from "../general/global-params";
+import { VerticalLineTimeAxisView } from "./axis-view";
 
 
 declare const window: GlobalParams;
@@ -14,6 +15,7 @@ declare const window: GlobalParams;
 export class VerticalLine extends Drawing {
     _type = 'VerticalLine';
     _paneViews: VerticalLinePaneView[];
+    _timeAxisViews: VerticalLineTimeAxisView[];
     _point: Point;
     private _callbackName: string | null;
 
@@ -24,10 +26,27 @@ export class VerticalLine extends Drawing {
         this._point = point;
         this._paneViews = [new VerticalLinePaneView(this)];
         this._callbackName = callbackName;
+
+        this._timeAxisViews = [new VerticalLineTimeAxisView(this)]
+    }
+
+    updateAllViews() {
+        this._paneViews.forEach(pw => pw.update());
+        this._timeAxisViews.forEach(tw => tw.update());
+    }
+
+    timeAxisViews() {
+        return this._timeAxisViews;
     }
 
     public updatePoints(...points: (Point | null)[]) {
-        for (const p of points) if (p) this._point = p;
+        for (const p of points) {
+            if (!p) continue;
+            if (!p.time && p.logical) {
+                p.time = this.series.dataByIndex(p.logical)?.time || null
+            }
+            this._point = p;
+        }
         this.requestUpdate();
     }
 

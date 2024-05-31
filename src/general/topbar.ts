@@ -1,5 +1,6 @@
 import { GlobalParams } from "./global-params";
 import { Handler } from "./handler";
+import { Menu } from "./menu";
 
 declare const window: GlobalParams
 
@@ -85,44 +86,11 @@ export class TopBar {
         return textBox
     }
 
-    makeMenu(items: string[], activeItem: string, separator: boolean, callbackName: string, align='right') {
-        let menu = document.createElement('div')
-        menu.classList.add('topbar-menu');
-
-        let menuOpen = false;
-        items.forEach(text => {
-            let button = this.makeButton(text, null, false, false)
-            button.elem.addEventListener('click', () => {
-                widget.elem.innerText = button.elem.innerText+' ↓'
-                window.callbackFunction(`${callbackName}_~_${button.elem.innerText}`)
-                menu.style.display = 'none'
-                menuOpen = false
-            });
-            button.elem.style.margin = '4px 4px'
-            button.elem.style.padding = '2px 2px'
-            menu.appendChild(button.elem)
-        })
-        let widget =
-            this.makeButton(activeItem+' ↓', null, separator, true, align)
-
-        widget.elem.addEventListener('click', () => {
-            menuOpen = !menuOpen
-            if (!menuOpen) {
-                menu.style.display = 'none';
-                return;
-            }
-            let rect = widget.elem.getBoundingClientRect()
-            menu.style.display = 'flex'
-            menu.style.flexDirection = 'column'
-
-            let center = rect.x+(rect.width/2)
-            menu.style.left = center-(menu.clientWidth/2)+'px'
-            menu.style.top = rect.y+rect.height+'px'
-        })
-        document.body.appendChild(menu)
+    makeMenu(items: string[], activeItem: string, separator: boolean, callbackName: string, align: 'right'|'left') {
+        return new Menu(this.makeButton.bind(this), callbackName, items, activeItem, separator, align)
     }
 
-    makeButton(defaultText: string, callbackName: string | null, separator: boolean, append=true, align='left') {
+    makeButton(defaultText: string, callbackName: string | null, separator: boolean, append=true, align='left', toggle=false) {
         let button = document.createElement('button')
         button.classList.add('topbar-button');
         // button.style.color = window.pane.color
@@ -137,7 +105,19 @@ export class TopBar {
         }
 
         if (callbackName) {
-            button.addEventListener('click', () => window.callbackFunction(`${widget.callbackName}_~_${button.innerText}`));
+            let handler;
+            if (toggle) {
+                let state = false;
+                handler = () => {
+                    state = !state
+                    window.callbackFunction(`${widget.callbackName}_~_${state}`)
+                    button.style.backgroundColor = state ? 'var(--active-bg-color)' : '';
+                    button.style.color = state ? 'var(--active-color)' : '';
+                }
+            } else {
+                handler = () => window.callbackFunction(`${widget.callbackName}_~_${button.innerText}`)
+            }
+            button.addEventListener('click', handler);
         }
         if (append) this.appendWidget(button, align, separator)
         return widget

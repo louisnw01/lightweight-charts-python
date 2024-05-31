@@ -8,7 +8,7 @@ import pandas as pd
 
 from .table import Table
 from .toolbox import ToolBox
-from .drawings import Box, HorizontalLine, TrendLine, TwoPointDrawing, VerticalSpan
+from .drawings import Box, HorizontalLine, TrendLine, TwoPointDrawing, VerticalLine, VerticalSpan
 from .topbar import TopBar
 from .util import (
     BulkRunScript, Pane, Events, IDGen, as_enum, jbool, js_json, TIME, NUM, FLOAT,
@@ -728,9 +728,19 @@ class AbstractChart(Candlestick, Pane):
         width: int = 2,
         style: LINE_STYLE = 'solid'
     ) -> Line:
-        line = Line(self, '', color, style, width, False, False, False)
-        line._set_trend(start_time, value, start_time, value, ray=True, round=round)
+    # TODO
+        line = RayLine(self, '', color, style, width, False, False, False)
         return line
+
+    def vertical_line(
+        self,
+        time: TIME,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE ='solid',
+        text: str = ''
+    ) -> VerticalLine:
+        return VerticalLine(*locals().values())
 
     def set_visible_range(self, start_time: TIME, end_time: TIME):
         self.run_script(f'''

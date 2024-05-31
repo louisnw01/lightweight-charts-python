@@ -24,6 +24,13 @@ class Drawing(Pane):
         """
         self.run_script(f'{self.id}.detach()')
 
+    def options(self, color='#1E80F0', style='solid', width=4):
+        self.run_script(f'''{self.id}.applyOptions({{
+            lineColor: '{color}',
+            lineStyle: {as_enum(style, LINE_STYLE)},
+            width: {width},
+        }})''')
+
 class TwoPointDrawing(Drawing):
     def __init__(
         self,
@@ -76,6 +83,8 @@ class HorizontalLine(Drawing):
             {{
                 lineColor: '{color}',
                 lineStyle: {as_enum(style, LINE_STYLE)},
+                width: {width},
+                text: `{text}`,
             }},
             callbackName={f"'{self.id}'" if func else 'null'}
         )
@@ -103,22 +112,25 @@ class HorizontalLine(Drawing):
         # self.run_script(f'{self.id}.updatePrice({price})')
         self.price = price
 
-    def label(self, text: str): # TODO
-        self.run_script(f'{self.id}.updateLabel("{text}")')
+    def options(self, color='#1E80F0', style='solid', width=4, text=''):
+        super().options(color, style, width)
+        self.run_script(f'{self.id}.applyOptions({{text: `{text}`}})')
 
 
 
 class VerticalLine(Drawing):
-    def __init__(self, chart, time, color, width, style, text, axis_label_visible, func):
+    def __init__(self, chart, time, color, width, style, text, func=None):
         super().__init__(chart, func)
         self.time = time
         self.run_script(f'''
 
         {self.id} = new Lib.VerticalLine(
-            {{time: {time}}},
+            {{time: {self.chart._single_datetime_format(time)}}},
             {{
                 lineColor: '{color}',
                 lineStyle: {as_enum(style, LINE_STYLE)},
+                width: {width},
+                text: `{text}`,
             }},
             callbackName={f"'{self.id}'" if func else 'null'}
         )
@@ -130,8 +142,9 @@ class VerticalLine(Drawing):
         # self.run_script(f'{self.id}.updatePrice({price})')
         self.price = price
 
-    def label(self, text: str): # TODO
-        self.run_script(f'{self.id}.updateLabel("{text}")')
+    def options(self, color='#1E80F0', style='solid', width=4, text=''):
+        super().options(color, style, width)
+        self.run_script(f'{self.id}.applyOptions({{text: `{text}`}})')
 
 
 class Box(TwoPointDrawing):
@@ -188,13 +201,14 @@ class TrendLine(TwoPointDrawing):
             end_value,
             round,
             {
-                "lineColor": f'"line_color"',
+                "lineColor": f'"{line_color}"',
                 "width": width,
                 "lineStyle": as_enum(style, LINE_STYLE)
             },
             func
         )
 
+# TODO reimplement/fix
 class VerticalSpan(Pane):
     def __init__(self, series: 'SeriesCommon', start_time: Union[TIME, tuple, list], end_time: Optional[TIME] = None,
                  color: str = 'rgba(252, 219, 3, 0.2)'):
