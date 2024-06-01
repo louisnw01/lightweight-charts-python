@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Union
+from typing import Union, Optional, Callable
 
 from .util import jbool, Pane, NUM
 
@@ -11,8 +11,8 @@ class Section(Pane):
         self._table = table
         self.type = section_type
 
-    def __call__(self, number_of_text_boxes: int, func: callable = None):
-        if func:
+    def __call__(self, number_of_text_boxes: int, func: Optional[Callable] = None):
+        if func is not None:
             self.win.handlers[self.id] = lambda boxId: func(self._table, int(boxId))
         self.run_script(f'''
         {self._table.id}.makeSection("{self.id}", "{self.type}", {number_of_text_boxes}, {"true" if func else ""})
@@ -35,7 +35,8 @@ class Row(dict):
 
     def __setitem__(self, column, value):
         if isinstance(column, tuple):
-            return [self.__setitem__(col, val) for col, val in zip(column, value)]
+            [self.__setitem__(col, val) for col, val in zip(column, value)]
+            return
         original_value = value
         if column in self._table._formatters:
             value = self._table._formatters[column].replace(self._table.VALUE, str(value))
@@ -47,23 +48,33 @@ class Row(dict):
     def text_color(self, column, color): self._style('textColor', column, color)
 
     def _style(self, style, column, arg):
-        self.run_script(f"{self._table.id}.rows[{self.id}]['{column}'].style.{style} = '{arg}'")
+        self.run_script(f"{self._table.id}.styleCell({self.id}, '{column}', '{style}', '{arg}')")
 
     def delete(self):
         self.run_script(f"{self._table.id}.deleteRow('{self.id}')")
         self._table.pop(self.id)
-
+        
 
 class Table(Pane, dict):
     VALUE = 'CELL__~__VALUE__~__PLACEHOLDER'
 
     def __init__(
-            self, window, width: NUM, height: NUM, headings: tuple, widths: tuple = None,
-            alignments: tuple = None, position='left', draggable: bool = False,
-            background_color: str = '#121417', border_color: str = 'rgb(70, 70, 70)',
-            border_width: int = 1, heading_text_colors: tuple = None,
-            heading_background_colors: tuple = None, return_clicked_cells: bool = False,
-            func: callable = None
+            self,
+            window,
+            width: NUM,
+            height: NUM,
+            headings: tuple,
+            widths: Optional[tuple] = None,
+            alignments: Optional[tuple] = None,
+            position='left',
+            draggable: bool = False,
+            background_color: str = '#121417',
+            border_color: str = 'rgb(70, 70, 70)',
+            border_width: int = 1,
+            heading_text_colors: Optional[tuple] = None,
+            heading_background_colors: Optional[tuple] = None,
+            return_clicked_cells: bool = False,
+            func: Optional[Callable] = None
     ):
         dict.__init__(self)
         Pane.__init__(self, window)
@@ -85,17 +96,20 @@ class Table(Pane, dict):
         self.win.handlers[self.id] = async_wrapper if asyncio.iscoroutinefunction(func) else wrapper
         self.return_clicked_cells = return_clicked_cells
 
-        headings = list(headings)
-        widths = list(widths) if widths else []
-        alignments = list(alignments) if alignments else []
-        heading_text_colors = list(heading_text_colors) if heading_text_colors else []
-        heading_background_colors = list(heading_background_colors) if heading_background_colors else []
-
         self.run_script(f'''
-        {self.id} = new Table(
-        {width}, {height}, {headings}, {widths}, {alignments}, '{position}', {jbool(draggable)},
-        '{background_color}', '{border_color}', {border_width}, {heading_text_colors},
-        {heading_background_colors} 
+        {self.id} = new Lib.Table(
+            {width},
+            {height},
+            {list(headings)},
+            {list(widths) if widths else []},
+            {list(alignments) if alignments else []},
+            '{position}',
+            {jbool(draggable)},
+            '{background_color}',
+            '{border_color}',
+            {border_width},
+            {list(heading_text_colors) if heading_text_colors else []},
+            {list(heading_background_colors) if heading_background_colors else []}
         )''')
         self.run_script(f'{self.id}.callbackName = "{self.id}"') if func else None
         self.footer = Section(self, 'footer')
