@@ -78,12 +78,33 @@ export class TopBar {
         return widget
     }
 
-    makeTextBoxWidget(text: string, align='left') {
-        const textBox = document.createElement('div');
-        textBox.classList.add('topbar-textbox');
-        textBox.innerText = text
-        this.appendWidget(textBox, align, true)
-        return textBox
+    makeTextBoxWidget(text: string, align='left', callbackName=null) {
+        if (callbackName) {
+            const textBox = document.createElement('input');
+            textBox.classList.add('topbar-textbox-input');
+            textBox.value = text
+            textBox.style.width = `${(textBox.value.length+2)}ch`
+            textBox.addEventListener('input', (e) => {
+                textBox.style.width = `${(textBox.value.length+2)}ch`;
+            });
+            textBox.addEventListener('keydown', (e) => {
+                if (e.key == 'Enter') {
+                    e.preventDefault();
+                    textBox.blur();
+                }
+            });
+            textBox.addEventListener('blur', () => {
+                window.callbackFunction(`${callbackName}_~_${textBox.value}`)
+            });
+            this.appendWidget(textBox, align, true)
+            return textBox
+        } else {
+            const textBox = document.createElement('div');
+            textBox.classList.add('topbar-textbox');
+            textBox.innerText = text
+            this.appendWidget(textBox, align, true)
+            return textBox
+        }
     }
 
     makeMenu(items: string[], activeItem: string, separator: boolean, callbackName: string, align: 'right'|'left') {

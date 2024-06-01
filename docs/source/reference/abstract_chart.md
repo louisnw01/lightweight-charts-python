@@ -20,6 +20,8 @@ Time can be given in the index rather than a column, and volume can be omitted i
 If `keep_drawings` is `True`, any drawings made using the `toolbox` will be redrawn with the new data. This is designed to be used when switching to a different timeframe of the same symbol.
 
 `None` can also be given, which will erase all candle and volume data displayed on the chart.
+
+You can also add columns to color the candles (https://tradingview.github.io/lightweight-charts/tutorials/customization/data-points)
 ```
 
 

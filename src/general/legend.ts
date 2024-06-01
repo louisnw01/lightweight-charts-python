@@ -37,6 +37,7 @@ export class Legend {
         this.div = document.createElement('div');
         this.div.classList.add('legend');
         this.div.style.maxWidth = `${(handler.scale.width * 100) - 8}vw`
+        this.div.style.display = 'none';
 
         this.text = document.createElement('span')
         this.text.style.lineHeight = '1.8'

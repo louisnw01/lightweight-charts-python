@@ -106,13 +106,13 @@ export class Handler {
         
         // TODO definitely a better way to do this
         if (this.scale.height === 0 || this.scale.width === 0) {
-            this.legend.div.style.display = 'none'
+            // if (this.legend.div.style.display == 'flex') this.legend.div.style.display = 'none'
             if (this.toolBox) {
                 this.toolBox.div.style.display = 'none'
             }
         }
         else {
-            this.legend.div.style.display = 'flex'
+            // this.legend.div.style.display = 'flex'
             if (this.toolBox) {
                 this.toolBox.div.style.display = 'flex'
             }

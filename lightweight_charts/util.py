@@ -39,7 +39,7 @@ def parse_event_message(window, string):
 def js_data(data: Union[pd.DataFrame, pd.Series]):
     if isinstance(data, pd.DataFrame):
         d = data.to_dict(orient='records')
-        filtered_records = [{k: v for k, v in record.items() if v is not None} for record in d]
+        filtered_records = [{k: v for k, v in record.items() if v is not None and not pd.isna(v)} for record in d]
     else:
         d = data.to_dict()
         filtered_records = {k: v for k, v in d.items()}

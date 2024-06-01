@@ -145,6 +145,12 @@ body {
 	color: var(--color);
 }
 
+.topbar-textbox-input {
+	background-color: var(--bg-color);
+	color: var(--color);
+	border: 1px solid var(--color);
+}
+
 .topbar-menu {
 	position: absolute;
 	display: none;
@@ -214,7 +220,7 @@ body {
 	pointer-events: none;
 	top: 10px;
 	left: 10px;
-	display: flex;
+	display: none;
 	flex-direction: column;
 }
 .legend-toggle-switch {

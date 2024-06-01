@@ -316,6 +316,56 @@ class SeriesCommon(Pane):
         """
         return HorizontalLine(self, price, color, width, style, text, axis_label_visible, func)
 
+    def trend_line(
+        self,
+        start_time: TIME,
+        start_value: NUM,
+        end_time: TIME,
+        end_value: NUM,
+        round: bool = False,
+        line_color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE = 'solid',
+    ) -> TwoPointDrawing:
+        return TrendLine(*locals().values())
+
+    def box(
+        self,
+        start_time: TIME,
+        start_value: NUM,
+        end_time: TIME,
+        end_value: NUM,
+        round: bool = False,
+        color: str = '#1E80F0',
+        fill_color: str = 'rgba(255, 255, 255, 0.2)',
+        width: int = 2,
+        style: LINE_STYLE = 'solid',
+    ) -> TwoPointDrawing:
+        return Box(*locals().values())
+
+    def ray_line(
+        self,
+        start_time: TIME,
+        value: NUM,
+        round: bool = False,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE = 'solid',
+        text: str = ''
+    ) -> RayLine:
+    # TODO
+        return RayLine(*locals().values())
+
+    def vertical_line(
+        self,
+        time: TIME,
+        color: str = '#1E80F0',
+        width: int = 2,
+        style: LINE_STYLE ='solid',
+        text: str = ''
+    ) -> VerticalLine:
+        return VerticalLine(*locals().values())
+
     def clear_markers(self):
         """
         Clears the markers displayed on the data.\n
@@ -494,7 +544,6 @@ class Candlestick(SeriesCommon):
         df = self._df_datetime_format(df)
         self.candle_data = df.copy()
         self._last_bar = df.iloc[-1]
-
         self.run_script(f'{self.id}.series.setData({js_data(df)})')
 
         if 'volume' not in df:
@@ -690,56 +739,6 @@ class AbstractChart(Candlestick, Pane):
         """
         return self._lines.copy()
 
-    def trend_line(
-        self,
-        start_time: TIME,
-        start_value: NUM,
-        end_time: TIME,
-        end_value: NUM,
-        round: bool = False,
-        line_color: str = '#1E80F0',
-        width: int = 2,
-        style: LINE_STYLE = 'solid',
-    ) -> TwoPointDrawing:
-        return TrendLine(*locals().values())
-
-    def box(
-        self,
-        start_time: TIME,
-        start_value: NUM,
-        end_time: TIME,
-        end_value: NUM,
-        round: bool = False,
-        color: str = '#1E80F0',
-        fill_color: str = 'rgba(255, 255, 255, 0.2)',
-        width: int = 2,
-        style: LINE_STYLE = 'solid',
-    ) -> TwoPointDrawing:
-        return Box(*locals().values())
-
-    def ray_line(
-        self,
-        start_time: TIME,
-        value: NUM,
-        round: bool = False,
-        color: str = '#1E80F0',
-        width: int = 2,
-        style: LINE_STYLE = 'solid',
-        text: str = ''
-    ) -> RayLine:
-    # TODO
-        return RayLine(*locals().values())
-
-    def vertical_line(
-        self,
-        time: TIME,
-        color: str = '#1E80F0',
-        width: int = 2,
-        style: LINE_STYLE ='solid',
-        text: str = ''
-    ) -> VerticalLine:
-        return VerticalLine(*locals().values())
-
     def set_visible_range(self, start_time: TIME, end_time: TIME):
         self.run_script(f'''
         {self.id}.chart.timeScale().setVisibleRange({{
@@ -775,8 +774,14 @@ class AbstractChart(Candlestick, Pane):
         Global layout options for the chart.
         """
         self.run_script(f"""
-        document.getElementById('container').style.backgroundColor = '{background_color}'
-        {self.id}.chart.applyOptions({{ layout: {js_json(locals())} }})""")
+            document.getElementById('container').style.backgroundColor = '{background_color}'
+            {self.id}.chart.applyOptions({{
+            layout: {{
+                background: {{color: "{background_color}"}},
+                {f'textColor: "{text_color}",' if text_color else ''}
+                {f'fontSize: {font_size},' if font_size else ''}
+                {f'fontFamily: "{font_family}",' if font_family else ''}
+            }}}})""")
 
     def grid(self, vert_enabled: bool = True, horz_enabled: bool = True,
              color: str = 'rgba(29, 30, 38, 5)', style: LINE_STYLE = 'solid'):

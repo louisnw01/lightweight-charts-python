@@ -27,9 +27,12 @@ class Widget(Pane):
 
 
 class TextWidget(Widget):
-    def __init__(self, topbar, initial_text, align):
-        super().__init__(topbar, value=initial_text)
-        self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}")')
+    def __init__(self, topbar, initial_text, align, func):
+        super().__init__(topbar, value=initial_text, func=func)
+
+        callback_name = f'"{self.id}"' if func else ''
+
+        self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}", {callback_name})')
 
     def set(self, string):
         self.value = string
@@ -115,9 +118,9 @@ class TopBar(Pane):
         self._widgets[name] = MenuWidget(self, options, default if default else options[0], separator, align, func)
 
     def textbox(self, name: str, initial_text: str = '',
-                align: ALIGN = 'left'):
+                align: ALIGN = 'left', func: callable = None):
         self._create()
-        self._widgets[name] = TextWidget(self, initial_text, align)
+        self._widgets[name] = TextWidget(self, initial_text, align, func)
 
     def button(self, name, button_text: str, separator: bool = True,
                align: ALIGN = 'left', toggle: bool = False, func: callable = None):

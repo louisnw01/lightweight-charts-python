@@ -167,19 +167,15 @@ class JupyterChart(StaticLWC):
     def __init__(self, width: int = 800, height=350, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox: bool = False):
         super().__init__(width, height, inner_width, inner_height, scale_candles_only, toolbox, False)
 
-        # this isn't available at the moment
-
-        raise ModuleNotFoundError('JupyterChart is unavailable in lightweight charts 2.0; please downgrade to an earlier version.')
-
         self.run_script(f'''
             for (var i = 0; i < document.getElementsByClassName("tv-lightweight-charts").length; i++) {{
                     var element = document.getElementsByClassName("tv-lightweight-charts")[i];
                     element.style.overflow = "visible"
                 }}
-            document.getElementById('wrapper').style.overflow = 'hidden'
-            document.getElementById('wrapper').style.borderRadius = '10px'
-            document.getElementById('wrapper').style.width = '{self.width}px'
-            document.getElementById('wrapper').style.height = '100%'
+            document.getElementById('container').style.overflow = 'hidden'
+            document.getElementById('container').style.borderRadius = '10px'
+            document.getElementById('container').style.width = '{self.width}px'
+            document.getElementById('container').style.height = '100%'
             ''')
         self.run_script(f'{self.id}.chart.resize({width}, {height})')
 
