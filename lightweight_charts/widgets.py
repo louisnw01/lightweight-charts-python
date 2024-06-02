@@ -125,7 +125,7 @@ class StaticLWC(abstract.AbstractChart):
             css = f.read()
         with open(abstract.INDEX.replace("test.html", 'bundle.js'), 'r') as f:
             js = f.read()
-        with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r') as f:
+        with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r', encoding='utf-8') as f:
             lwc = f.read()
 
         with open(abstract.INDEX, 'r') as f:
