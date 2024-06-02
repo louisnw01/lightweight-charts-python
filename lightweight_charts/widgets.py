@@ -14,18 +14,25 @@ except ImportError:
     wx = None
 
 try:
-    using_py6 = False
+    using_pyside6 = False
     from PyQt5.QtWebEngineWidgets import QWebEngineView
     from PyQt5.QtWebChannel import QWebChannel
-    from PyQt5.QtCore import QObject, pyqtSlot as Slot
+    from PyQt5.QtCore import QObject, pyqtSlot as Slot, QUrl, QTimer
 except ImportError:
-    using_py6 = True
+    using_pyside6 = True
     try:
         from PySide6.QtWebEngineWidgets import QWebEngineView
         from PySide6.QtWebChannel import QWebChannel
-        from PySide6.QtCore import Qt, QObject, Slot
+        from PySide6.QtCore import Qt, QObject, Slot, QUrl, QTimer
     except ImportError:
-        QWebEngineView = None
+        try:
+            using_pyside6 = False
+            from PyQt6.QtWebEngineWidgets import QWebEngineView
+            from PyQt6.QtWebChannel import QWebChannel
+            from PyQt6.QtCore import QObject, pyqtSlot as Slot, QUrl, QTimer
+        except ImportError:
+            QWebEngineView = None
+
 
 if QWebEngineView:
     class Bridge(QObject):
@@ -65,12 +72,13 @@ class WxChart(abstract.AbstractChart):
                          inner_width, inner_height, scale_candles_only, toolbox)
 
         self.webview.Bind(wx.html2.EVT_WEBVIEW_LOADED, lambda e: wx.CallLater(500, self.win.on_js_load))
-        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self, e.GetString()))
+        self.webview.Bind(wx.html2.EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, lambda e: emit_callback(self.win, e.GetString()))
         self.webview.AddScriptMessageHandler('wx_msg')
-        self.webview.SetPage(abstract.TEMPLATE, '')
-        self.webview.AddUserScript(abstract.JS['toolbox']) if toolbox else None
 
-    def get_webview(self): return self.webview
+        self.webview.LoadURL("file://"+abstract.INDEX)
+
+    def get_webview(self):
+        return self.webview
 
 
 class QtChart(abstract.AbstractChart):
@@ -86,21 +94,25 @@ class QtChart(abstract.AbstractChart):
         self.bridge = Bridge(self)
         self.web_channel.registerObject('bridge', self.bridge)
         self.webview.page().setWebChannel(self.web_channel)
-        self.webview.loadFinished.connect(self.win.on_js_load)
-        if using_py6:
+        self.webview.loadFinished.connect(lambda: self.webview.page().runJavaScript('''
+            let scriptElement = document.createElement("script")
+            scriptElement.src = 'qrc:///qtwebchannel/qwebchannel.js'
+
+            scriptElement.onload = function() {
+                var bridge = new QWebChannel(qt.webChannelTransport, function(channel) {
+                    var pythonObject = channel.objects.bridge
+                    window.pythonObject = pythonObject
+                })
+            }
+
+            document.head.appendChild(scriptElement)
+
+        '''))
+        self.webview.loadFinished.connect(lambda: QTimer.singleShot(200, self.win.on_js_load))
+        if using_pyside6:
             self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
-        self._html = f'''
-        {abstract.TEMPLATE[:85]}
-        <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-        <script>
-        var bridge = new QWebChannel(qt.webChannelTransport, function(channel) {{
-            var pythonObject = channel.objects.bridge;
-            window.pythonObject = pythonObject
-        }});
-        </script>
-        {abstract.TEMPLATE[85:]}
-        '''
-        self.webview.page().setHtml(self._html)
+        self.webview.load(QUrl.fromLocalFile(abstract.INDEX))
+
 
     def get_webview(self): return self.webview
 
@@ -108,7 +120,21 @@ class QtChart(abstract.AbstractChart):
 class StaticLWC(abstract.AbstractChart):
     def __init__(self, width=None, height=None, inner_width=1, inner_height=1,
                  scale_candles_only: bool = False, toolbox=False, autosize=True):
-        self._html = abstract.TEMPLATE.replace('</script>\n</body>\n</html>', '')
+
+        with open(abstract.INDEX.replace("test.html", 'styles.css'), 'r') as f:
+            css = f.read()
+        with open(abstract.INDEX.replace("test.html", 'bundle.js'), 'r') as f:
+            js = f.read()
+        with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r') as f:
+            lwc = f.read()
+
+        with open(abstract.INDEX, 'r') as f:
+            self._html = f.read() \
+                .replace('<link rel="stylesheet" href="styles.css">', f"<style>{css}</style>") \
+                .replace(' src="./lightweight-charts.js">', f'>{lwc}') \
+                .replace(' src="./bundle.js">', f'>{js}') \
+                .replace('</body>\n</html>', '<script>')
+
         super().__init__(abstract.Window(run_script=self.run_script), inner_width, inner_height,
                          scale_candles_only, toolbox, autosize)
         self.width = width
@@ -159,10 +185,10 @@ class JupyterChart(StaticLWC):
                     var element = document.getElementsByClassName("tv-lightweight-charts")[i];
                     element.style.overflow = "visible"
                 }}
-            document.getElementById('wrapper').style.overflow = 'hidden'
-            document.getElementById('wrapper').style.borderRadius = '10px'
-            document.getElementById('wrapper').style.width = '{self.width}px'
-            document.getElementById('wrapper').style.height = '100%'
+            document.getElementById('container').style.overflow = 'hidden'
+            document.getElementById('container').style.borderRadius = '10px'
+            document.getElementById('container').style.width = '{self.width}px'
+            document.getElementById('container').style.height = '100%'
             ''')
         self.run_script(f'{self.id}.chart.resize({width}, {height})')
 

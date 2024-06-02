@@ -8,7 +8,7 @@ ___
 
 
 
-```{py:method} set(data: pd.DataFrame, render_drawings: bool = False)
+```{py:method} set(data: pd.DataFrame, keep_drawings: bool = False)
 Sets the initial data for the chart.
 
 
@@ -17,9 +17,11 @@ Columns should be named:
 
 Time can be given in the index rather than a column, and volume can be omitted if volume is not used. Column names are not case sensitive.
 
-If `render_drawings` is `True`, any drawings made using the `toolbox` will be redrawn with the new data. This is designed to be used when switching to a different timeframe of the same symbol.
+If `keep_drawings` is `True`, any drawings made using the `toolbox` will be redrawn with the new data. This is designed to be used when switching to a different timeframe of the same symbol.
 
 `None` can also be given, which will erase all candle and volume data displayed on the chart.
+
+You can also add columns to color the candles (https://tradingview.github.io/lightweight-charts/tutorials/customization/data-points)
 ```
 
 
@@ -27,7 +29,7 @@ ___
 
 
 
-```{py:method} update(series: pd.Series, render_drawings: bool = False)
+```{py:method} update(series: pd.Series, keep_drawings: bool = False)
 Updates the chart data from a bar.
 
 Series labels should be akin to [`set`](#AbstractChart.set).

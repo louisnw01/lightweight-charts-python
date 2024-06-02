@@ -22,6 +22,11 @@ Fires when the range (visibleLogicalRange) changes.
 
 ```
 
+```{py:method} click -> (chart: Chart, time: NUM, price: NUM)
+Fires when the mouse is clicked, returning the time and price of the clicked location.
+
+```
+
 ````
 
 Tutorial: [Topbar & Events](../tutorials/events.md)

@@ -247,7 +247,7 @@ class PolygonAPI:
 
         df = await async_get_bar_data(ticker, timeframe, start_date, end_date, limit)
 
-        self._chart.set(df, render_drawings=_tickers.get(self._chart) == ticker)
+        self._chart.set(df, keep_drawings=_tickers.get(self._chart) == ticker)
         _tickers[self._chart] = ticker
 
         if not live:
@@ -396,7 +396,7 @@ class PolygonChart(Chart):
     Tickers, security types and timeframes are to be defined within the chart window.
 
     If using the standard `show` method, the `block` parameter must be set to True.
-    When using `show_async`, either is acceptable.
+    `show_async` can also be used.
     """
     def __init__(
             self, api_key: str, live: bool = False, num_bars: int = 200, end_date: str = 'now', limit: int = 5_000,

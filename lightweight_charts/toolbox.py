@@ -3,14 +3,12 @@ import json
 
 class ToolBox:
     def __init__(self, chart):
-        from lightweight_charts.abstract import JS
         self.run_script = chart.run_script
         self.id = chart.id
         self._save_under = None
         self.drawings = {}
         chart.win.handlers[f'save_drawings{self.id}'] = self._save_drawings
-        self.run_script(JS['toolbox'])
-        self.run_script(f'{self.id}.toolBox = new ToolBox({self.id})')
+        self.run_script(f'{self.id}.createToolBox()')
 
     def save_drawings_under(self, widget: 'Widget'):
         """
@@ -24,7 +22,7 @@ class ToolBox:
         """
         if not self.drawings.get(tag):
             return
-        self.run_script(f'if ("toolBox" in {self.id}) {self.id}.toolBox.loadDrawings({json.dumps(self.drawings[tag])})')
+        self.run_script(f'if ({self.id}.toolBox) {self.id}.toolBox.loadDrawings({json.dumps(self.drawings[tag])})')
 
     def import_drawings(self, file_path):
         """
