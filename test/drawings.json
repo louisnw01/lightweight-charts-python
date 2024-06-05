@@ -1,0 +1,43 @@
+{
+    "SYM": [
+        {
+            "type": "Box",
+            "points":
+            [
+                {
+                    "time": 1675036800,
+                    "logical": 2928,
+                    "price": 130.25483664317744
+                },
+                {
+                    "time": 1676332800,
+                    "logical": 2939,
+                    "price": 145.52389493914157
+                }
+            ],
+            "options": {
+                "color": "#FFF",
+                "style": 0
+            }
+        },
+        {
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1669939200,
+                    "logical": 2890,
+                    "price": 196.12991672005123
+                },
+                {
+                    "time": 1673222400,
+                    "logical": 2914,
+                    "price": 223.17796284433055
+                }
+            ],
+            "options": {
+                "color": "#FFF",
+                "style": 0
+            }
+        }
+    ]
+}

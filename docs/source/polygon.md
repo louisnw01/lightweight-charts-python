@@ -22,7 +22,7 @@ The `websockets` library is required when using live data.
 
 ```{important}
 When using live data and the standard `show` method, the `block` parameter __must__ be set to `True` in order for the data to congregate on the chart (`chart.show(block=True)`).
-If `show_async` is used with live data, `block` can be either value.
+`show_async` can also be used with live data.
 
 ```
 

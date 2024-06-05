@@ -1,7 +1,7 @@
 # Alternative GUI's
 
 
-## PyQt5 / PySide6
+## PyQt6 / PyQt5 / PySide6
 
 ```python
 import pandas as pd
