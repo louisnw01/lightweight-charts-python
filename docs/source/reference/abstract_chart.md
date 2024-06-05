@@ -181,25 +181,9 @@ ___
 
 
 
-```{py:method} remove_horizontal_line(price: NUM)
-
-Removes a horizontal line at the given price.
-```
-___
-
-
-
 ```{py:method} clear_markers()
 
 Clears the markers displayed on the data.
-```
-___
-
-
-
-```{py:method} clear_horizontal_lines()
-
-Clears the horizontal lines displayed on the data.
 ```
 ___
 
