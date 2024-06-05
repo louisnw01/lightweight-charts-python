@@ -4,6 +4,10 @@ import html
 from .util import parse_event_message
 from lightweight_charts import abstract
 
+from flask import render_template
+import jinja2
+import re
+
 try:
     import wx.html2
 except ImportError:
@@ -121,7 +125,7 @@ class StaticLWC(abstract.AbstractChart):
             css = f.read()
         with open(abstract.INDEX.replace("test.html", 'bundle.js'), 'r') as f:
             js = f.read()
-        with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r') as f:
+        with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r', encoding='utf-8') as f:
             lwc = f.read()
 
         with open(abstract.INDEX, 'r') as f:
@@ -152,6 +156,15 @@ class StaticLWC(abstract.AbstractChart):
 
     def _load(self): pass
 
+class FlaskChart(StaticLWC):
+    def __init__(self, title='Lightweight Chart', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title = title
+
+    def load(self):
+        super().load()
+        self._html = re.sub(r'<title>.*?</title>', f'<title>{self.title}</title>', self._html, flags=re.DOTALL)
+        return render_template(jinja2.Template(f'{self._html}</script></body></html>'))
 
 class StreamlitChart(StaticLWC):
     def __init__(self, width=None, height=None, inner_width=1, inner_height=1, scale_candles_only: bool = False, toolbox: bool = False):
