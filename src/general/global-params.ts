@@ -1,6 +1,7 @@
 export interface GlobalParams extends Window {
     pane: paneStyle;    // TODO shouldnt need this cause of css variables
     handlerInFocus: string;
+    textBoxFocused: boolean;
     callbackFunction: Function;
     containerDiv: HTMLElement;
     setCursor: Function;
@@ -41,6 +42,7 @@ export function globalParamInit() {
         document.body.style.cursor = window.cursor;
     }
     window.cursor = 'default';
+    window.textBoxFocused = false;
 }
 
 export const setCursor = (type: string | undefined) => {

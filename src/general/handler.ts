@@ -308,7 +308,7 @@ export class Handler {
         chart.div.appendChild(searchWindow);
 
         chart.commandFunctions.push((event: KeyboardEvent) => {
-            if (window.handlerInFocus !== chart.id) return false
+            if (window.handlerInFocus !== chart.id || window.textBoxFocused) return false
             if (searchWindow.style.display === 'none') {
                 if (/^[a-zA-Z0-9]$/.test(event.key)) {
                     searchWindow.style.display = 'flex';

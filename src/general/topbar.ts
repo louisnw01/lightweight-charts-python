@@ -84,7 +84,11 @@ export class TopBar {
             textBox.classList.add('topbar-textbox-input');
             textBox.value = text
             textBox.style.width = `${(textBox.value.length+2)}ch`
+            textBox.addEventListener('focus', () => {
+                window.textBoxFocused = true;
+            })
             textBox.addEventListener('input', (e) => {
+                e.preventDefault();
                 textBox.style.width = `${(textBox.value.length+2)}ch`;
             });
             textBox.addEventListener('keydown', (e) => {
@@ -95,6 +99,7 @@ export class TopBar {
             });
             textBox.addEventListener('blur', () => {
                 window.callbackFunction(`${callbackName}_~_${textBox.value}`)
+                window.textBoxFocused = false;
             });
             this.appendWidget(textBox, align, true)
             return textBox

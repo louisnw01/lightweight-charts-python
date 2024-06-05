@@ -471,10 +471,15 @@ class Line(SeriesCommon):
         """
         self._chart._lines.remove(self) if self in self._chart._lines else None
         self.run_script(f'''
+            {self.id}legendItem = {self._chart.id}.legend._lines.find((line) => line.series == {self.id}.series)
+            {self._chart.id}.legend._lines = {self._chart.id}.legend._lines.filter((item) => item != {self.id}legendItem)
+
+            if ({self.id}legendItem) {{
+                {self._chart.id}.legend.div.removeChild({self.id}legendItem.row)
+            }}
+
             {self._chart.id}.chart.removeSeries({self.id}.series)
-            {self._chart.id}.legend.lines.forEach(line => {{
-                if (line.line === {self.id}) {self._chart.id}.legend.div.removeChild(line.row)
-            }})
+            delete {self.id}legendItem
             delete {self.id}
         ''')
 
@@ -506,10 +511,15 @@ class Histogram(SeriesCommon):
         Irreversibly deletes the histogram.
         """
         self.run_script(f'''
+            {self.id}legendItem = {self._chart.id}.legend._lines.find((line) => line.series == {self.id}.series)
+            {self._chart.id}.legend._lines = {self._chart.id}.legend._lines.filter((item) => item != {self.id}legendItem)
+
+            if ({self.id}legendItem) {{
+                {self._chart.id}.legend.div.removeChild({self.id}legendItem.row)
+            }}
+            
             {self._chart.id}.chart.removeSeries({self.id}.series)
-            {self._chart.id}.legend.lines.forEach(line => {{
-                if (line.line === {self.id}) {self._chart.id}.legend.div.removeChild(line.row)
-            }})
+            delete {self.id}legendItem
             delete {self.id}
         ''')
 
