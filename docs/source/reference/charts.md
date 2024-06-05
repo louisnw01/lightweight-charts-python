@@ -45,7 +45,7 @@ ___
 
 
 
-```{py:method} show_async(block: bool)
+```{py:method} show_async()
 :async:
 
 Show the chart asynchronously.
@@ -85,7 +85,7 @@ ___
 
 The `QtChart` object allows the use of charts within a `QMainWindow` object, and has similar functionality to the `Chart` object for manipulating data, configuring and styling.
 
-Either the `PyQt5` or `PySide6` libraries will work with this chart.
+Either the `PyQt5`, `PyQt6` or `PySide6` libraries will work with this chart.
 
 Callbacks can be received through the Qt event loop.
 ___
