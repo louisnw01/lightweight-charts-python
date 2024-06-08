@@ -489,19 +489,17 @@ class Histogram(SeriesCommon):
         super().__init__(chart, name)
         self.color = color
         self.run_script(f'''
-        {self.id} = {{
-            type: "histogram",
-            series: {chart.id}.chart.addHistogramSeries({{
+        {self.id} = {chart.id}.createHistogramSeries(
+            "{name}",
+            {{
                 color: '{color}',
                 lastValueVisible: {jbool(price_label)},
                 priceLineVisible: {jbool(price_line)},
                 priceScaleId: '{self.id}',
                 priceFormat: {{type: "volume"}},
-            }}),
-            name: '{name}',
-            color: '{color}',
-            precision: 2,
-            }}
+            }},
+            // precision: 2,
+        )
         {self.id}.series.priceScale().applyOptions({{
             scaleMargins: {{top:{scale_margin_top}, bottom: {scale_margin_bottom}}}
         }})''')
