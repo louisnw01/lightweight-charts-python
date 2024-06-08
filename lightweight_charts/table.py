@@ -133,6 +133,6 @@ class Table(Pane, dict):
     def visible(self, visible: bool):
         self.is_shown = visible
         self.run_script(f"""
-        {self.id}.container.style.display = '{'flex' if visible else 'none'}'
-        {self.id}.container.{'add' if visible else 'remove'}EventListener('mousedown', {self.id}.onMouseDown)
+        {self.id}._div.style.display = '{'flex' if visible else 'none'}'
+        {self.id}._div.{'add' if visible else 'remove'}EventListener('mousedown', {self.id}.onMouseDown)
         """)
