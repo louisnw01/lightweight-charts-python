@@ -117,11 +117,11 @@ class StaticLWC(abstract.AbstractChart):
     def __init__(self, width=None, height=None, inner_width=1, inner_height=1,
                  scale_candles_only: bool = False, toolbox=False, autosize=True):
 
-        with open(abstract.INDEX.replace("test.html", 'styles.css'), 'r') as f:
+        with open(abstract.INDEX.replace("index.html", 'styles.css'), 'r') as f:
             css = f.read()
-        with open(abstract.INDEX.replace("test.html", 'bundle.js'), 'r') as f:
+        with open(abstract.INDEX.replace("index.html", 'bundle.js'), 'r') as f:
             js = f.read()
-        with open(abstract.INDEX.replace("test.html", 'lightweight-charts.js'), 'r') as f:
+        with open(abstract.INDEX.replace("index.html", 'lightweight-charts.js'), 'r') as f:
             lwc = f.read()
 
         with open(abstract.INDEX, 'r') as f:

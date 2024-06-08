@@ -17,7 +17,7 @@ from .util import (
 )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-INDEX = os.path.join(current_dir, 'js', 'test.html')
+INDEX = os.path.join(current_dir, 'js', 'index.html')
 
 
 class Window:
