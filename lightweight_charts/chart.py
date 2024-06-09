@@ -36,7 +36,7 @@ class PyWV:
 
     def create_window(
         self, width, height, x, y, screen=None, on_top=False,
-        maximize=False, title=''
+        maximize=False, title='', frameless=False, easy_drag=False
     ):
         screen = webview.screens[screen] if screen is not None else None
         if maximize:
@@ -56,7 +56,9 @@ class PyWV:
             y=y,
             screen=screen,
             on_top=on_top,
-            background_color='#000000')
+            background_color='#000000',
+            frameless=frameless,
+            easy_drag=easy_drag)
         )
 
         self.windows[-1].events.loaded += lambda: self.loaded_event.set()
@@ -115,11 +117,11 @@ class WebviewHandler():
 
     def create_window(
         self, width, height, x, y, screen=None, on_top=False,
-        maximize=False, title=''
+        maximize=False, title='', frameless=False, easy_drag=False
     ):
         self.function_call_queue.put((
             'create_window',
-            (width, height, x, y, screen, on_top, maximize, title)
+            (width, height, x, y, screen, on_top, maximize, title, frameless, easy_drag)
         ))
         self.max_window_num += 1
         return self.max_window_num
@@ -165,11 +167,13 @@ class Chart(abstract.AbstractChart):
         inner_width: float = 1.0,
         inner_height: float = 1.0,
         scale_candles_only: bool = False,
-        position: FLOAT = 'left'
+        position: FLOAT = 'left',
+        frameless: bool = False,
+        easy_drag: bool = False
     ):
         Chart.WV.debug = debug
         self._i = Chart.WV.create_window(
-                    width, height, x, y, screen, on_top, maximize, title
+                    width, height, x, y, screen, on_top, maximize, title, frameless, easy_drag
                 )
 
         window = abstract.Window(
