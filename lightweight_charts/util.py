@@ -43,7 +43,7 @@ def js_data(data: Union[pd.DataFrame, pd.Series]):
     else:
         d = data.to_dict()
         filtered_records = {k: v for k, v in d.items()}
-    return json.dumps(filtered_records, indent=2)
+    return json.dumps(filtered_records)
 
 
 def snake_to_camel(s: str):
