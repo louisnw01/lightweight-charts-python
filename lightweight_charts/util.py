@@ -188,7 +188,7 @@ class Events:
         self.click = JSEmitter(chart, f'click{salt}',
             lambda o: chart.run_script(f'''
             let checkClick{salt} = (param) => {{
-                {chart.id}.chart.unsubscribeClick(checkClick)
+                {chart.id}.chart.unsubscribeClick(checkClick{salt})
                 if (
                     param.point === undefined ||
                     !param.time ||
