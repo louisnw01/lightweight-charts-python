@@ -101,7 +101,7 @@ async def update_clock(chart):
 async def main():
     chart = Chart()
     chart.topbar.textbox('clock')
-    await asyncio.gather(chart.show_async(block=True), update_clock(chart))
+    await asyncio.gather(chart.show_async(), update_clock(chart))
 
 
 if __name__ == '__main__':
@@ -130,7 +130,6 @@ async def data_loop(chart):
             return
         chart.update_from_tick(ticks.iloc[i])
         await asyncio.sleep(0.03)
-        i += 1
         
         
 def on_new_bar(chart):
@@ -150,7 +149,7 @@ async def main():
     df = pd.read_csv('ohlc.csv')
     
     chart.set(df)
-    await asyncio.gather(chart.show_async(block=True), data_loop(chart))
+    await asyncio.gather(chart.show_async(), data_loop(chart))
     
 
 if __name__ == '__main__':

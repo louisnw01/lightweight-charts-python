@@ -8,12 +8,15 @@ ALIGN = Literal['left', 'right']
 
 
 class Widget(Pane):
-    def __init__(self, topbar, value, func=None):
+    def __init__(self, topbar, value, func: callable = None, convert_boolean=False):
         super().__init__(topbar.win)
         self.value = value
 
         def wrapper(v):
-            self.value = v
+            if convert_boolean:
+                self.value = False if v == 'false' else True
+            else:
+                self.value = v
             func(topbar._chart)
 
         async def async_wrapper(v):
@@ -24,9 +27,12 @@ class Widget(Pane):
 
 
 class TextWidget(Widget):
-    def __init__(self, topbar, initial_text, align):
-        super().__init__(topbar, value=initial_text)
-        self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}")')
+    def __init__(self, topbar, initial_text, align, func):
+        super().__init__(topbar, value=initial_text, func=func)
+
+        callback_name = f'"{self.id}"' if func else ''
+
+        self.run_script(f'{self.id} = {topbar.id}.makeTextBoxWidget("{initial_text}", "{align}", {callback_name})')
 
     def set(self, string):
         self.value = string
@@ -54,6 +60,7 @@ class MenuWidget(Widget):
         {self.id} = {topbar.id}.makeMenu({list(options)}, "{default}", {jbool(separator)}, "{self.id}", "{align}")
         ''')
 
+    # TODO this will probably need to be fixed
     def set(self, option):
         if option not in self.options:
             raise ValueError(f"Option {option} not in menu options ({self.options})")
@@ -63,15 +70,19 @@ class MenuWidget(Widget):
         ''')
         self.win.handlers[self.id](option)
 
+    def update_items(self, *items: str):
+        self.options = list(items)
+        self.run_script(f'{self.id}.updateMenuItems({self.options})')
+
 
 class ButtonWidget(Widget):
-    def __init__(self, topbar, button, separator, align, func):
-        super().__init__(topbar, value=button, func=func)
+    def __init__(self, topbar, button, separator, align, toggle, func):
+        super().__init__(topbar, value=False, func=func, convert_boolean=toggle)
         self.run_script(
-            f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}")')
+            f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}", {jbool(toggle)})')
 
     def set(self, string):
-        self.value = string
+        # self.value = string
         self.run_script(f'{self.id}.elem.innerText = "{string}"')
 
 
@@ -85,10 +96,8 @@ class TopBar(Pane):
     def _create(self):
         if self._created:
             return
-        from lightweight_charts.abstract import JS
         self._created = True
-        self.run_script(JS['callback'])
-        self.run_script(f'{self.id} = new TopBar({self._chart.id})')
+        self.run_script(f'{self.id} = {self._chart.id}.createTopBar()')
 
     def __getitem__(self, item):
         if widget := self._widgets.get(item):
@@ -109,11 +118,11 @@ class TopBar(Pane):
         self._widgets[name] = MenuWidget(self, options, default if default else options[0], separator, align, func)
 
     def textbox(self, name: str, initial_text: str = '',
-                align: ALIGN = 'left'):
+                align: ALIGN = 'left', func: callable = None):
         self._create()
-        self._widgets[name] = TextWidget(self, initial_text, align)
+        self._widgets[name] = TextWidget(self, initial_text, align, func)
 
     def button(self, name, button_text: str, separator: bool = True,
-               align: ALIGN = 'left', func: callable = None):
+               align: ALIGN = 'left', toggle: bool = False, func: callable = None):
         self._create()
-        self._widgets[name] = ButtonWidget(self, button_text, separator, align, func)
+        self._widgets[name] = ButtonWidget(self, button_text, separator, align, toggle, func)

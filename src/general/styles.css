@@ -1,0 +1,234 @@
+:root {
+	--bg-color:#0c0d0f;
+	--hover-bg-color: #3c434c;
+	--click-bg-color: #50565E;
+	--active-bg-color: rgba(0, 122, 255, 0.7);
+	--muted-bg-color: rgba(0, 122, 255, 0.3);
+	--border-color: #3C434C;
+	--color: #d8d9db;
+	--active-color: #ececed;
+}
+
+body {
+	background-color: rgb(0,0,0);
+	color: rgba(19, 23, 34, 1);
+	overflow: hidden;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+            Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.handler {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+}
+
+.toolbox {
+	position: absolute;
+	z-index: 2000;
+	display: flex;
+	align-items: center;
+	top: 25%;
+	border: 2px solid var(--border-color);
+	border-left: none;
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+	background-color: rgba(25, 27, 30, 0.5);
+	flex-direction: column;
+}
+
+.toolbox-button {
+	margin: 3px;
+	border-radius: 4px;
+	display: flex;
+	background-color: transparent;
+}
+.toolbox-button:hover {
+	background-color: rgba(80, 86, 94, 0.7);
+}
+.toolbox-button:active {
+	background-color: rgba(90, 106, 104, 0.7);
+}
+
+.active-toolbox-button {
+	background-color: var(--active-bg-color) !important;
+}
+.active-toolbox-button g {
+	fill: var(--active-color);
+}
+
+.context-menu {
+	position: absolute;
+	z-index: 1000;
+	background: rgb(50, 50, 50);
+	color: var(--active-color);
+	display: none;
+	border-radius: 5px;
+	padding: 3px 3px;
+	font-size: 13px;
+	cursor: default;
+}
+.context-menu-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 2px 10px;
+	margin: 1px 0px;
+	border-radius: 3px;
+}
+.context-menu-item:hover {
+	background-color: var(--muted-bg-color);
+}
+
+.color-picker {
+	max-width: 170px;
+	background-color: var(--bg-color);
+	position: absolute;
+	z-index: 10000;
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	border: 2px solid var(--border-color);
+	border-radius: 8px;
+	cursor: default;
+}
+
+
+/* topbar-related */
+.topbar {
+	background-color: var(--bg-color);
+	border-bottom: 2px solid var(--border-color);
+	display: flex;
+	align-items: center;
+}
+
+.topbar-container {
+	display: flex;
+	align-items: center;
+	flex-grow: 1;
+}
+
+.topbar-button {
+	border: none;
+	padding: 2px 5px;
+	margin: 4px 10px;
+	font-size: 13px;
+	border-radius: 4px;
+	color: var(--color);
+	background-color: transparent;
+}
+.topbar-button:hover {
+	background-color: var(--hover-bg-color)
+}
+
+.topbar-button:active {
+	background-color: var(--click-bg-color);
+	color: var(--active-color);
+	font-weight: 500;
+}
+
+.switcher-button:active {
+	background-color: var(--click-bg-color);
+	color: var(--color);
+	font-weight: normal;
+}
+
+.active-switcher-button {
+	background-color: var(--active-bg-color) !important;
+	color: var(--active-color) !important;
+	font-weight: 500;
+}
+
+.topbar-textbox {
+	margin: 0px 18px;
+	font-size: 16px;
+	color: var(--color);
+}
+
+.topbar-textbox-input {
+	background-color: var(--bg-color);
+	color: var(--color);
+	border: 1px solid var(--color);
+}
+
+.topbar-menu {
+	position: absolute;
+	display: none;
+	z-index: 10000;
+	background-color: var(--bg-color);
+	border-radius: 2px;
+	border: 2px solid var(--border-color);
+	border-top: none;
+	align-items: flex-start;
+	max-height: 80%;
+	overflow-y: auto;
+}
+
+.topbar-separator {
+	width: 1px;
+	height: 20px;
+	background-color: var(--border-color);
+}
+
+.searchbox {
+	position: absolute;
+	top: 0;
+	bottom: 200px;
+	left: 0;
+	right: 0;
+	margin: auto;
+	width: 150px;
+	height: 30px;
+	padding: 5px;
+	z-index: 1000;
+	align-items: center;
+	background-color: rgba(30 ,30, 30, 0.9);
+	border: 2px solid var(--border-color);
+	border-radius: 5px;
+	display: flex;
+
+}
+.searchbox input {
+	text-align: center;
+	width: 100px;
+	margin-left: 10px;
+	background-color: var(--muted-bg-color);
+	color: var(--active-color);
+	font-size: 20px;
+	border: none;
+	outline: none;
+	border-radius: 2px;
+}
+
+.spinner {
+	width: 30px;
+	height: 30px;
+	border: 4px solid rgba(255, 255, 255, 0.6);
+	border-top: 4px solid var(--active-bg-color);
+	border-radius: 50%;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 1000;
+	transform: translate(-50%, -50%);
+	display: none;
+}
+
+.legend {
+	position: absolute;
+	z-index: 3000;
+	pointer-events: none;
+	top: 10px;
+	left: 10px;
+	display: none;
+	flex-direction: column;
+}
+.legend-toggle-switch {
+	border-radius: 4px;
+	margin-left: 10px;
+	pointer-events: auto;
+}
+.legend-toggle-switch:hover {
+	cursor: pointer;
+	background-color: rgba(50, 50, 50, 0.5);
+}
