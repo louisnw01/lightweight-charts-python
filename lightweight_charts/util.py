@@ -135,21 +135,22 @@ class Events:
             {chart.id}.search = makeSearchBox({chart.id})
             ''')
         )
-        self.range_change = JSEmitter(chart, f'range_change{chart.id}',
+        salt = chart.id[chart.id.index('.')+1:]
+        self.range_change = JSEmitter(chart, f'range_change{salt}',
             lambda o: chart.run_script(f'''
-            let checkLogicalRange = (logical) => {{
-                {chart.id}.chart.timeScale().unsubscribeVisibleLogicalRangeChange(checkLogicalRange)
+            let checkLogicalRange{salt} = (logical) => {{
+                {chart.id}.chart.timeScale().unsubscribeVisibleLogicalRangeChange(checkLogicalRange{salt})
                 
                 let barsInfo = {chart.id}.series.barsInLogicalRange(logical)
-                if (barsInfo) window.callbackFunction(`range_change{chart.id}_~_${{barsInfo.barsBefore}};;;${{barsInfo.barsAfter}}`)
+                if (barsInfo) window.callbackFunction(`range_change{salt}_~_${{barsInfo.barsBefore}};;;${{barsInfo.barsAfter}}`)
                     
-                setTimeout(() => {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange), 50)
+                setTimeout(() => {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange{salt}), 50)
             }}
-            {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange)
+            {chart.id}.chart.timeScale().subscribeVisibleLogicalRangeChange(checkLogicalRange{salt})
             '''),
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg])
         )
-        self.mouse_move = JSEmitter(chart, f'mouse_move{chart.id}',
+        self.mouse_move = JSEmitter(chart, f'mouse_move{salt}',
             lambda o: chart.run_script(f'''
             let checkMouseMove = (param) => {{
                 {chart.id}.chart.unsubscribeCrosshairMove(checkMouseMove)
@@ -159,7 +160,7 @@ class Events:
                     param.point.x < 0 ||
                     param.point.y < 0
                 ) {{
-                    window.callbackFunction(`mouse_move{chart.id}_~_${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}}`)
+                    window.callbackFunction(`mouse_move{salt}_~_${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}}`)
                 }} else {{
                 let x = param.point.x;
                 let dateStr = param.time;
@@ -170,22 +171,22 @@ class Events:
                 let close = data.close;
                 window.callbackFunction(`mouse_move{chart.id}_~_${{x}};;;${{dateStr}};;;${{open}};;;${{high}};;;${{low}};;;${{close}}`)
                 }}
-                setTimeout(() => {chart.id}.chart.subscribeCrosshairMove(checkMouseMove), 50)
+                setTimeout(() => {chart.id}.chart.subscribeCrosshairMove(checkMouseMove{salt}), 50)
             }}
-            {chart.id}.chart.subscribeCrosshairMove(checkMouseMove)
+            {chart.id}.chart.subscribeCrosshairMove(checkMouseMove{salt})
             '''),
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg]))
-        self.click = JSEmitter(chart, f'click{chart.id}',
+        self.click = JSEmitter(chart, f'click{salt}',
             lambda o: chart.run_script(f'''
             let checkClick = (param) => {{
-                {chart.id}.chart.unsubscribeClick(checkClick)
+                {salt}.chart.unsubscribeClick(checkClick)
                 if (
                     param.point === undefined ||
                     !param.time ||
                     param.point.x < 0 ||
                     param.point.y < 0
                 ) {{
-                    window.callbackFunction(`click{chart.id}_~_${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}}`)
+                    window.callbackFunction(`click{salt}_~_${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}};;;${{0}}`)
                 }} else {{
                 let x = param.point.x;
                 let dateStr = param.time;
@@ -194,11 +195,30 @@ class Events:
                 let high = data.high;
                 let low = data.low;
                 let close = data.close;
-                window.callbackFunction(`click{chart.id}_~_${{x}};;;${{dateStr}};;;${{open}};;;${{high}};;;${{low}};;;${{close}}`)
+                let y = param.point.y
+                let price = {chart.id}.series.coordinateToPrice(param.point.y);
+                window.callbackFunction(`click{salt}_~_${{x}};;;${{dateStr}};;;${{open}};;;${{high}};;;${{low}};;;${{close}};;;${{y}};;;${{price}}`)
                 }}
-                setTimeout(() => {chart.id}.chart.subscribeClick(checkClick), 50)
+                setTimeout(() => {chart.id}.chart.subscribeClick(checkClick{salt}), 50)
             }}
-            {chart.id}.chart.subscribeClick(checkClick)
+            {chart.id}.chart.subscribeClick(checkClick{salt})
             '''),
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg]))
 
+
+class BulkRunScript:
+    def __init__(self, script_func):
+        self.enabled = False
+        self.scripts = []
+        self.script_func = script_func
+
+    def __enter__(self):
+        self.enabled = True
+
+    def __exit__(self, *args):
+        self.enabled = False
+        self.script_func('\n'.join(self.scripts))
+        self.scripts = []
+
+    def add_script(self, script):
+        self.scripts.append(script)
