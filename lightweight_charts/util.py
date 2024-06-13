@@ -187,8 +187,8 @@ class Events:
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg]))
         self.click = JSEmitter(chart, f'click{salt}',
             lambda o: chart.run_script(f'''
-            let checkClick = (param) => {{
-                {salt}.chart.unsubscribeClick(checkClick)
+            let checkClick{salt} = (param) => {{
+                {chart.id}.chart.unsubscribeClick(checkClick)
                 if (
                     param.point === undefined ||
                     !param.time ||
@@ -213,19 +213,6 @@ class Events:
             {chart.id}.chart.subscribeClick(checkClick{salt})
             '''),
             wrapper=lambda o, c, *arg: o(c, *[float(a) for a in arg]))
-
-        self.click = JSEmitter(chart, f'subscribe_click{salt}',
-            lambda o: chart.run_script(f'''
-            let clickHandler{salt} = (param) => {{
-                if (!param.point) return;
-                const time = {chart.id}.chart.timeScale().coordinateToTime(param.point.x)
-                const price = {chart.id}.series.coordinateToPrice(param.point.y);
-                window.callbackFunction(`subscribe_click{salt}_~_${{time}};;;${{price}}`)
-            }}
-            {chart.id}.chart.subscribeClick(clickHandler{salt})
-            '''),
-            wrapper=lambda func, c, *args: func(c, *[float(a) for a in args])
-        )
 
 class BulkRunScript:
     def __init__(self, script_func):
