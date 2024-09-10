@@ -54,6 +54,5 @@ export class Menu {
             button.elem.style.padding = '2px 2px'
             this.div.appendChild(button.elem)
         })
-        this.widget.elem.innerText = items[0]+' ↓';
     }
 }

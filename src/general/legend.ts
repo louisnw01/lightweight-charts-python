@@ -110,7 +110,7 @@ export class Legend {
         row.appendChild(toggle)
         this.div.appendChild(row)
 
-        const color = series.options().baseLineColor;
+        const color = series.options().color;
         this._lines.push({
             name: name,
             div: div,
