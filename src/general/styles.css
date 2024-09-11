@@ -223,6 +223,16 @@ body {
 	display: none;
 	flex-direction: column;
 }
+.series-container {
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    overflow-y: auto;
+    max-height: 80vh;
+}
+.series-container::-webkit-scrollbar {
+    width: 0px;
+}
 .legend-toggle-switch {
 	border-radius: 4px;
 	margin-left: 10px;
