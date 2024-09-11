@@ -8,6 +8,17 @@ from lightweight_charts.util import js_json
 
 from .util import NUM, Pane, as_enum, LINE_STYLE, TIME, snake_to_camel
 
+def make_js_point(chart, time, price):
+    formatted_time = chart._single_datetime_format(time)
+    return f'''{{
+        "time": {formatted_time},
+        "logical": {chart.id}.chart.timeScale()
+                    .coordinateToLogical(
+                        {chart.id}.chart.timeScale()
+                        .timeToCoordinate({formatted_time})
+                    ),
+        "price": {price}
+    }}'''
 
 class Drawing(Pane):
     def __init__(self, chart, func=None):
@@ -15,8 +26,11 @@ class Drawing(Pane):
         self.chart = chart
 
     def update(self, *points):
-        js_json_string = f'JSON.parse({json.dumps(points)})'
-        self.run_script(f'{self.id}.updatePoints(...{js_json_string})')
+        formatted_points = []
+        for i in range(0, len(points), 2):
+            formatted_points.append(make_js_point(self.chart, points[i], points[i + 1]))
+        self.run_script(f'{self.id}.updatePoints({", ".join(formatted_points)})')
+        print(f'{self.id}.updatePoints({", ".join(formatted_points)})')
 
     def delete(self):
         """
@@ -46,24 +60,14 @@ class TwoPointDrawing(Drawing):
     ):
         super().__init__(chart, func)
 
-        def make_js_point(time, price):
-            formatted_time = self.chart._single_datetime_format(time)
-            return f'''{{
-                "time": {formatted_time},
-                "logical": {self.chart.id}.chart.timeScale()
-                            .coordinateToLogical(
-                                {self.chart.id}.chart.timeScale()
-                                .timeToCoordinate({formatted_time})
-                            ),
-                "price": {price}
-            }}'''
+
 
         options_string = '\n'.join(f'{key}: {val},' for key, val in options.items())
 
         self.run_script(f'''
         {self.id} = new Lib.{drawing_type}(
-            {make_js_point(start_time, start_value)},
-            {make_js_point(end_time, end_value)},
+            {make_js_point(self.chart, start_time, start_value)},
+            {make_js_point(self.chart, end_time, end_value)},
             {{
                 {options_string}
             }}
