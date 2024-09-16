@@ -1,7 +1,7 @@
 # `Line`
 
 
-````{py:class} Line(name: str, color: COLOR, style: LINE_STYLE, width: int, price_line: bool, price_label: bool)
+````{py:class} Line(name: str, color: COLOR, style: LINE_STYLE, width: int, price_line: bool, price_label: bool, price_scale_id: str)
 
 The `Line` object represents a `LineSeries` object in Lightweight Charts and can be used to create indicators. As well as the methods described below, the `Line` object also has access to:
 
@@ -12,7 +12,7 @@ ___
 
 
 
-```{py:method} set(data: pd.DataFrame) 
+```{py:method} set(data: pd.DataFrame)
 
 Sets the data for the line.
 
