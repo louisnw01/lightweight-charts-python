@@ -35,7 +35,7 @@ class Widget(Pane):
         
         self.win.handlers[self.id] = async_wrapper if asyncio.iscoroutinefunction(func) else wrapper
         if right_click_func:
-            self.win.handlers[self.id + '_right_click'] = right_click_wrapper
+            self.win.handlers[self.id + '_right'] = right_click_wrapper
 
 
 class TextWidget(Widget):
@@ -111,10 +111,9 @@ class ButtonWidget(Widget):
             {unique_button_elem}.style.opacity = {0.5 if self.disabled else 1};
             {unique_button_elem}.style.fontSize = "{self.font_size}";
         ''')
-
     def enable_right_click(self):
         """Enable right-click functionality for the button."""
-        unique_button_elem = f'buttonElem_{self.id.replace(".", "_right_")}'  # Unique reference for each button
+        unique_button_elem = f'buttonElem_{self.id.replace(".", "_")}_right'  # Unique reference for each button
 
         self.run_script(f'''
             const {unique_button_elem} = {self.id}.elem;
@@ -125,8 +124,9 @@ class ButtonWidget(Widget):
             }});
         ''')
 
-        # Set up a handler for the right-click event
-        self.win.handlers[f'right_click_{self.id}'] = self.right_click_func
+        # Check if right_click_func is callable before assigning
+        if callable(self.right_click_func):
+            self.win.handlers[f'right_click_{self.id}'] = self.right_click_func
 
     def disable(self):
         """Disable the button."""
