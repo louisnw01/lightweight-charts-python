@@ -76,9 +76,10 @@ class MenuWidget(Widget):
 
 
 class ButtonWidget(Widget):
-    def __init__(self, topbar, button, separator, align, toggle, disabled: bool = False, func=None):
+    def __init__(self, topbar, button, separator, align, toggle, disabled: bool = False, font_size: str = '16px', func=None):
         super().__init__(topbar, value=False, func=func, convert_boolean=toggle)
         self.disabled = disabled
+        self.font_size = font_size  # Store font size
         self.run_script(
             f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}", {jbool(toggle)})'
         )
@@ -95,6 +96,7 @@ class ButtonWidget(Widget):
             const {unique_button_elem} = {self.id}.elem;  // Unique reference for each button
             {unique_button_elem}.disabled = {jbool(self.disabled)};
             {unique_button_elem}.style.opacity = {0.5 if self.disabled else 1};
+            {unique_button_elem}.style.fontSize = "{self.font_size}";  // Set the font size
         ''')
 
     def disable(self):
@@ -145,6 +147,6 @@ class TopBar(Pane):
         self._widgets[name] = TextWidget(self, initial_text, align, func)
 
     def button(self, name, button_text: str, separator: bool = True,
-             align: ALIGN = 'left', toggle: bool = False, disabled: bool = False, func: callable = None):
+             align: ALIGN = 'left', toggle: bool = False, disabled: bool = False, font_size: str = '16px', func: callable = None):
         self._create()
-        self._widgets[name] = ButtonWidget(self, button_text, separator, align, toggle, disabled, func)
+        self._widgets[name] = ButtonWidget(self, button_text, separator, align, toggle, disabled, font_size, func)
