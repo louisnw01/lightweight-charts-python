@@ -79,7 +79,7 @@ class ButtonWidget(Widget):
     def __init__(self, topbar, button, separator, align, toggle, disabled: bool = False, font_size: str = '16px', func=None):
         super().__init__(topbar, value=False, func=func, convert_boolean=toggle)
         self.disabled = disabled
-        self.font_size = font_size  # Store font size
+        self.font_size = font_size
         self.run_script(
             f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}", {jbool(toggle)})'
         )
