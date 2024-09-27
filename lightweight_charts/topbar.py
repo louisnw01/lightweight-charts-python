@@ -76,14 +76,36 @@ class MenuWidget(Widget):
 
 
 class ButtonWidget(Widget):
-    def __init__(self, topbar, button, separator, align, toggle, func):
+    def __init__(self, topbar, button, separator, align, toggle, disabled: bool = False, func=None):
         super().__init__(topbar, value=False, func=func, convert_boolean=toggle)
+        self.disabled = disabled
         self.run_script(
-            f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}", {jbool(toggle)})')
+            f'{self.id} = {topbar.id}.makeButton("{button}", "{self.id}", {jbool(separator)}, true, "{align}", {jbool(toggle)})'
+        )
+        self.update_disabled()
 
     def set(self, string):
-        # self.value = string
         self.run_script(f'{self.id}.elem.innerText = "{string}"')
+
+    def update_disabled(self):
+        """Update the button's disabled state and text opacity in the UI."""
+        # Generate a unique name for the button element in JavaScript
+        unique_button_elem = f'buttonElem_{self.id.replace(".", "_")}'  # Replace '.' to avoid issues in variable naming
+        self.run_script(f'''
+            const {unique_button_elem} = {self.id}.elem;  // Unique reference for each button
+            {unique_button_elem}.disabled = {jbool(self.disabled)};
+            {unique_button_elem}.style.opacity = {0.5 if self.disabled else 1};
+        ''')
+
+    def disable(self):
+        """Disable the button."""
+        self.disabled = True
+        self.update_disabled()
+
+    def enable(self):
+        """Enable the button."""
+        self.disabled = False
+        self.update_disabled()
 
 
 class TopBar(Pane):
@@ -123,6 +145,6 @@ class TopBar(Pane):
         self._widgets[name] = TextWidget(self, initial_text, align, func)
 
     def button(self, name, button_text: str, separator: bool = True,
-               align: ALIGN = 'left', toggle: bool = False, func: callable = None):
+             align: ALIGN = 'left', toggle: bool = False, disabled: bool = False, func: callable = None):
         self._create()
-        self._widgets[name] = ButtonWidget(self, button_text, separator, align, toggle, func)
+        self._widgets[name] = ButtonWidget(self, button_text, separator, align, toggle, disabled, func)
