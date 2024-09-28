@@ -85,13 +85,12 @@ class MenuWidget(Widget):
 class ButtonWidget(Widget):
     def __init__(self, topbar, button, separator, align, toggle, disabled: bool = False, 
                  func=None, right_click_func=None, font_size: str = '16px', 
-                 selected_bg: str = '#ffffff',  # Default color with full opacity
-                 ):
+                 selected_bg: str = None):  # Change default to None
         super().__init__(topbar, value=False, func=func, convert_boolean=toggle)
         self.disabled = disabled
         self.font_size = font_size
         self.right_click_func = right_click_func
-        self.selected_bg = selected_bg  # Store the selected background color and opacity
+        self.selected_bg = selected_bg  # Now it can be None if not provided
         self.is_selected = False  # State to track if the button is toggled on
 
         self.run_script(
@@ -143,29 +142,30 @@ class ButtonWidget(Widget):
 
     def toggle_select(self):
         """Select the button, changing its background color and text color based on brightness."""
-        if not self.is_selected:
-            self.is_selected = True
-            unique_button_elem = f'{self.id}.elem'
-            color = self.selected_bg  # Unpack the color
+        if self.selected_bg:  # Only proceed if selected_bg is set
+            if not self.is_selected:
+                self.is_selected = True
+                unique_button_elem = f'{self.id}.elem'
+                color = self.selected_bg  # Unpack the color
 
-            # Convert hex color to RGB
-            r, g, b = hex_to_rgb(color)
+                # Convert hex color to RGB
+                r, g, b = hex_to_rgb(color)
 
-            # Calculate brightness using the formula
-            brightness = r * 0.299 + g * 0.587 + b * 0.114
+                # Calculate brightness using the formula
+                brightness = r * 0.299 + g * 0.587 + b * 0.114
 
-            # Determine text color based on brightness
-            text_color = '#000000' if brightness > 186 else '#ffffff'
+                # Determine text color based on brightness
+                text_color = '#000000' if brightness > 186 else '#ffffff'
 
-            # Store the original text color to revert later
-            self.run_script(f'''
-                const elem = {unique_button_elem};
-                if (elem) {{
-                    elem._originalTextColor = elem.style.color;  // Store original text color
-                    elem.style.backgroundColor = "{color}";
-                    elem.style.color = "{text_color}";  // Set text color based on brightness
-                }}
-            ''')
+                # Store the original text color to revert later
+                self.run_script(f'''
+                    const elem = {unique_button_elem};
+                    if (elem) {{
+                        elem._originalTextColor = elem.style.color;  // Store original text color
+                        elem.style.backgroundColor = "{color}";
+                        elem.style.color = "{text_color}";  // Set text color based on brightness
+                    }}
+                ''')
 
     def toggle_deselect(self):
         """Deselect the button, restoring the original background and text color."""
@@ -227,6 +227,6 @@ class TopBar(Pane):
 
     def button(self, name, button_text: str, separator: bool = True,
            align: ALIGN = 'left', toggle: bool = False, disabled: bool = False, 
-           font_size: str = '16px', func: callable = None, right_click_func: callable = None, selected_bg: str = '#ffffff'):
+           font_size: str = '16px', func: callable = None, right_click_func: callable = None, selected_bg: str = None):
         self._create()
         self._widgets[name] = ButtonWidget(self, button_text, separator, align, toggle, disabled, func, right_click_func, font_size, selected_bg)
