@@ -189,3 +189,16 @@ class BulkRunScript:
 
     def add_script(self, script):
         self.scripts.append(script)
+
+def hex_to_rgb(hex_color: str):
+    """
+    Convert a hex color string to an RGB tuple.
+    
+    Args:
+        hex_color (str): Hex color string (e.g., '#FFFFFF').
+        
+    Returns:
+        tuple: A tuple containing the RGB values (r, g, b).
+    """
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
