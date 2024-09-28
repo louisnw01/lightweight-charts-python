@@ -14,6 +14,7 @@ interface LineElement {
 export class Legend {
     private handler: Handler;
     public div: HTMLDivElement;
+    public seriesContainer: HTMLDivElement
 
     private ohlcEnabled: boolean = false;
     private percentEnabled: boolean = false;
@@ -35,16 +36,24 @@ export class Legend {
         this.colorBasedOnCandle = false
 
         this.div = document.createElement('div');
-        this.div.classList.add('legend');
+        this.div.classList.add("legend")
         this.div.style.maxWidth = `${(handler.scale.width * 100) - 8}vw`
         this.div.style.display = 'none';
+        
+        const seriesWrapper = document.createElement('div');
+        seriesWrapper.style.display = 'flex';
+        seriesWrapper.style.flexDirection = 'row';
+        this.seriesContainer = document.createElement("div");
+        this.seriesContainer.classList.add("series-container");
 
         this.text = document.createElement('span')
         this.text.style.lineHeight = '1.8'
         this.candle = document.createElement('div')
-
+        
+        seriesWrapper.appendChild(this.seriesContainer);
         this.div.appendChild(this.text)
         this.div.appendChild(this.candle)
+        this.div.appendChild(seriesWrapper)
         handler.div.appendChild(this.div)
 
         // this.makeSeriesRows(handler);
@@ -108,9 +117,9 @@ export class Legend {
         toggle.appendChild(svg);
         row.appendChild(div)
         row.appendChild(toggle)
-        this.div.appendChild(row)
+        this.seriesContainer.appendChild(row)
 
-        const color = series.options().baseLineColor;
+        const color = series.options().color;
         this._lines.push({
             name: name,
             div: div,

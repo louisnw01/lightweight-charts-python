@@ -66,9 +66,9 @@ class MenuWidget(Widget):
             raise ValueError(f"Option {option} not in menu options ({self.options})")
         self.value = option
         self.run_script(f'''
-            {self.id}.updateMenu("{option}")
+            {self.id}._clickHandler("{option}")
         ''')
-        self.win.handlers[self.id](option)
+        # self.win.handlers[self.id](option)
 
     def update_items(self, *items: str):
         self.options = list(items)

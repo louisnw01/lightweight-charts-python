@@ -170,7 +170,7 @@ class Events:
             }}
             {chart.id}.chart.subscribeClick(clickHandler{salt})
             '''),
-            wrapper=lambda func, c, *args: func(c, *[float(a) for a in args])
+            wrapper=lambda func, c, *args: func(c, *[float(a) if a != 'null' else None for a in args])
         )
 
 class BulkRunScript:
