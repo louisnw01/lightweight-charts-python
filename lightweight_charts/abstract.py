@@ -399,6 +399,14 @@ class SeriesCommon(Pane):
     def show_data(self):
         self._toggle_data(True)
 
+    def toggle_data(self):
+        """
+        Toggles the visibility of the data and its volume if applicable.
+        if the data is visible, it will be hidden, and vice versa.
+        """
+        self._toggle_data(not self._data_visible)
+        self.visible = not self._data_visible
+
     def _toggle_data(self, arg):
         self.run_script(f'''
         {self.id}.series.applyOptions({{visible: {jbool(arg)}}})
