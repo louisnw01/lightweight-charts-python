@@ -424,7 +424,7 @@ class SeriesCommon(Pane):
 
 
 class Line(SeriesCommon):
-    def __init__(self, chart, name, color, style, width, price_line, price_label, crosshair_marker=True):
+    def __init__(self, chart, name, color, style, width, price_line, price_label, price_scale_id=None, crosshair_marker=True):
 
         super().__init__(chart, name)
         self.color = color
@@ -439,6 +439,7 @@ class Line(SeriesCommon):
                     lastValueVisible: {jbool(price_label)},
                     priceLineVisible: {jbool(price_line)},
                     crosshairMarkerVisible: {jbool(crosshair_marker)},
+                    priceScaleId: {f'"{price_scale_id}"' if price_scale_id else 'undefined'}
                     {"""autoscaleInfoProvider: () => ({
                             priceRange: {
                                 minValue: 1_000_000_000,
@@ -515,7 +516,7 @@ class Histogram(SeriesCommon):
             if ({self.id}legendItem) {{
                 {self._chart.id}.legend.div.removeChild({self.id}legendItem.row)
             }}
-            
+
             {self._chart.id}.chart.removeSeries({self.id}.series)
             delete {self.id}legendItem
             delete {self.id}
@@ -721,12 +722,12 @@ class AbstractChart(Candlestick, Pane):
     def create_line(
             self, name: str = '', color: str = 'rgba(214, 237, 255, 0.6)',
             style: LINE_STYLE = 'solid', width: int = 2,
-            price_line: bool = True, price_label: bool = True
+            price_line: bool = True, price_label: bool = True, price_scale_id: Optional[str] = None
     ) -> Line:
         """
         Creates and returns a Line object.
         """
-        self._lines.append(Line(self, name, color, style, width, price_line, price_label))
+        self._lines.append(Line(self, name, color, style, width, price_line, price_label, price_scale_id))
         return self._lines[-1]
 
     def create_histogram(

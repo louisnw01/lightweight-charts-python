@@ -1,9 +1,9 @@
 import os.path
 
 project = 'lightweight-charts-python'
-copyright = '2023, louisnw'
+copyright = '2024, louisnw'
 author = 'louisnw'
-release = '2.0.1'
+release = '2.1'
 
 extensions = [
     "myst_parser",
@@ -104,7 +104,3 @@ html_theme_options = {
         },
     ],
 }
-
-
-
-

@@ -45,15 +45,19 @@ export class Menu {
         items.forEach(text => {
             let button = this.makeButton(text, null, false, false)
             button.elem.addEventListener('click', () => {
-                this.widget.elem.innerText = button.elem.innerText+' ↓'
-                window.callbackFunction(`${this.callbackName}_~_${button.elem.innerText}`)
-                this.div.style.display = 'none'
-                this.isOpen = false
+                this._clickHandler(button.elem.innerText);
             });
             button.elem.style.margin = '4px 4px'
             button.elem.style.padding = '2px 2px'
             this.div.appendChild(button.elem)
         })
         this.widget.elem.innerText = items[0]+' ↓';
+    }
+    
+    private _clickHandler(name: string) {
+        this.widget.elem.innerText = name+' ↓'
+        window.callbackFunction(`${this.callbackName}_~_${name}`)
+        this.div.style.display = 'none'
+        this.isOpen = false
     }
 }
