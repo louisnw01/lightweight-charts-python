@@ -61,7 +61,6 @@ class PyWV:
 
         self.windows[-1].events.loaded += lambda: self.loaded_event.set()
 
-
     def loop(self):
         # self.loaded_event.set()
         while self.is_alive:
@@ -88,10 +87,21 @@ class PyWV:
                     else:
                         window.evaluate_js(arg)
                 except KeyError as e:
+                    # Handle KeyError if it occurs in the evaluation
+                    print(f"KeyError encountered: {e}")
                     return
                 except JavascriptException as e:
-                    msg = eval(str(e))
-                    raise JavascriptException(f"\n\nscript -> '{arg}',\nerror -> {msg['name']}[{msg['line']}:{msg['column']}]\n{msg['message']}")
+                    # Enhanced error handling
+                    msg = eval(str(e))  # Ensure msg is a dictionary
+                    line_info = msg.get('line', 'unknown line')  # Use 'unknown line' as default
+                    column_info = msg.get('column', 'unknown column')  # Use 'unknown column' as default
+                    
+                    # Raise a new JavascriptException with detailed info
+                    raise JavascriptException(
+                        f"\n\nscript -> '{arg}',\n"
+                        f"error -> {msg.get('name', 'unknown error name')}[{line_info}:{column_info}]\n"
+                        f"{msg.get('message', 'No message available')}"
+                    )
 
 
 class WebviewHandler():
