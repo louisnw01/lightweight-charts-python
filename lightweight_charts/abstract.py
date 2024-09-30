@@ -153,6 +153,7 @@ class SeriesCommon(Pane):
         self.offset = 0
         self.data = pd.DataFrame()
         self.markers = {}
+        self._visible = True
 
     def _set_interval(self, df: pd.DataFrame):
         if not pd.api.types.is_datetime64_any_dtype(df['time']):
@@ -414,8 +415,8 @@ class SeriesCommon(Pane):
         Toggles the visibility of the data and its volume if applicable.
         if the data is visible, it will be hidden, and vice versa.
         """
-        self._toggle_data(not self._data_visible)
-        self.visible = not self._data_visible
+        self._toggle_data(not self._visible)
+        self._visible = not self._visible
 
     def _toggle_data(self, arg):
         self.run_script(f'''
