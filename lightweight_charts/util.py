@@ -9,7 +9,7 @@ import pandas as pd
 
 class Pane:
     def __init__(self, window):
-        from lightweight_charts import Window
+        from lightweight_charts_r4gn4r.lightweight_charts import Window
         self.win: Window = window
         self.run_script = window.run_script
         self.bulk_run = window.bulk_run

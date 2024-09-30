@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 from util import BARS, Tester
-from lightweight_charts import Chart
+from lightweight_charts_r4gn4r.lightweight_charts import Chart
 
 
 class TestChart(Tester):

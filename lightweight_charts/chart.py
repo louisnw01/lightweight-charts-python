@@ -5,7 +5,7 @@ import typing
 import webview
 from webview.errors import JavascriptException
 
-from lightweight_charts import abstract
+from lightweight_charts_r4gn4r.lightweight_charts import abstract
 from .util import parse_event_message, FLOAT
 
 import os
@@ -204,7 +204,7 @@ class Chart(abstract.AbstractChart):
     async def show_async(self):
         self.show(block=False)
         try:
-            from lightweight_charts import polygon
+            from lightweight_charts_r4gn4r.lightweight_charts import polygon
             [asyncio.create_task(self.polygon.async_set(*args)) for args in polygon._set_on_load]
             while 1:
                 while Chart.WV.emit_queue.empty() and self.is_alive:
