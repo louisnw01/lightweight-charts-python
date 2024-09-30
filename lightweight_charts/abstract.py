@@ -307,6 +307,16 @@ class SeriesCommon(Pane):
         self.markers.pop(marker_id)
         self._update_markers()
 
+    def remove_markers(self, marker_ids: list):
+        """
+        Removes multiple markers with the given ids.
+        
+        :param marker_ids: A list of marker ids to be removed.
+        """
+        for marker_id in marker_ids:
+            self.markers.pop(marker_id, None)  # Use pop with default to avoid KeyError
+        self._update_markers()
+
     def horizontal_line(self, price: NUM, color: str = 'rgb(122, 146, 202)', width: int = 2,
                         style: LINE_STYLE = 'solid', text: str = '', axis_label_visible: bool = True,
                         func: Optional[Callable] = None
