@@ -24,6 +24,7 @@ class Drawing(Pane):
     def __init__(self, chart, func=None):
         super().__init__(chart.win)
         self.chart = chart
+        self._visible = True
 
     def update(self, *points):
         formatted_points = []
@@ -45,6 +46,43 @@ class Drawing(Pane):
             width: {width},
         }})''')
 
+    def show_data(self):
+        """
+        Shows the drawing.
+        """
+        if not self._visible:
+            self.run_script(f'{self.chart.id}.series.attachPrimitive({self.id})')
+            self._visible = True
+
+    def hide_data(self):
+        """
+        Hides the drawing.
+        """
+        if self._visible:
+            self.run_script(f'{self.id}.detach()')
+            self._visible = False
+
+
+    def _toggle_data(self, visible: bool):
+        """
+        Toggles the visibility of the drawing. If visible is True, attach the drawing to the chart.
+        If False, detach the drawing (effectively hiding it).
+        """
+        if visible:
+            # Re-attach the drawing to make it visible again
+            self.run_script(f'{self.chart.id}.series.attachPrimitive({self.id})')
+        else:
+            # Detach the drawing to hide it
+            self.run_script(f'{self.id}.detach()')
+        self._visible = visible
+
+    def toggle_data(self):
+        """
+        Toggles the visibility of the drawing.
+        """
+        self._toggle_data(not self._visible)
+
+        
 class TwoPointDrawing(Drawing):
     def __init__(
         self,
