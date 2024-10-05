@@ -37,7 +37,7 @@ class Drawing(Pane):
         """
         Irreversibly deletes the drawing.
         """
-        self.run_script(f'{self.id}.detach()')
+        self.run_script(f'{self.chart.id}.series.detachPrimitive({self.id})')
 
     def options(self, color='#1E80F0', style='solid', width=4):
         self.run_script(f'''{self.id}.applyOptions({{
