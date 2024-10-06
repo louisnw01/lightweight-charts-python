@@ -63,11 +63,15 @@ class MenuWidget(Widget):
     def __init__(self, topbar, options, default, separator, align, func):
         super().__init__(topbar, value=default, func=func)
         self.options = list(options)
+        self.func = func  # Store the function for later use
         self.run_script(f'''
-        {self.id} = {topbar.id}.makeMenu({list(options)}, "{default}", {jbool(separator)}, "{self.id}", "{align}")
+        {self.id} = {topbar.id}.makeMenu({self.options}, "{default}", {jbool(separator)}, "{self.id}", "{align}");
+        {self.id}.onItemClicked = function(option) {{
+            // Call the Python function associated with the clicked option
+            py_callback("{self.id}", option);
+        }};
         ''')
 
-    # TODO this will probably need to be fixed
     def set(self, option):
         if option not in self.options:
             raise ValueError(f"Option {option} not in menu options ({self.options})")
@@ -75,11 +79,21 @@ class MenuWidget(Widget):
         self.run_script(f'''
             {self.id}._clickHandler("{option}")
         ''')
-        # self.win.handlers[self.id](option)
+
+        # Execute the function associated with the selected option
+        if self.func:
+            self.func(option)  # Call the function with the selected option
 
     def update_items(self, *items: str):
         self.options = list(items)
         self.run_script(f'{self.id}.updateMenuItems({self.options})')
+
+    # This method receives the callback from JavaScript to trigger the function
+    def py_callback(self, menu_id, option):
+        if option in self.options:
+            self.func(option)  # Call the function associated with the selected option
+        else:
+            print(f"No function assigned to the option: {option}")
 
 
 class ButtonWidget(Widget):
