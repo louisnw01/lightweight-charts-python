@@ -266,6 +266,7 @@ class SeriesCommon(Pane):
                 "time": self._single_datetime_format(marker['time']),
                 "position": marker_position(marker['position']),
                 "color": marker['color'],
+                "original_color": marker['color'],  # Store the original color
                 "shape": marker_shape(marker['shape']),
                 "text": marker['text'],
             }
@@ -295,6 +296,7 @@ class SeriesCommon(Pane):
             "time": formatted_time,
             "position": marker_position(position),
             "color": color,
+            "original_color": color,
             "shape": marker_shape(shape),
             "text": text,
         }
@@ -317,6 +319,50 @@ class SeriesCommon(Pane):
         for marker_id in marker_ids:
             self.markers.pop(marker_id, None)  # Use pop with default to avoid KeyError
         self._update_markers()
+
+    def hide_marker(self, marker_id: str):
+        """
+        Hides the marker with the given id by setting its color to 'transparent'.
+        :param marker_id: The id of the marker to hide.
+        """
+        if marker_id in self.markers:
+            self.markers[marker_id]['color'] = 'transparent'  # Set marker color to transparent
+            self._update_markers()
+
+    def show_marker(self, marker_id: str):
+        """
+        Shows the marker with the given id by restoring its color.
+        :param marker_id: The id of the marker to show.
+        :param color: The color to restore to the marker.
+        """
+        if marker_id in self.markers:
+            self.markers[marker_id]['color'] = self.markers[marker_id]['original_color']  # Restore original or specified color
+            self._update_markers()
+    
+    def toggle_marker(self, marker_id: str):
+        """
+        Toggles the visibility of the marker with the given id.
+        If the marker is currently visible, it will be hidden.
+        If the marker is currently hidden, it will be shown.
+        :param marker_id: The id of the marker to toggle.
+        """
+        if marker_id in self.markers:
+            # Get the current color and original color of the marker
+            current_color = self.markers[marker_id]['color']
+            original_color = self.markers[marker_id]['original_color']
+
+            # Determine if the marker is currently visible or hidden
+            if current_color == 'transparent':
+                # If the marker is hidden, restore the original color
+                self.markers[marker_id]['color'] = original_color
+            else:
+                # If the marker is visible, hide it
+                self.markers[marker_id]['color'] = 'transparent'
+
+            # Update the markers in the chart
+            self._update_markers()
+
+
 
     def horizontal_line(self, price: NUM, color: str = 'rgb(122, 146, 202)', width: int = 2,
                         style: LINE_STYLE = 'solid', text: str = '', axis_label_visible: bool = True,
