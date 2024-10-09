@@ -2,7 +2,7 @@ import asyncio
 import html
 
 from .util import parse_event_message
-from lightweight_charts import abstract
+from lightweight_charts_r4gn4r.lightweight_charts import abstract
 
 try:
     import wx.html2

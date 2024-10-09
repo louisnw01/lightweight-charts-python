@@ -5,7 +5,7 @@ import typing
 import webview
 from webview.errors import JavascriptException
 
-from lightweight_charts import abstract
+from lightweight_charts_r4gn4r.lightweight_charts import abstract
 from .util import parse_event_message, FLOAT
 
 import os
@@ -61,7 +61,6 @@ class PyWV:
 
         self.windows[-1].events.loaded += lambda: self.loaded_event.set()
 
-
     def loop(self):
         # self.loaded_event.set()
         while self.is_alive:
@@ -88,10 +87,21 @@ class PyWV:
                     else:
                         window.evaluate_js(arg)
                 except KeyError as e:
+                    # Handle KeyError if it occurs in the evaluation
+                    print(f"KeyError encountered: {e}")
                     return
                 except JavascriptException as e:
-                    msg = eval(str(e))
-                    raise JavascriptException(f"\n\nscript -> '{arg}',\nerror -> {msg['name']}[{msg['line']}:{msg['column']}]\n{msg['message']}")
+                    # Enhanced error handling
+                    msg = eval(str(e))  # Ensure msg is a dictionary
+                    line_info = msg.get('line', 'unknown line')  # Use 'unknown line' as default
+                    column_info = msg.get('column', 'unknown column')  # Use 'unknown column' as default
+                    
+                    # Raise a new JavascriptException with detailed info
+                    raise JavascriptException(
+                        f"\n\nscript -> '{arg}',\n"
+                        f"error -> {msg.get('name', 'unknown error name')}[{line_info}:{column_info}]\n"
+                        f"{msg.get('message', 'No message available')}"
+                    )
 
 
 class WebviewHandler():
@@ -204,7 +214,7 @@ class Chart(abstract.AbstractChart):
     async def show_async(self):
         self.show(block=False)
         try:
-            from lightweight_charts import polygon
+            from lightweight_charts_r4gn4r.lightweight_charts import polygon
             [asyncio.create_task(self.polygon.async_set(*args)) for args in polygon._set_on_load]
             while 1:
                 while Chart.WV.emit_queue.empty() and self.is_alive:

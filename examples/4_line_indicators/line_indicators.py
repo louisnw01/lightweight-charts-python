@@ -1,5 +1,5 @@
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_r4gn4r.lightweight_charts import Chart
 
 
 def calculate_sma(df, period: int = 50):
