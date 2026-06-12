@@ -701,7 +701,7 @@ class AbstractChart(Candlestick, Pane):
         self._height = height
         self.events: Events = Events(self)
 
-        from lightweight_charts.polygon import PolygonAPI
+        from lightweight_charts_csava.polygon import PolygonAPI
         self.polygon: PolygonAPI = PolygonAPI(self)
 
         self.run_script(
@@ -854,16 +854,21 @@ class AbstractChart(Candlestick, Pane):
     def watermark(self, text: str, font_size: int = 44, color: str = 'rgba(180, 180, 200, 0.5)'):
         """
         Adds a watermark to the chart.
+        Uses LWC v5 createTextWatermark API.
         """
         self.run_script(f'''
-          {self.id}.chart.applyOptions({{
-              watermark: {{
-                  visible: true,
+          if (typeof LightweightCharts !== 'undefined' && LightweightCharts.createTextWatermark) {{
+              LightweightCharts.createTextWatermark({self.id}.chart.panes()[0], {{
                   horzAlign: 'center',
                   vertAlign: 'center',
-                  ...{js_json(locals())}
-              }}
-          }})''')
+                  lines: [{{
+                      text: '{text}',
+                      color: '{color}',
+                      fontSize: {font_size},
+                  }}],
+              }});
+          }}
+        ''')
 
     def legend(self, visible: bool = False, ohlc: bool = True, percent: bool = True, lines: bool = True,
                color: str = 'rgb(191, 195, 203)', font_size: int = 11, font_family: str = 'Monaco',

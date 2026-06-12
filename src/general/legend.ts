@@ -119,7 +119,7 @@ export class Legend {
         row.appendChild(toggle)
         this.seriesContainer.appendChild(row)
 
-        const color = series.options().color;
+        const color = (series.options() as {color?: string}).color ?? 'rgba(255,255,255,1)';
         this._lines.push({
             name: name,
             div: div,

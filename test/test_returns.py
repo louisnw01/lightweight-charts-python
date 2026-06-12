@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 import asyncio
 
 from util import BARS, Tester

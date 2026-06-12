@@ -8,7 +8,7 @@ NC='\033[0m'
 
 ERROR="${RED}[ERROR]${NC} "
 INFO="${CYAN}[INFO]${NC} "
-WARNING="${WARNING}[WARNING]${NC} "
+WARNING="${YELLOW}[WARNING]${NC} "
 
 rm -rf dist/bundle.js dist/typings/
 
@@ -23,12 +23,20 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-cp dist/bundle.js src/general/styles.css lightweight_charts/js
+# Copy the LWC v5 standalone production build into the Python package
+LWC_STANDALONE="node_modules/lightweight-charts/dist/lightweight-charts.standalone.production.js"
+if [[ -f "$LWC_STANDALONE" ]]; then
+    cp "$LWC_STANDALONE" lightweight_charts_csava/js/lightweight-charts.js
+    echo -e "${INFO}copied lightweight-charts v5 standalone into python package"
+else
+    echo -e "${WARNING}could not find LWC standalone file at ${LWC_STANDALONE}"
+fi
+
+cp dist/bundle.js src/general/styles.css lightweight_charts_csava/js
 if [[ $? -eq 0 ]]; then
-    echo -e "${INFO}copied bundle.js, style.css into python package"
+    echo -e "${INFO}copied bundle.js, styles.css into python package"
 else
     echo -e "${ERROR}could not copy dist into python package ?"
     exit 1
 fi
 echo -e "\n${GREEN}[BUILD SUCCESS]${NC}"
-

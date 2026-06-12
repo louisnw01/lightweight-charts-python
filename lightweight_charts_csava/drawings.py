@@ -4,7 +4,7 @@ import pandas as pd
 
 from typing import Union, Optional
 
-from lightweight_charts.util import js_json
+from lightweight_charts_csava.util import js_json
 
 from .util import NUM, Pane, as_enum, LINE_STYLE, TIME, snake_to_camel
 
@@ -143,8 +143,7 @@ class VerticalLine(Drawing):
 
     def update(self, time: TIME):
         self.run_script(f'{self.id}.updatePoints({{time: {time}}})')
-        # self.run_script(f'{self.id}.updatePrice({price})')
-        self.price = price
+        self.time = time
 
     def options(self, color='#1E80F0', style='solid', width=4, text=''):
         super().options(color, style, width)
@@ -250,16 +249,16 @@ class VerticalSpan(Pane):
         super().__init__(self._chart.win)
         start_time, end_time = pd.to_datetime(start_time), pd.to_datetime(end_time)
         self.run_script(f'''
-        {self.id} = {self._chart.id}.chart.addHistogramSeries({{
+        {self.id} = {self._chart.id}.chart.addSeries(LightweightCharts.HistogramSeries, {{
                 color: '{color}',
                 priceFormat: {{type: 'volume'}},
                 priceScaleId: 'vertical_line',
                 lastValueVisible: false,
                 priceLineVisible: false,
-        }})
+        }});
         {self.id}.priceScale('').applyOptions({{
             scaleMargins: {{top: 0, bottom: 0}}
-        }})
+        }});
         ''')
         if end_time is None:
             if isinstance(start_time, pd.DatetimeIndex):
@@ -268,9 +267,14 @@ class VerticalSpan(Pane):
                 data = [{'time': start_time.timestamp(), 'value': 1}]
             self.run_script(f'{self.id}.setData({data})')
         else:
+            # Generate a data array covering start to end with value=1
             self.run_script(f'''
-            {self.id}.setData(calculateTrendLine(
-            {start_time.timestamp()}, 1, {end_time.timestamp()}, 1, {series.id}))
+            var _vsStart = {start_time.timestamp()}, _vsEnd = {end_time.timestamp()};
+            var _vsData = [];
+            var _vsTs = _vsStart;
+            var _vsStep = Math.max(60, ({series.id}.series.options().priceFormat ? 60 : 60));
+            while (_vsTs <= _vsEnd) {{ _vsData.push({{time: _vsTs, value: 1}}); _vsTs += _vsStep; }}
+            {self.id}.setData(_vsData);
             ''')
 
     def delete(self):

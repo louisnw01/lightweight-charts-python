@@ -3,19 +3,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config src/vite.config.js",
-    "build": "./build.sh"
+    "build": "./build.sh",
+    "build:win": "powershell -ExecutionPolicy Bypass -File ./build.ps1"
   },
   "devDependencies": {
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^11.1.6",
-    "rollup": "^4.13.0",
-    "typescript": "^5.4.3",
-    "vite": "^4.3.1"
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "rollup": "^4.61.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5"
   },
   "dependencies": {
-    "dts-bundle-generator": "^8.0.1",
+    "dts-bundle-generator": "^9.5.1",
     "fancy-canvas": "^2.1.0",
-    "lightweight-charts": "^4.1.0-rc2",
-    "tslib": "^2.6.2"
+    "lightweight-charts": "^5.2.0",
+    "tslib": "^2.8.1"
   }
 }

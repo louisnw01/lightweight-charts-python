@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 from util import Tester
 
 

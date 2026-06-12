@@ -1,6 +1,6 @@
 import pandas as pd
 from time import sleep
-from lightweight_charts import Chart
+from lightweightlightweight_charts_csava_charts import Chart
 
 if __name__ == '__main__':
 

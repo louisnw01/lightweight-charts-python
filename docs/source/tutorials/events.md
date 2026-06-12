@@ -8,7 +8,7 @@ This section gives an overview of how events are handled across the library.
 Take a look at this minimal example, which uses the [`search`](#AbstractChart.Events) event:
 
 ```python
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 def on_search(chart, string):
@@ -43,7 +43,7 @@ ___
 Events can also be emitted from the topbar:
 
 ```python
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 def on_button_press(chart):
     new_button_value = 'On' if chart.topbar['my_button'].value == 'Off' else 'Off'
@@ -65,7 +65,7 @@ When the button is pressed, the function will be emitted the `chart` object as w
 The `switcher` is typically used for timeframe selection:
 
 ```python
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 def on_timeframe_selection(chart):
     print(f'Getting data with a {chart.topbar["my_switcher"].value} timeframe.')
@@ -89,7 +89,7 @@ There are many use cases where we will need to run our own code whilst the GUI l
 ```python
 import asyncio
 from datetime import datetime
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 async def update_clock(chart):
@@ -119,7 +119,7 @@ Now we can create an asyncio program which updates chart data whilst allowing th
 ```python
 import asyncio
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 async def data_loop(chart):

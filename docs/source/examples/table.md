@@ -2,7 +2,7 @@
 
 ```python
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 def on_row_click(row):
     row['PL'] = round(row['PL']+1, 2)

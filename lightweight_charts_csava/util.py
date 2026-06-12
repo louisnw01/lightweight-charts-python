@@ -3,13 +3,12 @@ import json
 from datetime import datetime
 from random import choices
 from typing import Literal, Union
-from numpy import isin
 import pandas as pd
 
 
 class Pane:
     def __init__(self, window):
-        from lightweight_charts import Window
+        from lightweight_charts_csava import Window
         self.win: Window = window
         self.run_script = window.run_script
         self.bulk_run = window.bulk_run
@@ -26,7 +25,7 @@ class IDGen(list):
         if var not in self:
             self.append(var)
             return f'window.{var}'
-        self.generate()
+        return self.generate()
 
 
 def parse_event_message(window, string):

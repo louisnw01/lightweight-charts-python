@@ -5,7 +5,7 @@ import typing
 import webview
 from webview.errors import JavascriptException
 
-from lightweight_charts import abstract
+from lightweight_charts_csava import abstract
 from .util import parse_event_message, FLOAT
 
 import os
@@ -87,11 +87,18 @@ class PyWV:
                         self.return_queue.put(window.evaluate_js(arg[14:]))
                     else:
                         window.evaluate_js(arg)
-                except KeyError as e:
+                except KeyError:
                     return
                 except JavascriptException as e:
-                    msg = eval(str(e))
-                    raise JavascriptException(f"\n\nscript -> '{arg}',\nerror -> {msg['name']}[{msg['line']}:{msg['column']}]\n{msg['message']}")
+                    try:
+                        msg = eval(str(e))
+                        raise JavascriptException(
+                            f"\n\nscript -> '{arg}',\n"
+                            f"error -> {msg['name']}[{msg.get('line', '?')}:{msg.get('column', '?')}]\n"
+                            f"{msg['message']}"
+                        ) from e
+                    except (SyntaxError, ValueError, KeyError, TypeError):
+                        raise JavascriptException(f"\n\nscript -> '{arg}',\nerror -> {e}") from e
 
 
 class WebviewHandler():
@@ -204,7 +211,7 @@ class Chart(abstract.AbstractChart):
     async def show_async(self):
         self.show(block=False)
         try:
-            from lightweight_charts import polygon
+            from lightweight_charts_csava import polygon
             [asyncio.create_task(self.polygon.async_set(*args)) for args in polygon._set_on_load]
             while 1:
                 while Chart.WV.emit_queue.empty() and self.is_alive:

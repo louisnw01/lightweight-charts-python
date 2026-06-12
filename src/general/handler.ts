@@ -1,10 +1,13 @@
 import {
+    CandlestickSeries,
     ColorType,
     CrosshairMode,
     DeepPartial,
+    HistogramSeries,
     HistogramStyleOptions,
     IChartApi,
     ISeriesApi,
+    LineSeries,
     LineStyleOptions,
     LogicalRange,
     LogicalRangeChangeEventHandler,
@@ -155,45 +158,45 @@ export class Handler {
     createCandlestickSeries() {
         const up = 'rgba(39, 157, 130, 100)'
         const down = 'rgba(200, 97, 100, 100)'
-        const candleSeries = this.chart.addCandlestickSeries({
+        const candleSeries = this.chart.addSeries(CandlestickSeries, {
             upColor: up, borderUpColor: up, wickUpColor: up,
             downColor: down, borderDownColor: down, wickDownColor: down
         });
         candleSeries.priceScale().applyOptions({
             scaleMargins: {top: 0.2, bottom: 0.2},
         });
-        return candleSeries;
+        return candleSeries as ISeriesApi<SeriesType>;
     }
 
     createVolumeSeries() {
-        const volumeSeries = this.chart.addHistogramSeries({
+        const volumeSeries = this.chart.addSeries(HistogramSeries, {
             color: '#26a69a',
             priceFormat: {type: 'volume'},
             priceScaleId: 'volume_scale',
-        })
+        });
         volumeSeries.priceScale().applyOptions({
             scaleMargins: {top: 0.8, bottom: 0},
         });
-        return volumeSeries;
+        return volumeSeries as ISeriesApi<SeriesType>;
     }
 
     createLineSeries(name: string, options: DeepPartial<LineStyleOptions & SeriesOptionsCommon>) {
-        const line = this.chart.addLineSeries({...options});
-        this._seriesList.push(line);
-        this.legend.makeSeriesRow(name, line)
+        const line = this.chart.addSeries(LineSeries, {...options});
+        this._seriesList.push(line as ISeriesApi<SeriesType>);
+        this.legend.makeSeriesRow(name, line as ISeriesApi<SeriesType>)
         return {
             name: name,
-            series: line,
+            series: line as ISeriesApi<SeriesType>,
         }
     }
 
     createHistogramSeries(name: string, options: DeepPartial<HistogramStyleOptions & SeriesOptionsCommon>) {
-        const line = this.chart.addHistogramSeries({...options});
-        this._seriesList.push(line);
-        this.legend.makeSeriesRow(name, line)
+        const line = this.chart.addSeries(HistogramSeries, {...options});
+        this._seriesList.push(line as ISeriesApi<SeriesType>);
+        this.legend.makeSeriesRow(name, line as ISeriesApi<SeriesType>)
         return {
             name: name,
-            series: line,
+            series: line as ISeriesApi<SeriesType>,
         }
     }
 

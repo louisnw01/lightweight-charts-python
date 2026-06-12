@@ -1,0 +1,21 @@
+[project]
+name = "lightweight_charts_csava"
+version = "2.2.1"
+description = "Python framework for TradingView's Lightweight Charts JavaScript library."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "csava"}]
+dependencies = [
+    "pandas",
+    "pywebview>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/csava/lightweight-charts-python"
+
+[tool.setuptools]
+packages = {find = {}}
+
+[tool.setuptools.package-data]
+"lightweight_charts_csava" = ["js/*"]

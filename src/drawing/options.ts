@@ -3,8 +3,9 @@ import { LineStyle } from "lightweight-charts";
 
 export interface DrawingOptions {
     lineColor: string;
-    lineStyle: LineStyle
+    lineStyle: LineStyle;
     width: number;
+    text?: string;
 }
 
 export const defaultOptions: DrawingOptions = {

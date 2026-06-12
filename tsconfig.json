@@ -14,7 +14,7 @@
 		"noImplicitReturns": true,
 		"skipLibCheck": true,
 		"declaration": true,
-		"declarationDir": "typings",
+		"declarationDir": "dist/typings",
 		"emitDeclarationOnly": true,
 		// "outDir": "./dist"
 	},

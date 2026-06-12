@@ -1,6 +1,6 @@
 import {
 	DataChangedScope,
-	IChartApi,
+	IChartApiBase,
 	ISeriesApi,
 	ISeriesPrimitive,
 	SeriesAttachedParameter,
@@ -13,7 +13,7 @@ import { ensureDefined } from './helpers/assertions';
 //* already handles creating getters for the chart and series,
 //* and provides a requestUpdate method.
 export abstract class PluginBase implements ISeriesPrimitive<Time> {
-	private _chart: IChartApi | undefined = undefined;
+	private _chart: IChartApiBase<Time> | undefined = undefined;
 	private _series: ISeriesApi<keyof SeriesOptionsMap> | undefined = undefined;
 
 	protected dataUpdated?(scope: DataChangedScope): void;
@@ -21,6 +21,13 @@ export abstract class PluginBase implements ISeriesPrimitive<Time> {
 		if (this._requestUpdate) this._requestUpdate();
 	}
 	private _requestUpdate?: () => void;
+
+	// Arrow function so `this` is always bound correctly when used as a callback
+	private _fireDataUpdated = (scope: DataChangedScope) => {
+		if (this.dataUpdated) {
+			this.dataUpdated(scope);
+		}
+	};
 
 	public attached({
 		chart,
@@ -35,22 +42,17 @@ export abstract class PluginBase implements ISeriesPrimitive<Time> {
 	}
 
 	public detached() {
+		this._series?.unsubscribeDataChanged(this._fireDataUpdated);
 		this._chart = undefined;
 		this._series = undefined;
 		this._requestUpdate = undefined;
 	}
 
-	public get chart(): IChartApi {
+	public get chart(): IChartApiBase<Time> {
 		return ensureDefined(this._chart);
 	}
 
 	public get series(): ISeriesApi<keyof SeriesOptionsMap> {
 		return ensureDefined(this._series);
-	}
-
-	private _fireDataUpdated(scope: DataChangedScope) {
-		if (this.dataUpdated) {
-			this.dataUpdated(scope);
-		}
 	}
 }

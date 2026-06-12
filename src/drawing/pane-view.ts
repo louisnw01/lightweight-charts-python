@@ -1,11 +1,11 @@
-import { Coordinate, ISeriesPrimitivePaneView } from 'lightweight-charts';
+import { Coordinate, IPrimitivePaneView } from 'lightweight-charts';
 import { Drawing } from './drawing';
 import { Point } from './data-source';
 import { DrawingPaneRenderer } from './pane-renderer';
 import { TwoPointDrawing } from './two-point-drawing';
 
 
-export abstract class DrawingPaneView implements ISeriesPrimitivePaneView {
+export abstract class DrawingPaneView implements IPrimitivePaneView {
     _source: Drawing;
 
     constructor(source: Drawing) {

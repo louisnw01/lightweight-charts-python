@@ -29,7 +29,7 @@ When using live data and the standard `show` method, the `block` parameter __mus
 For Example:
 
 ```python
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 if __name__ == '__main__':
     chart = Chart()
@@ -142,7 +142,7 @@ ___
 For Example:
 
 ```python
-from lightweight_charts import PolygonChart
+from lightweight_charts_csava import PolygonChart
 
 if __name__ == '__main__':
     chart = PolygonChart(

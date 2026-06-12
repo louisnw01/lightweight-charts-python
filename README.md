@@ -36,7 +36,7 @@ ___
 
 ```python
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 if __name__ == '__main__':
@@ -58,7 +58,7 @@ ___
 ```python
 import pandas as pd
 from time import sleep
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 if __name__ == '__main__':
 
@@ -92,7 +92,7 @@ ___
 ```python
 import pandas as pd
 from time import sleep
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 if __name__ == '__main__':
@@ -121,7 +121,7 @@ ___
 
 ```python
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 def calculate_sma(df, period: int = 50):
@@ -152,7 +152,7 @@ ___
 
 ```python
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 if __name__ == '__main__':
@@ -189,7 +189,7 @@ ___
 
 ```python
 import pandas as pd
-from lightweight_charts import Chart
+from lightweight_charts_csava import Chart
 
 
 def get_bar_data(symbol, timeframe):
